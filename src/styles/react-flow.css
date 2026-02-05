@@ -1,0 +1,53 @@
+/* React Flow Custom Styles */
+/* Optimized for performance and drag fluidity */
+
+/* Hardware acceleration for interaction layer */
+.react-flow__viewport {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Optimize nodes during drag */
+.react-flow__node.dragging {
+  /* Disable transitions during drag for perfect 1:1 movement */
+  transition: none !important;
+  z-index: 1000 !important;
+}
+
+/* Disable pointer events on handles during drag to prevent interference */
+.react-flow__node.dragging .react-flow__handle {
+  pointer-events: none;
+}
+
+/* Smoother selection box */
+.react-flow__selection {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  border-radius: 4px;
+}
+
+/* Enhance connection lines */
+.react-flow__edge-path {
+  stroke: #94a3b8;
+  stroke-width: 2px;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #3b82f6;
+  stroke-width: 3px;
+}
+
+/* Animated edges flow */
+.react-flow__edge-path {
+  /* optional: subtle dash animation */
+  /* stroke-dasharray: 5; */
+  transition: stroke 0.3s ease;
+}
+
+/* Hide attribution on mobile/embedded if needed */
+.react-flow__attribution {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(4px);
+  padding: 2px 4px;
+  border-radius: 4px;
+}

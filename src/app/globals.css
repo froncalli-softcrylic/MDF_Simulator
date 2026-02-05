@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Softcrylic Brand Colors */
+    --background: 210 20% 98%;      /* Very light cool gray/white */
+    --foreground: 215 25% 27%;      /* Softcrylic Slate #344054 approx */
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 27%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 27%;
+
+    --primary: 4 84% 54%;           /* Softcrylic Red #EE3124 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 180 10% 35%;       /* Softcrylic Dark Grey #526363 */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 4 84% 96%;            /* Very light red tint */
+    --accent-foreground: 4 84% 54%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 4 84% 54%;              /* Focus ring matches primary red */
+    --radius: 0.5rem;
+
+    /* MDF Node Category Colors - Vibrant Light Mode */
+    --mdf-source: 190 90% 45%;         /* Deep Cyan */
+    --mdf-ingestion: 260 85% 60%;      /* Vivid Purple */
+    --mdf-processing: 280 85% 60%;     /* Rich Violet */
+    --mdf-storage: 220 90% 55%;        /* Bright Blue */
+    --mdf-identity: 160 85% 40%;       /* Strong Emerald */
+    --mdf-governance: 35 95% 50%;      /* Warm Amber */
+    --mdf-analytics: 330 85% 55%;      /* Hot Pink */
+    --mdf-activation: 145 80% 40%;     /* Fresh Green */
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+    
+    /* MDF Node Category Colors - Dark Mode (slightly adjusted for visibility) */
+    --mdf-source: 199 89% 55%;
+    --mdf-ingestion: 262 83% 65%;
+    --mdf-processing: 271 91% 70%;
+    --mdf-storage: 217 91% 65%;
+    --mdf-identity: 158 64% 58%;
+    --mdf-governance: 43 96% 60%;
+    --mdf-analytics: 338 71% 58%;
+    --mdf-activation: 142 71% 52%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* React Flow Customizations */
+.react-flow__node {
+  @apply transition-all duration-200;
+}
+
+.react-flow__node.selected {
+  @apply ring-2 ring-primary ring-offset-2;
+}
+
+.react-flow__edge-path {
+  @apply stroke-2;
+}
+
+.react-flow__minimap {
+  @apply bg-card/80 rounded-lg border shadow-lg;
+}
+
+/* Node category color utilities */
+.node-source {
+  @apply bg-[hsl(var(--mdf-source))] border-[hsl(var(--mdf-source))];
+}
+
+.node-ingestion {
+  @apply bg-[hsl(var(--mdf-ingestion))] border-[hsl(var(--mdf-ingestion))];
+}
+
+.node-processing {
+  @apply bg-[hsl(var(--mdf-processing))] border-[hsl(var(--mdf-processing))];
+}
+
+.node-storage {
+  @apply bg-[hsl(var(--mdf-storage))] border-[hsl(var(--mdf-storage))];
+}
+
+.node-identity {
+  @apply bg-[hsl(var(--mdf-identity))] border-[hsl(var(--mdf-identity))];
+}
+
+.node-governance {
+  @apply bg-[hsl(var(--mdf-governance))] border-[hsl(var(--mdf-governance))];
+}
+
+.node-analytics {
+  @apply bg-[hsl(var(--mdf-analytics))] border-[hsl(var(--mdf-analytics))];
+}
+
+.node-activation {
+  @apply bg-[hsl(var(--mdf-activation))] border-[hsl(var(--mdf-activation))];
+}
+
+/* Value overlay dimming */
+.node-dimmed {
+  @apply opacity-30 transition-opacity duration-300;
+}
+
+.node-highlighted {
+  @apply opacity-100 ring-2 ring-white ring-offset-2 ring-offset-background transition-all duration-300;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-muted rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50;
+}
+
+/* Drag and drop visual feedback */
+.dragging-node {
+  @apply cursor-grabbing opacity-70;
+}
+
+.drop-target {
+  @apply border-2 border-dashed border-primary bg-primary/5;
+}
