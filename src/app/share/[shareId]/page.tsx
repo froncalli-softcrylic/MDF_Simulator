@@ -143,7 +143,7 @@ function ShareCanvas() {
                     <MiniMap
                         position="bottom-left"
                         className="!bg-card/80 !border"
-                        nodeColor={(n) => {
+                        nodeColor={(n: any) => {
                             const data = n.data as { category?: string } | undefined
                             switch (data?.category) {
                                 case 'identity': return 'hsl(158, 64%, 52%)'

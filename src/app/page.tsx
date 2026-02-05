@@ -145,7 +145,7 @@ export default function LandingPage() {
                 <div className="text-center mb-10">
                     <h2 className="text-2xl font-bold mb-2">Start with a Proven Architecture</h2>
                     <p className="text-muted-foreground">
-                        Select a template built from Softcrylic's engineering expertise
+                        Select a template built from Softcrylic&apos;s engineering expertise
                     </p>
                 </div>
 

@@ -9,10 +9,10 @@ const projects = new Map<string, any>()
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const projectId = params.id
+        const { id: projectId } = await params
         const project = projects.get(projectId)
 
         if (!project) {
@@ -34,10 +34,10 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const projectId = params.id
+        const { id: projectId } = await params
         const body = await request.json()
         const { graphData, name, profile } = body
 

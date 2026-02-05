@@ -303,6 +303,7 @@ export interface MdfNodeData {
     status?: NodeStatus;
     isRailNode?: boolean;      // For visual rendering
     railPosition?: 'top' | 'center'; // governance=top, graph=center
+    [key: string]: unknown;    // For React Flow compatibility
 }
 
 export interface GraphData {

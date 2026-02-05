@@ -9,10 +9,10 @@ const projects = new Map<string, any>()
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { shareId: string } }
+    { params }: { params: Promise<{ shareId: string }> }
 ) {
     try {
-        const shareId = params.shareId
+        const { shareId } = await params
 
         // Look up projectId from shareId
         const projectId = shares.get(shareId)

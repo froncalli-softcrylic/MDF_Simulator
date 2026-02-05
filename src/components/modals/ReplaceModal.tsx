@@ -87,7 +87,7 @@ export default function ReplaceModal({
                             </div>
                             <p className="text-xs text-slate-500 ml-6">
                                 Add {newNode.name} alongside {existingNode.name}.
-                                You'll need to manually configure connections.
+                                You&apos;ll need to manually configure connections.
                             </p>
                         </div>
                     </div>

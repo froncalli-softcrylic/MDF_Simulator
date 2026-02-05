@@ -218,7 +218,7 @@ export default function WizardPage() {
                             <CardHeader>
                                 <CardTitle>What are your primary goals?</CardTitle>
                                 <CardDescription>
-                                    Select the outcomes you're hoping to achieve.
+                                    Select the outcomes you&apos;re hoping to achieve.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>

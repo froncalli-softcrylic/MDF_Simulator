@@ -63,7 +63,7 @@ export async function applyAutoLayout(
 
         // Map new positions back to nodes
         const positionMap = new Map<string, { x: number; y: number }>()
-        layoutedGraph.children?.forEach(child => {
+        layoutedGraph.children?.forEach((child: any) => {
             if (child.x !== undefined && child.y !== undefined) {
                 positionMap.set(child.id, { x: child.x, y: child.y })
             }

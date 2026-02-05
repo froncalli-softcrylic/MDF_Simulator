@@ -156,7 +156,10 @@ export default function NodePalette() {
 
     const handleAddNode = useCallback((catalogId: string) => {
         // Add node to center of viewport
-        addNode(catalogId, { x: 400, y: 300 })
+        const node = nodeCatalog.find(n => n.id === catalogId)
+        if (node) {
+            addNode(catalogId, node.name, node.category, { x: 400, y: 300 })
+        }
     }, [addNode])
 
     // Separate main pipeline categories from rails

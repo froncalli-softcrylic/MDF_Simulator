@@ -58,7 +58,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
                             </div>
                             <CardTitle>Something went wrong</CardTitle>
                             <CardDescription>
-                                An unexpected error occurred. Don't worry, your work is safe.
+                                An unexpected error occurred. Don&apos;t worry, your work is safe.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">

@@ -144,8 +144,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
             id: e.id,
             source: e.source,
             target: e.target,
-            sourceHandle: e.sourceHandle,
-            targetHandle: e.targetHandle
+            sourceHandle: e.sourceHandle ?? undefined,
+            targetHandle: e.targetHandle ?? undefined
         }))
         set({
             nodes,
@@ -172,8 +172,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
                 id: e.id,
                 source: e.source,
                 target: e.target,
-                sourceHandle: e.sourceHandle,
-                targetHandle: e.targetHandle
+                sourceHandle: e.sourceHandle ?? undefined,
+                targetHandle: e.targetHandle ?? undefined
             }))
         }
     },
