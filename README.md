@@ -9,12 +9,13 @@ Interactive Marketing Data Foundation simulator for B2B prospects to visualize u
 - **Intake Wizard**: Guided questionnaire to generate tailored MDF architecture
 - **Drag & Drop Canvas**: React Flow-based interactive diagram builder
 - **25+ Node Types**: Data sources, ingestion, processing, storage, identity graph, governance, analytics, activation
+- **AI Assistant**: Real-time MDF flow generation assistant powered by Groq (Llama 3.3)
+- **Smart Connect**: Intelligent edge suggestions and auto-remediation for connectivity gaps
 - **Demo Profiles**: Adobe Summit and Preferred Stack configurations
 - **Value Overlays**: Highlight nodes by capabilities (Activation, Measurement, Identity, Governance)
 - **Real-time Validation**: Rules engine with errors, warnings, and recommendations
-- **Lead Capture**: Gate on save/export/share for lead generation
 - **Auto Layout**: ELK.js-powered automatic graph organization
-- **Share Links**: Read-only shareable diagrams
+- **Lead Capture**: Gate on save/export/share for lead generation
 
 ## Tech Stack
 
@@ -22,9 +23,9 @@ Interactive Marketing Data Foundation simulator for B2B prospects to visualize u
 - **Language**: TypeScript
 - **Canvas**: React Flow
 - **State**: Zustand
+- **AI/LLM**: Groq (Llama 3.3 70B "Versatile")
 - **Styling**: Tailwind CSS + shadcn/ui
 - **Layout**: ELK.js
-- **Database**: PostgreSQL + Prisma (optional for MVP)
 - **Export**: html-to-image
 
 ## Getting Started
@@ -44,7 +45,10 @@ cd MDF_simulator
 npm install
 
 # Copy environment file
-cp .env.example .env
+cp .env.example .env.local
+
+# Add your Groq API Key to .env.local
+# GROQ_API_KEY=your_key_here
 
 # Run development server
 npm run dev
@@ -72,24 +76,25 @@ npm run db:push
 ```
 src/
 ├── app/                    # Next.js App Router pages
-│   ├── api/               # API routes
+│   ├── api/               # API routes (including /api/chat for Groq)
 │   ├── simulator/         # Canvas page
 │   ├── wizard/            # Intake wizard
 │   └── share/             # Read-only share view
 ├── components/
-│   ├── canvas/            # React Flow components
-│   ├── modals/            # Lead capture modal
+│   ├── canvas/            # Canvas components (Toolbar, Palette, AI Assistant)
+│   ├── modals/            # Dialogue modals (Lead capture, Smart Connect Confirm)
 │   └── ui/                # shadcn/ui components
 ├── data/
-│   ├── node-catalog.ts    # Node definitions
+│   ├── node-catalog.ts    # Node definitions & metadata
 │   ├── demo-profiles.ts   # Profile configurations
 │   └── templates.ts       # Starter templates
 ├── lib/
-│   ├── validation-engine.ts
-│   ├── diagram-generator.ts
-│   └── layout-engine.ts
-├── store/                 # Zustand stores
-└── types/                 # TypeScript types
+│   ├── validation-engine.ts   # Graph conformance rules
+│   ├── smart-connect-engine.ts # AI-enhanced connectivity logic
+│   ├── layout-engine.ts       # ELK.js bridge
+│   └── diagram-generator.ts   # Wizard/Template logic
+├── store/                 # Zustand stores (Canvas, UI, Profile)
+└── types/                 # TypeScript interfaces
 ```
 
 ## Adding Content
@@ -153,19 +158,15 @@ my_profile: {
 
 | Variable | Description | Default |
 |----------|-------------|---------|
+| `GROQ_API_KEY` | Groq LLM API Key (Required for AI features) | - |
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://...` |
-| `REDIS_URL` | Redis URL for rate limiting | `redis://localhost:6379` |
 | `NEXT_PUBLIC_APP_URL` | Public app URL | `http://localhost:3000` |
 
 ## Deployment
 
-The app is optimized for Vercel deployment:
+The app is optimized for Vercel deployment. Ensure `GROQ_API_KEY` is added to your project's environment variables.
 
 ```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
 vercel
 ```
 
@@ -175,4 +176,4 @@ Proprietary - Internal use only
 
 ---
 
-Built with ❤️ for unified customer data
+Built with ❤️ by Softcrylic

@@ -3,7 +3,7 @@
 // Simulator Canvas Page - Main React Flow canvas with all panels
 // Optimized for smooth drag and drop performance
 
-import { useCallback, useEffect, useRef, useMemo } from 'react'
+import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import {
     ReactFlow,
@@ -25,6 +25,7 @@ import { useUIStore } from '@/store/ui-store'
 import { useProfileStore } from '@/store/profile-store'
 import { validateGraph } from '@/lib/validation-engine'
 import { generateDiagramFromWizard, generateDiagramFromTemplate } from '@/lib/diagram-generator'
+import { loadProfileDefinition } from '@/lib/profile-pipeline'
 import { getTemplateById } from '@/data/templates'
 import { debounce } from '@/lib/utils'
 import { logger } from '@/lib/logger'
@@ -36,10 +37,13 @@ import Toolbar from '@/components/canvas/Toolbar'
 import ValidationPanel from '@/components/canvas/ValidationPanel'
 import StatusLegend from '@/components/canvas/StatusLegend'
 import SmartConnectPanel from '@/components/canvas/SmartConnectPanel'
+import AIAssistantPanel from '@/components/canvas/AIAssistantPanel'
 import LeadCaptureModal from '@/components/modals/LeadCaptureModal'
 import ReplaceModal from '@/components/modals/ReplaceModal'
+import GuidedTour from '@/components/tour/GuidedTour'
+import StageLabels from '@/components/canvas/StageLabels'
 import type { SuggestedEdge } from '@/types'
-import { generateId } from '@/lib/utils'
+import { generateId, cn } from '@/lib/utils'
 
 // Custom node types - memoized outside component to prevent re-renders
 const nodeTypes = {
@@ -50,13 +54,16 @@ const nodeTypes = {
 const defaultEdgeOptions = {
     type: 'smoothstep',
     animated: false,
-    style: { strokeWidth: 2 }
+    style: { strokeWidth: 2.5, stroke: '#b0b8c8' },
+    pathOptions: { borderRadius: 16 }
 }
 
 // Pro options for better performance
 const proOptions = {
     hideAttribution: true
 }
+
+import SimulatorLoader3D from '@/components/3d/SimulatorLoader3D'
 
 function SimulatorCanvas() {
     const params = useParams()
@@ -65,6 +72,13 @@ function SimulatorCanvas() {
     const templateId = searchParams.get('template')
     const fromWizard = searchParams.get('fromWizard') === 'true'
     const canvasRef = useRef<HTMLDivElement>(null)
+    const [isLoading, setIsLoading] = useState(true)
+
+    // Simulating initial construction time
+    useEffect(() => {
+        const timer = setTimeout(() => setIsLoading(false), 3500)
+        return () => clearTimeout(timer)
+    }, [])
 
     const { fitView, screenToFlowPosition } = useReactFlow()
     const {
@@ -75,7 +89,8 @@ function SimulatorCanvas() {
         onConnect,
         addNode,
         loadGraph,
-        setProjectId
+        setProjectId,
+        setNodes
     } = useCanvasStore()
 
     const {
@@ -87,7 +102,10 @@ function SimulatorCanvas() {
         setShowSmartConnectPanel,
         setSmartConnectFixes,
         pendingReplaceConflict,
-        setPendingReplaceConflict
+        setPendingReplaceConflict,
+        isPaletteOpen,
+        showAIAssistant,
+        setShowAIAssistant
     } = useUIStore()
     const { wizardData, activeProfile, setWizardData } = useProfileStore()
     const { setEdges, removeNode } = useCanvasStore()
@@ -111,21 +129,52 @@ function SimulatorCanvas() {
                         const project = await response.json()
                         loadGraph(project.graphData)
                         hasInitialized.current = true
-                        setTimeout(() => fitView({ padding: 0.2, duration: 200 }), 100)
+                        // Apply semantic auto-layout after loading
+                        const { semanticAutoLayout } = await import('@/lib/semantic-layout-engine')
+                        const layoutedNodes = await semanticAutoLayout(project.graphData.nodes, project.graphData.edges)
+                        setNodes(layoutedNodes)
+                        setTimeout(() => fitView({ padding: 0.35, duration: 200 }), 100)
                         return
                     }
                 } catch (error) {
                     logger.error('Failed to load project:', error)
                 }
             }
+            // 2. Check if duplicated from a share link
+            const fromShare = searchParams.get('from')
+            if (fromShare === 'share') {
+                try {
+                    const sharedGraphRaw = sessionStorage.getItem('mdf_shared_graph')
+                    if (sharedGraphRaw) {
+                        const sharedGraph = JSON.parse(sharedGraphRaw)
+                        const sharedProfile = sessionStorage.getItem('mdf_shared_profile') || ''
+                        sessionStorage.removeItem('mdf_shared_graph')
+                        sessionStorage.removeItem('mdf_shared_profile')
+                        loadGraph(sharedGraph)
+                        hasInitialized.current = true
+                        const { semanticAutoLayout } = await import('@/lib/semantic-layout-engine')
+                        const layoutedNodes = await semanticAutoLayout(sharedGraph.nodes, sharedGraph.edges)
+                        setNodes(layoutedNodes)
+                        setTimeout(() => fitView({ padding: 0.35, duration: 200 }), 100)
+                        logger.debug('📋 Loaded duplicated share graph, profile:', sharedProfile)
+                        return
+                    }
+                } catch (error) {
+                    logger.error('Failed to load shared graph:', error)
+                }
+            }
 
-            // 2. Generate from wizard data if available (from wizard flow OR persisted)
+            // 3. Generate from wizard data if available (from wizard flow OR persisted)
             if (wizardData && wizardData.tools.length > 0) {
                 logger.debug('🎯 Generating diagram from wizard data:', wizardData)
                 const graph = generateDiagramFromWizard(wizardData, activeProfile)
                 loadGraph(graph)
                 hasInitialized.current = true
-                setTimeout(() => fitView({ padding: 0.2, duration: 200 }), 100)
+                // Apply semantic auto-layout
+                const { semanticAutoLayout } = await import('@/lib/semantic-layout-engine')
+                const layoutedNodes = await semanticAutoLayout(graph.nodes, graph.edges)
+                setNodes(layoutedNodes)
+                setTimeout(() => fitView({ padding: 0.35, duration: 200 }), 100)
                 return
             }
 
@@ -137,18 +186,48 @@ function SimulatorCanvas() {
                     const graph = generateDiagramFromTemplate(template.nodes, template.edges)
                     loadGraph(graph)
                     hasInitialized.current = true
-                    setTimeout(() => fitView({ padding: 0.2, duration: 200 }), 100)
+                    // Apply semantic auto-layout
+                    const { semanticAutoLayout } = await import('@/lib/semantic-layout-engine')
+                    const layoutedNodes = await semanticAutoLayout(graph.nodes, graph.edges)
+                    setNodes(layoutedNodes)
+                    setTimeout(() => fitView({ padding: 0.35, duration: 200 }), 100)
                     return
                 }
             }
 
-            // 4. Generate default diagram for the active profile
-            logger.debug('📊 Generating default diagram for profile:', activeProfile)
+            // 4. Use Profile Pipeline for default diagram (deterministic MDF flow)
+            logger.debug('📊 Generating profile-based diagram for:', activeProfile)
+            try {
+                const { loadProfileDefinition, buildGraphFromProfile, normalizeGraph } = await import('@/lib/profile-pipeline')
+
+                const profileDef = loadProfileDefinition(activeProfile)
+                if (profileDef) {
+                    let graph = buildGraphFromProfile(profileDef)
+                    graph = normalizeGraph(graph, profileDef)
+                    loadGraph(graph)
+                    hasInitialized.current = true
+
+                    // Apply semantic auto-layout
+                    const { semanticAutoLayout } = await import('@/lib/semantic-layout-engine')
+                    const layoutedNodes = await semanticAutoLayout(graph.nodes, graph.edges)
+                    setNodes(layoutedNodes)
+                    setTimeout(() => fitView({ padding: 0.35, duration: 600 }), 100)
+                    return
+                }
+            } catch (error) {
+                logger.error('Profile pipeline failed, falling back:', error)
+            }
+
+            // 5. Fallback: Generate default diagram for the active profile
+            logger.debug('📊 Fallback: generating default diagram for profile:', activeProfile)
             const { generateDefaultDiagramForProfile } = await import('@/lib/diagram-generator')
             const graph = generateDefaultDiagramForProfile(activeProfile)
             loadGraph(graph)
             hasInitialized.current = true
-            setTimeout(() => fitView({ padding: 0.2, duration: 200 }), 100)
+            const { semanticAutoLayout } = await import('@/lib/semantic-layout-engine')
+            const layoutedNodes = await semanticAutoLayout(graph.nodes, graph.edges)
+            setNodes(layoutedNodes)
+            setTimeout(() => fitView({ padding: 0.35, duration: 200 }), 100)
         }
 
         // Wait a tick for store hydration
@@ -159,16 +238,22 @@ function SimulatorCanvas() {
     // Validation on graph changes (debounced for performance)
     const runValidation = useMemo(
         () => debounce(() => {
-            const results = validateGraph(nodes, edges, wizardData)
+            const profileDef = loadProfileDefinition(activeProfile)
+            const results = validateGraph(nodes, edges, profileDef, wizardData)
             setValidationResults(results)
         }, 500), // Increased debounce for better performance
-        [nodes, edges, wizardData, setValidationResults]
+        [nodes, edges, wizardData, activeProfile, setValidationResults]
     )
 
     useEffect(() => {
         runValidation()
         return () => runValidation.cancel()
     }, [nodes, edges, runValidation])
+
+    // Sanitized edges for ReactFlow to prevent crashes
+    const safeEdges = useMemo(() => {
+        return edges.filter(e => e && e.source && e.target)
+    }, [edges])
 
     // Handle drop from palette - optimized with screenToFlowPosition
     const onDrop = useCallback(
@@ -232,12 +317,14 @@ function SimulatorCanvas() {
     }, [])
 
     return (
-        <div className="h-screen w-screen flex flex-col">
+        <div className="h-screen w-full flex flex-col overflow-hidden">
+            <SimulatorLoader3D isVisible={isLoading} />
+
             {/* Canvas */}
             <div ref={canvasRef} className="flex-1 relative">
                 <ReactFlow
                     nodes={nodes}
-                    edges={edges}
+                    edges={safeEdges}
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
@@ -249,10 +336,8 @@ function SimulatorCanvas() {
                     defaultEdgeOptions={defaultEdgeOptions}
                     connectionMode={ConnectionMode.Loose}
                     selectionMode={SelectionMode.Partial}
-                    snapToGrid
-                    snapGrid={[20, 20]}
                     fitView
-                    fitViewOptions={{ padding: 0.2 }}
+                    fitViewOptions={{ padding: 0.35 }}
                     deleteKeyCode={['Backspace', 'Delete']}
                     multiSelectionKeyCode={['Control', 'Meta']}
                     proOptions={proOptions}
@@ -268,10 +353,12 @@ function SimulatorCanvas() {
                     zoomOnPinch={true}
                     panOnScroll={false}
                     preventScrolling={true}
+                    snapToGrid={true}
+                    snapGrid={[15, 15]}
                 >
                     <Background
                         variant={BackgroundVariant.Dots}
-                        gap={20}
+                        gap={15}
                         size={1}
                         color="hsl(var(--muted-foreground) / 0.2)"
                     />
@@ -294,15 +381,22 @@ function SimulatorCanvas() {
                     )}
                 </ReactFlow>
 
+                {/* Stage column labels — positioned in flow space */}
+                <StageLabels />
+
                 {/* Panels */}
                 <Toolbar />
                 <NodePalette />
                 <Inspector />
                 <ValidationPanel />
+                <GuidedTour />
 
                 {/* Status Legend - show when nodes have status */}
                 {nodes.some(n => n.data?.status && n.data.status !== 'optional') && (
-                    <StatusLegend className="absolute bottom-4 left-56 md:left-64 lg:left-68" />
+                    <StatusLegend className={cn(
+                        "absolute bottom-4 transition-all duration-300 ease-out",
+                        isPaletteOpen ? "left-56 md:left-64 lg:left-68" : "left-4"
+                    )} />
                 )}
             </div>
 
@@ -354,6 +448,11 @@ function SimulatorCanvas() {
                         setPendingReplaceConflict(null)
                     }}
                 />
+            )}
+
+            {/* AI Assistant Panel */}
+            {showAIAssistant && (
+                <AIAssistantPanel onClose={() => setShowAIAssistant(false)} />
             )}
         </div>
     )

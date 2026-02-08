@@ -4,77 +4,85 @@
 
 @layer base {
   :root {
-    /* Softcrylic Brand Colors */
-    --background: 210 20% 98%;      /* Very light cool gray/white */
-    --foreground: 215 25% 27%;      /* Softcrylic Slate #344054 approx */
+    /* Softcrylic Brand Colors - "Premium Tech" Vibrant Update */
+    --background: 220 30% 96%;      /* Cool light gray/blue tint */
+    --foreground: 222 47% 11%;      /* Deep navy instead of plain black */
 
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 27%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 27%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 4 84% 54%;           /* Softcrylic Red #EE3124 */
-    --primary-foreground: 0 0% 100%;
+    --primary: 250 100% 60%;        /* Electric Indigo (Vibrant) */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 180 10% 35%;       /* Softcrylic Dark Grey #526363 */
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 190 90% 50%;       /* Cyan/Teal Highlight */
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 20% 96%;
+    --muted: 217 33% 94%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 4 84% 96%;            /* Very light red tint */
-    --accent-foreground: 4 84% 54%;
+    --accent: 280 85% 60%;          /* Orchid/Purple Accent */
+    --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 4 84% 54%;              /* Focus ring matches primary red */
-    --radius: 0.5rem;
+    --ring: 250 100% 60%;           /* Focus ring matches primary */
+    --radius: 0.75rem;              /* Larger, softer corners */
 
-    /* MDF Node Category Colors - Vibrant Light Mode */
-    --mdf-source: 190 90% 45%;         /* Deep Cyan */
-    --mdf-ingestion: 260 85% 60%;      /* Vivid Purple */
-    --mdf-processing: 280 85% 60%;     /* Rich Violet */
-    --mdf-storage: 220 90% 55%;        /* Bright Blue */
-    --mdf-identity: 160 85% 40%;       /* Strong Emerald */
-    --mdf-governance: 35 95% 50%;      /* Warm Amber */
-    --mdf-analytics: 330 85% 55%;      /* Hot Pink */
-    --mdf-activation: 145 80% 40%;     /* Fresh Green */
+    /* MDF Node Category Colors - Neon/Vibrant Pop */
+    --mdf-source: 190 95% 45%;         /* Electric Cyan */
+    --mdf-ingestion: 260 90% 65%;      /* Neon Purple */
+    --mdf-processing: 280 90% 65%;     /* Bright Violet */
+    --mdf-storage: 210 95% 60%;        /* Azure Blue */
+    --mdf-identity: 150 90% 45%;       /* Spring Green */
+    --mdf-governance: 35 100% 60%;     /* Solar Amber */
+    --mdf-analytics: 330 90% 60%;      /* Hot Pink */
+    --mdf-activation: 140 85% 50%;     /* Emerald */
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 230 25% 10%;      /* Deep space blue/black */
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
     
-    /* MDF Node Category Colors - Dark Mode (slightly adjusted for visibility) */
-    --mdf-source: 199 89% 55%;
-    --mdf-ingestion: 262 83% 65%;
-    --mdf-processing: 271 91% 70%;
-    --mdf-storage: 217 91% 65%;
-    --mdf-identity: 158 64% 58%;
-    --mdf-governance: 43 96% 60%;
-    --mdf-analytics: 338 71% 58%;
-    --mdf-activation: 142 71% 52%;
+    --card: 230 25% 12%;
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 230 25% 10%;
+    --popover-foreground: 210 40% 98%;
+    
+    --primary: 250 100% 70%;        /* Bright Indigo */
+    --primary-foreground: 210 40% 98%;
+    
+    --secondary: 190 90% 50%;       /* Cyan */
+    --secondary-foreground: 230 25% 10%;
+    
+    --muted: 225 20% 20%;
+    --muted-foreground: 215 20% 70%;
+    
+    --accent: 280 85% 60%;
+    --accent-foreground: 210 40% 98%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --border: 225 20% 20%;
+    --input: 225 20% 20%;
+    --ring: 250 100% 70%;
+    
+    /* MDF Node Category Colors - Dark Mode Pop */
+    --mdf-source: 190 95% 55%;
+    --mdf-ingestion: 260 90% 70%;
+    --mdf-processing: 280 90% 70%;
+    --mdf-storage: 210 95% 65%;
+    --mdf-identity: 150 90% 55%;
+    --mdf-governance: 35 100% 65%;
+    --mdf-analytics: 330 90% 65%;
+    --mdf-activation: 140 85% 55%;
   }
 }
 
@@ -82,8 +90,11 @@
   * {
     @apply border-border;
   }
+  html {
+    @apply scroll-smooth;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }

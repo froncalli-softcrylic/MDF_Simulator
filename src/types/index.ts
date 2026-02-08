@@ -1,5 +1,6 @@
 // Core Types for MDF Simulator - B2B SaaS Optimized
 // Updated with proper category structure, typed ports, and edge validation support
+// DEFINITIVE VERSION
 
 // ============================================
 // Node Category Types (B2B SaaS Pipeline)
@@ -7,35 +8,38 @@
 
 // Pipeline categories (data flows left to right)
 export type PipelineCategory =
-    | 'source'           // Data origins
+    | 'sources'          // Data origins
     | 'collection'       // SDKs, event tracking
     | 'ingestion'        // Streaming/batch pipelines
     | 'storage_raw'      // Immutable raw data lake
     | 'storage_warehouse'// Structured analytics store
     | 'transform'        // dbt, modeling
+    | 'identity'         // Identity & Entity Resolution
+    | 'governance'       // Governance rail nodes
     | 'analytics'        // BI, attribution, MMM
     | 'activation'       // Reverse ETL, CDPs
+    | 'clean_room'       // Data clean rooms
+    | 'realtime_serving' // Real-time personalization
     | 'destination';     // Ad platforms, CRM, email
 
-// Cross-cutting rail categories (visual lanes)
-export type RailCategory =
-    | 'governance_rail'  // Spans all stages (top)
-    | 'account_graph';   // Hub between transform and outputs
-
 // Combined category type
-export type NodeCategory = PipelineCategory | RailCategory;
+export type NodeCategory = PipelineCategory;
 
 // Category ordering for layout (column positions)
 export const CATEGORY_ORDER: Record<PipelineCategory, number> = {
-    source: 0,
+    sources: 0,
     collection: 1,
     ingestion: 2,
     storage_raw: 3,
     storage_warehouse: 4,
     transform: 5,
-    analytics: 6,
-    activation: 6,  // Same column as analytics (parallel)
-    destination: 7
+    identity: 6,
+    governance: 6.5,
+    analytics: 7,
+    activation: 7,
+    clean_room: 7.5,
+    realtime_serving: 7.5,
+    destination: 8
 };
 
 // ============================================
@@ -46,7 +50,6 @@ export type PortType =
     // Raw data types (left side of pipeline)
     | 'raw_events'         // Clickstream, product events
     | 'raw_records'        // Batch records from sources
-    | 'stream'             // Real-time stream (Kinesis, Kafka)
 
     // Curated types (after transform)
     | 'curated_entities'   // Modeled tables (accounts, contacts, opps)
@@ -59,11 +62,16 @@ export type PortType =
     | 'audiences_people'   // Contact/lead lists
 
     // Governance types (rail)
-    | 'governance_policies'// Consent, access, retention rules
-    | 'audit_events'       // Compliance audit trail
+    | 'governance_policies' // Consent, access, retention rules
+    | 'audit_events'       // Compliance logs
 
-    // Legacy/flexible
-    | 'any';               // Accepts any type (for generic nodes)
+    // New Schema Types
+    | 'dataset_raw'
+    | 'crm_data'
+    | 'activation_payload'
+    | 'analysis_result'
+    | 'identity_resolution'
+    | 'stream_events';
 
 // ============================================
 // Edge Validation Rules
@@ -76,10 +84,10 @@ export const ALLOWED_CATEGORY_EDGES: Array<{
     allowedPortTypes: PortType[];
 }> = [
         // Pipeline flow
-        { source: 'source', target: 'collection', allowedPortTypes: ['raw_events', 'raw_records'] },
-        { source: 'source', target: 'ingestion', allowedPortTypes: ['raw_events', 'raw_records'] },
-        { source: 'collection', target: 'ingestion', allowedPortTypes: ['raw_events', 'raw_records', 'stream'] },
-        { source: 'ingestion', target: 'storage_raw', allowedPortTypes: ['stream', 'raw_records'] },
+        { source: 'sources', target: 'collection', allowedPortTypes: ['raw_events', 'raw_records'] },
+        { source: 'sources', target: 'ingestion', allowedPortTypes: ['raw_events', 'raw_records'] },
+        { source: 'collection', target: 'ingestion', allowedPortTypes: ['raw_events', 'raw_records'] },
+        { source: 'ingestion', target: 'storage_raw', allowedPortTypes: ['raw_events', 'raw_records'] },
         { source: 'storage_raw', target: 'storage_warehouse', allowedPortTypes: ['raw_records'] },
         { source: 'ingestion', target: 'storage_warehouse', allowedPortTypes: ['raw_records'] }, // Warehouse-first
         { source: 'storage_warehouse', target: 'transform', allowedPortTypes: ['raw_records', 'curated_entities'] },
@@ -87,29 +95,29 @@ export const ALLOWED_CATEGORY_EDGES: Array<{
         // Transform to outputs (parallel)
         { source: 'transform', target: 'analytics', allowedPortTypes: ['curated_entities', 'metrics'] },
         { source: 'transform', target: 'activation', allowedPortTypes: ['curated_entities', 'audiences_accounts', 'audiences_people'] },
-        { source: 'transform', target: 'account_graph', allowedPortTypes: ['identity_keys', 'curated_entities'] },
+        { source: 'transform', target: 'identity', allowedPortTypes: ['identity_keys', 'curated_entities'] },
 
-        // Account graph hub flows
-        { source: 'account_graph', target: 'analytics', allowedPortTypes: ['graph_edges', 'curated_entities'] },
-        { source: 'account_graph', target: 'activation', allowedPortTypes: ['audiences_accounts', 'audiences_people', 'graph_edges'] },
+        // Identity hub flows
+        { source: 'identity', target: 'analytics', allowedPortTypes: ['graph_edges', 'curated_entities'] },
+        { source: 'identity', target: 'activation', allowedPortTypes: ['audiences_accounts', 'audiences_people', 'graph_edges'] },
 
         // Activation to destinations
         { source: 'activation', target: 'destination', allowedPortTypes: ['audiences_accounts', 'audiences_people'] },
 
         // Governance rail (can attach to any)
-        { source: 'governance_rail', target: 'collection', allowedPortTypes: ['governance_policies'] },
-        { source: 'governance_rail', target: 'ingestion', allowedPortTypes: ['governance_policies'] },
-        { source: 'governance_rail', target: 'storage_raw', allowedPortTypes: ['governance_policies'] },
-        { source: 'governance_rail', target: 'storage_warehouse', allowedPortTypes: ['governance_policies'] },
-        { source: 'governance_rail', target: 'transform', allowedPortTypes: ['governance_policies'] },
-        { source: 'governance_rail', target: 'activation', allowedPortTypes: ['governance_policies'] },
+        { source: 'governance', target: 'collection', allowedPortTypes: ['governance_policies'] },
+        { source: 'governance', target: 'ingestion', allowedPortTypes: ['governance_policies'] },
+        { source: 'governance', target: 'storage_raw', allowedPortTypes: ['governance_policies'] },
+        { source: 'governance', target: 'storage_warehouse', allowedPortTypes: ['governance_policies'] },
+        { source: 'governance', target: 'transform', allowedPortTypes: ['governance_policies'] },
+        { source: 'governance', target: 'activation', allowedPortTypes: ['governance_policies'] },
     ];
 
 // Nonsense prevention rules
 export const INVALID_EDGE_RULES = [
-    { message: 'Destinations cannot accept raw events', targetCategory: 'destination' as NodeCategory, forbiddenPortTypes: ['raw_events', 'raw_records', 'stream'] as PortType[] },
+    { message: 'Destinations cannot accept raw events', targetCategory: 'destination' as NodeCategory, forbiddenPortTypes: ['raw_events', 'raw_records'] as PortType[] },
     { message: 'Analytics cannot output to destinations directly', sourceCategory: 'analytics' as NodeCategory, targetCategory: 'destination' as NodeCategory },
-    { message: 'Sources cannot receive inputs', targetCategory: 'source' as NodeCategory },
+    { message: 'Sources cannot receive inputs', targetCategory: 'sources' as NodeCategory },
 ];
 
 // ============================================
@@ -124,18 +132,75 @@ export type EnablesTag =
     | 'hygiene'
     | 'account_intelligence'  // NEW: B2B-specific
     | 'intent_signals'        // NEW: 6sense/Bombora
-    | 'enrichment';           // NEW: Clearbit/ZoomInfo
+    | 'enrichment'          // NEW: Clearbit/ZoomInfo
+    | 'analytics'           // NEW: BI/Analytics
+    | 'bi'                  // NEW: Business Intelligence
+    | 'compliance'          // NEW: GDPR/CCPA
+    | 'engagement'          // NEW: Customer Engagement
+    | 'advertising'         // NEW: Paid Media
+    | 'sales_enablement'    // NEW: Sales tools
+    | 'sales_optimization'  // NEW: Sales Ops
+    | 'sales_operations'    // NEW: Sales Ops
+    | 'product_optimization' // NEW: Pendo/Product Analytics
+    | 'personalization'     // NEW: Targeting/personalization
+    | 'integration'         // NEW: API integration
+    | 'transformation'      // NEW: Data transformation
+    | 'real-time'           // NEW: Real-time streaming
+    | 'storage'             // NEW: Data storage
+    | 'second_party'        // NEW: 2nd party data
+    | 'prospecting'         // NEW: Prospecting/lead gen
+    | 'marketing';          // NEW: Marketing
+
+// ============================================
+// Node Role Classification (Conformance Spec)
+// ============================================
+
+export type NodeRole =
+    | 'source'              // Data origin
+    | 'collector'           // SDK/instrumentation
+    | 'ingestor'            // ETL/streaming pipeline
+    | 'storage_raw'         // Immutable raw landing
+    | 'warehouse'           // Analytics warehouse (singleton)
+    | 'transform'           // dbt, modeling
+    | 'identity_hub'        // Account graph (singleton)
+    | 'enrichment'          // Clearbit, ZoomInfo (NOT hub)
+    | 'governance'          // Consent, quality, audit
+    | 'analytics'           // BI, attribution, MMM
+    | 'activation_connector'// Reverse ETL (Hightouch, Census)
+    | 'destination'         // End platforms
+    | 'clean_room'          // Data clean rooms
+    | 'realtime_serving';   // Real-time personalization
 
 // ============================================
 // Demo Profiles
 // ============================================
 
 export type DemoProfile =
-    | 'preferred_stack'   // Snowflake + AWS + Neptune + Hightouch
-    | 'adobe_summit'
-    | 'google_cloud'
-    | 'salesforce'
-    | 'generic';
+    // Vendor Suite Profiles
+    | 'snowflake_composable'
+    | 'databricks_lakehouse'
+    | 'gcp_bigquery'
+    | 'microsoft_fabric'
+    | 'salesforce_data_cloud'
+    | 'adobe_aep'
+    | 'segment_composable'
+    | 'mparticle_composable'
+    | 'clean_room_layer'
+    // Marketing Ecosystem Profiles
+    | 'marketo_centric'
+    | 'hubspot_centric'
+    | 'braze_centric'
+    | 'sfmc_centric'
+    | 'abm_intent_centric'
+    | 'sales_activation_centric'
+    | 'plg_activation_centric'
+    | 'customerio_centric'
+    // Legacy mapping / Fallback
+    | 'generic'
+    | 'preferred_stack'   // Kept for backward compat during migration
+    | 'adobe_summit'      // Kept for backward compat
+    | 'google_cloud'      // Kept for backward compat
+    | 'salesforce';       // Kept for backward compat
 
 // ============================================
 // Node Status
@@ -177,15 +242,18 @@ export interface ProofPoint {
 
 // Pipeline stage for layout (explicit assignment)
 export type PipelineStage =
-    | 'source'
+    | 'sources'
     | 'collection'
     | 'ingestion'
     | 'storage_raw'
     | 'storage_warehouse'
     | 'transform'
-    | 'identity_hub'      // Account graph hub
+    | 'identity'
+    | 'governance'
     | 'analytics'
     | 'activation'
+    | 'clean_room'
+    | 'realtime_serving'
     | 'destination';
 
 // Cardinality: how many instances allowed
@@ -199,6 +267,7 @@ export interface CatalogNode {
     vendorProfileAvailability: DemoProfile[];
     description: string;
     whyItMatters: string[];
+    whenToUse?: string;      // One-line "when to use" guidance
     inputs: NodePort[];
     outputs: NodePort[];
     prerequisites: string[];
@@ -219,12 +288,31 @@ export interface CatalogNode {
     // NEW: Layout Hints (for Auto Layout)
     stage?: PipelineStage;          // Explicit stage override
     isHub?: boolean;                // Account graph hub (centered)
-    railPosition?: 'top' | 'bottom'; // For governance rail
+    railPosition?: 'top' | 'bottom' | 'center'; // For governance rail
 
     // NEW: Smart Connect Hints
     autoConnectPriority?: number;   // Higher = connect first (0-100)
     preferredUpstream?: string[];   // Catalog IDs to prioritize
     preferredDownstream?: string[]; // Catalog IDs to connect to
+
+    // NEW: Conformance Spec Fields
+    nodeRole?: NodeRole;            // Explicit role classification
+    requiredIdentifiers?: string[]; // For destinations (e.g., ['crm_id', 'email'])
+    attachableStages?: PipelineStage[]; // For governance nodes
+
+    // NEW: Phase 2 Metadata (Consultant-Grade)
+    complexity?: number;            // 1-10 scale
+    costEstimate?: 'low' | 'medium' | 'high';
+    supportedLatency?: ('realtime' | 'batch')[];
+    supportedIdentifiers?: ('email' | 'device_id' | 'crm_id' | 'account_id' | 'cookie')[];
+    governanceFlags?: Array<'pii_safe' | 'needs_hashing' | 'needs_consent'>;
+
+    // NEW: Business Value Metadata (for Consultant Mode)
+    businessValue?: {
+        proposition: string;       // One-line value prop
+        impact: 'revenue' | 'risk' | 'efficiency' | 'experience';
+        roi: 'high' | 'medium' | 'low';
+    };
 }
 
 // ============================================
@@ -240,6 +328,14 @@ export interface DemoProfileConfig {
     emphasizedNodes: string[];
     hiddenNodes: string[];
     templates: string[];
+    // New fields for enhanced profile details
+    identityStrategy?: string;
+    governanceRailNodes?: string[];
+    defaultDestinations?: string[];
+    template?: {
+        nodes: string[];
+        edges: string[][];
+    };
     defaultCopy: {
         heroTitle: string;
         heroSubtitle: string;
@@ -340,6 +436,16 @@ export interface ValidationResult {
         action: string;
         nodeToAdd?: string;
     };
+    fixAction?: {
+        type: 'add_node' | 'add_edge' | 'delete_node' | 'move_node';
+        payload: {
+            catalogId?: string;
+            sourceId?: string;
+            targetId?: string;
+            startNodeId?: string; // For adding edge
+            endNodeId?: string;
+        };
+    };
 }
 
 export interface ValidationOutput {
@@ -372,6 +478,7 @@ export interface Lead {
     source: 'save' | 'export' | 'share';
     projectId?: string;
     createdAt: Date;
+    updatedAt: Date;
 }
 
 // ============================================
@@ -413,11 +520,11 @@ export interface EdgeValidationResult {
 }
 
 export function isRailCategory(category: NodeCategory): boolean {
-    return category === 'governance_rail' || category === 'account_graph';
+    return category === 'governance';
 }
 
 export function isPipelineCategory(category: NodeCategory): category is PipelineCategory {
-    return !isRailCategory(category);
+    return true; // All are pipeline categories now in the unified schema
 }
 
 // ============================================
@@ -437,6 +544,8 @@ export interface SuggestedEdge {
     confidence: 'high' | 'medium' | 'low';
     reason: string;
     selected?: boolean;       // For UI checkboxes
+    sourceCatalogId?: string; // Optional for Smart Connect compatibility
+    targetCatalogId?: string; // Optional for Smart Connect compatibility
 }
 
 export interface MissingNodeSuggestion {
@@ -455,10 +564,22 @@ export interface DuplicateConflict {
 }
 
 export interface SuggestedFixes {
+    autoApplyEdges: Array<{
+        source: string;
+        target: string;
+        sourceCatalogId: string;
+        targetCatalogId: string;
+    }>;
     suggestedEdges: SuggestedEdge[];
+    suggestedNodes: Array<{
+        catalogId: string;
+        reason: string;
+        category: NodeCategory;
+    }>;
     missingNodes: MissingNodeSuggestion[];
     duplicates: DuplicateConflict[];
     orphanedNodes: string[];  // Node IDs with no connections
+    totalSuggestions: number;
 }
 
 export type AutoLayoutPhase =
@@ -480,15 +601,64 @@ export interface AutoLayoutState {
 
 // Stage-to-column mapping for layout
 export const STAGE_TO_COLUMN: Record<PipelineStage, number> = {
-    source: 0,
+    sources: 0,
     collection: 1,
     ingestion: 2,
     storage_raw: 3,
     storage_warehouse: 4,
     transform: 5,
-    identity_hub: 6,
+    identity: 6,
+    governance: 6.5,
     analytics: 7,
-    activation: 7,   // Parallel with analytics
+    activation: 7,
+    clean_room: 7.5,
+    realtime_serving: 7.5,
     destination: 8
 };
+
+// ============================================
+// Phase 2: Collaboration & Versioning
+// ============================================
+
+export interface SimulationSnapshot {
+    id: string;
+    name: string;
+    timestamp: number;
+    description?: string;
+    nodes: any[]; // Using any[] to avoid circular dep issues for now, strictly GraphData['nodes']
+    edges: any[];
+    validationResults?: ValidationOutput;
+    thumbnail?: string; // Base64 or URL
+    author?: string;
+}
+
+export interface Comment {
+    id: string;
+    type: 'node' | 'edge' | 'global';
+    targetId?: string; // nodeId or edgeId
+    content: string;
+    author: string;
+    timestamp: number;
+    resolved?: boolean;
+}
+
+// ============================================
+// Phase 2: Scenarios & Templates
+// ============================================
+
+export interface ScenarioDefinition {
+    id: string;
+    name: string;
+    description: string;
+    category: 'B2C' | 'B2B' | 'Privacy' | 'Growth';
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    templateGraph: GraphData;
+    learningGoals: string[];
+}
+
+export interface ImpactMetric {
+    score: number; // 0-100
+    effort: 'low' | 'medium' | 'high';
+    latency: 'realtime' | 'batch';
+}
 

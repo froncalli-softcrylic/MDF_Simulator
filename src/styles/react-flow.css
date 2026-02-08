@@ -1,5 +1,5 @@
 /* React Flow Custom Styles */
-/* Optimized for performance and drag fluidity */
+/* Optimized for performance, drag fluidity, and clean pipeline aesthetics */
 
 /* Hardware acceleration for interaction layer */
 .react-flow__viewport {
@@ -26,22 +26,36 @@
   border-radius: 4px;
 }
 
-/* Enhance connection lines */
+/* Edge styling — soft, professional pipeline connections */
 .react-flow__edge-path {
-  stroke: #94a3b8;
-  stroke-width: 2px;
+  stroke: #b0b8c8;
+  stroke-width: 2.5px;
+  transition: stroke 0.3s ease, stroke-width 0.2s ease;
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
   stroke: #3b82f6;
+  stroke-width: 3.5px;
+  filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.25));
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: #6b7280;
   stroke-width: 3px;
 }
 
-/* Animated edges flow */
-.react-flow__edge-path {
-  /* optional: subtle dash animation */
-  /* stroke-dasharray: 5; */
-  transition: stroke 0.3s ease;
+/* Connection line while drawing */
+.react-flow__connection-path {
+  stroke: #3b82f6;
+  stroke-width: 2px;
+  stroke-dasharray: 6;
+  animation: dash-flow 0.5s linear infinite;
+}
+
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -12;
+  }
 }
 
 /* Hide attribution on mobile/embedded if needed */

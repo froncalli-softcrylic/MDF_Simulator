@@ -43,7 +43,7 @@ const iconMap: Record<string, React.ElementType> = {
 // Category themes - B2B SaaS with rails
 const categoryThemes: Record<NodeCategory, { bg: string; border: string; icon: string; text: string }> = {
     // Pipeline categories
-    source: { bg: 'bg-cyan-50', border: 'border-cyan-200', icon: 'text-cyan-600', text: 'text-cyan-900' },
+    sources: { bg: 'bg-cyan-50', border: 'border-cyan-200', icon: 'text-cyan-600', text: 'text-cyan-900' },
     collection: { bg: 'bg-purple-50', border: 'border-purple-200', icon: 'text-purple-600', text: 'text-purple-900' },
     ingestion: { bg: 'bg-violet-50', border: 'border-violet-200', icon: 'text-violet-600', text: 'text-violet-900' },
     storage_raw: { bg: 'bg-slate-50', border: 'border-slate-200', icon: 'text-slate-600', text: 'text-slate-900' },
@@ -53,8 +53,10 @@ const categoryThemes: Record<NodeCategory, { bg: string; border: string; icon: s
     activation: { bg: 'bg-green-50', border: 'border-green-200', icon: 'text-green-600', text: 'text-green-900' },
     destination: { bg: 'bg-teal-50', border: 'border-teal-200', icon: 'text-teal-600', text: 'text-teal-900' },
     // Rail categories (distinct styling)
-    governance_rail: { bg: 'bg-amber-50', border: 'border-amber-300', icon: 'text-amber-600', text: 'text-amber-900' },
-    account_graph: { bg: 'bg-emerald-50', border: 'border-emerald-300', icon: 'text-emerald-600', text: 'text-emerald-900' }
+    governance: { bg: 'bg-amber-50', border: 'border-amber-300', icon: 'text-amber-600', text: 'text-amber-900' },
+    identity: { bg: 'bg-emerald-50', border: 'border-emerald-300', icon: 'text-emerald-600', text: 'text-emerald-900' },
+    clean_room: { bg: 'bg-slate-100', border: 'border-slate-300', icon: 'text-slate-600', text: 'text-slate-900' },
+    realtime_serving: { bg: 'bg-orange-50', border: 'border-orange-200', icon: 'text-orange-600', text: 'text-orange-900' }
 }
 
 // Check if node should be highlighted for overlay
@@ -62,7 +64,7 @@ function isNodeHighlightedForOverlay(catalogId: string, overlay: ValueOverlay): 
     if (!overlay) return true
     const catalogNode = getNodeById(catalogId)
     if (!catalogNode) return false
-    return catalogNode.enables.includes(overlay)
+    return catalogNode.enables?.includes(overlay) || false
 }
 
 interface MdfNodeProps {
@@ -89,10 +91,10 @@ function MdfNodeComponent({ data, selected, dragging }: MdfNodeProps) {
     )
 
     const status = data.status || 'optional'
-    const theme = categoryThemes[data.category] || categoryThemes.source
+    const theme = categoryThemes[data.category] || categoryThemes.sources
     const isGap = status === 'gap'
-    const isRailNode = data.isRailNode || data.category === 'governance_rail' || data.category === 'account_graph'
-    const isAccountGraph = data.category === 'account_graph'
+    const isRailNode = data.isRailNode || data.category === 'governance' || data.category === 'identity'
+    const isAccountGraph = data.category === 'identity'
 
     // Status badge styling
     const statusConfig: Record<NodeStatus, { label: string; className: string; icon: React.ElementType }> = {
@@ -109,93 +111,115 @@ function MdfNodeComponent({ data, selected, dragging }: MdfNodeProps) {
     return (
         <div
             className={cn(
-                'relative flex flex-col items-center',
-                // Minimum touch target
-                'min-w-[120px] min-h-[40px]',
+                'relative flex flex-col items-center group animate-scale-in',
+                // Larger minimum touch target
+                'min-w-[180px] min-h-[60px]',
                 // Gap state - dashed, faded
-                isGap && 'opacity-70',
+                isGap && 'opacity-80',
                 // Rail node special styling
-                isRailNode && 'shadow-md',
+                isRailNode && 'shadow-lg',
                 // Dimmed when overlay active and not highlighted
-                activeOverlay && !isHighlighted && 'opacity-30'
+                activeOverlay && !isHighlighted && 'opacity-30 blur-[1px]'
             )}
         >
             {/* Main Node Card */}
             <div
                 className={cn(
-                    'relative flex items-center gap-2 px-3 py-2 rounded-lg',
-                    'border transition-all duration-150',
+                    'relative flex items-center gap-3 px-4 py-3 rounded-xl w-full',
+                    'border-2 transition-all duration-300 ease-out backdrop-blur-md shadow-sm',
                     theme.bg, theme.border,
                     // Gap styling
-                    isGap && 'border-dashed border-2',
+                    isGap && 'border-dashed border-2 animate-pulse',
                     // Selection
-                    selected && 'ring-2 ring-offset-1 ring-cyan-400',
+                    selected && 'ring-4 ring-offset-2 ring-primary border-primary shadow-xl scale-105 z-10',
                     // Dragging
-                    dragging && 'shadow-lg scale-105',
+                    dragging && 'shadow-2xl scale-110 rotate-2 cursor-grabbing opacity-90',
                     // Hover
-                    !dragging && 'hover:shadow-md hover:scale-[1.02]',
-                    // Rail nodes get thicker left border
-                    isRailNode && 'border-l-4',
-                    isRailNode && data.category === 'governance_rail' && 'border-l-amber-400',
-                    isRailNode && isAccountGraph && 'border-l-emerald-400'
+                    !dragging && !selected && 'hover:shadow-lg hover:-translate-y-1 hover:border-primary/50 cursor-pointer',
+                    // Recommended glow
+                    status === 'recommended' && 'animate-pulse-glow border-cyan-400',
+                    // Rail nodes get thick left border
+                    isRailNode && 'border-l-[6px]',
+                    isRailNode && data.category === 'governance' && 'border-l-amber-400 bg-amber-50/90',
+                    isRailNode && isAccountGraph && 'border-l-emerald-400 bg-emerald-50/90'
                 )}
             >
-                {/* Icon */}
+                {/* Icon Container */}
                 <div className={cn(
-                    'flex items-center justify-center w-7 h-7 rounded-md',
-                    theme.bg,
+                    'flex items-center justify-center w-10 h-10 rounded-lg shadow-inner shrink-0',
+                    'bg-white/80 dark:bg-black/20',
                     isGap && 'opacity-60'
                 )}>
-                    <IconComponent className={cn('w-4 h-4', theme.icon)} />
+                    <IconComponent className={cn('w-6 h-6', theme.icon)} />
                 </div>
 
-                {/* Label */}
-                <span className={cn(
-                    'text-xs font-medium whitespace-nowrap',
-                    theme.text,
-                    isGap && 'opacity-70'
-                )}>
-                    {data.label}
-                </span>
-
-                {/* Status indicator (small dot) */}
-                {status !== 'optional' && (
-                    <div className={cn(
-                        'absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center',
-                        statusInfo.className
+                {/* Content */}
+                <div className="flex flex-col min-w-0 flex-1">
+                    {/* Label */}
+                    <span className={cn(
+                        'text-sm font-bold truncate leading-tight',
+                        theme.text,
+                        isGap && 'opacity-70'
                     )}>
-                        <StatusIcon className="w-2.5 h-2.5" />
+                        {data.label}
+                    </span>
+
+                    {/* Category Label (New) */}
+                    <span className="text-[10px] uppercase tracking-wider font-semibold opacity-60 truncate">
+                        {categoryMeta[data.category]?.label || data.category}
+                    </span>
+                </div>
+
+                {/* Status indicator (Badge style) */}
+                {status !== 'optional' && status !== 'existing' && (
+                    <div className={cn(
+                        'absolute -top-3 -right-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide shadow-sm flex items-center gap-1',
+                        statusInfo.className,
+                        (status === 'recommended' || status === 'required') && 'animate-bounce'
+                    )}>
+                        {status === 'gap' && <AlertTriangle className="w-3 h-3" />}
+                        {status === 'recommended' && <Sparkles className="w-3 h-3" />}
+                        {statusInfo.label}
+                    </div>
+                )}
+
+                {/* Existing checkmark */}
+                {status === 'existing' && (
+                    <div className="absolute -top-2 -right-2 bg-green-500 text-white p-1 rounded-full shadow-md">
+                        <Check className="w-3 h-3 stroke-[3]" />
                     </div>
                 )}
 
                 {/* Rail indicator badge */}
                 {isRailNode && (
                     <div className={cn(
-                        'absolute -bottom-1 left-1/2 -translate-x-1/2',
-                        'text-[8px] font-bold uppercase tracking-wider px-1 rounded',
-                        data.category === 'governance_rail' && 'bg-amber-200 text-amber-700',
-                        isAccountGraph && 'bg-emerald-200 text-emerald-700'
+                        'absolute -bottom-2.5 left-1/2 -translate-x-1/2',
+                        'text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full shadow-sm border',
+                        data.category === 'governance' && 'bg-amber-100 text-amber-700 border-amber-200',
+                        isAccountGraph && 'bg-emerald-100 text-emerald-700 border-emerald-200'
                     )}>
-                        {isAccountGraph ? 'Graph' : 'Gov'}
+                        {isAccountGraph ? 'Identity Hub' : 'Governance'}
                     </div>
                 )}
             </div>
 
-            {/* Handles */}
+            {/* Handles - Larger touch targets */}
             <Handle
                 type="target"
                 position={Position.Left}
                 className={cn(
-                    'w-2.5 h-2.5 !bg-slate-300 !border-2 !border-white rounded-full',
-                    'hover:!bg-cyan-400 transition-colors'
+                    'w-4 h-4 !bg-slate-400 !border-4 !border-white dark:!border-slate-800 rounded-full',
+                    'hover:!bg-primary hover:scale-125 transition-all duration-200',
+                    '-ml-2'
                 )}
             />
             <Handle
                 type="source"
                 position={Position.Right}
                 className={cn(
-                    'w-2.5 h-2.5 !bg-slate-300 !border-2 !border-white rounded-full',
-                    'hover:!bg-cyan-400 transition-colors'
+                    'w-4 h-4 !bg-slate-400 !border-4 !border-white dark:!border-slate-800 rounded-full',
+                    'hover:!bg-primary hover:scale-125 transition-all duration-200',
+                    '-mr-2'
                 )}
             />
         </div>

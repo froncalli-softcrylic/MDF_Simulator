@@ -3,8 +3,9 @@
 
 import type {
     WizardData, DemoProfile, MdfNodeData, GraphData, NodeStatus, GapAnalysis,
-    NodeCategory, PipelineCategory, CATEGORY_ORDER
+    NodeCategory, PipelineCategory
 } from '@/types'
+import { CATEGORY_ORDER } from '@/types'
 import { getNodeById, nodeCatalog } from '@/data/node-catalog'
 import { isNodeVisibleInProfile } from '@/data/demo-profiles'
 import { logger } from '@/lib/logger'
@@ -27,17 +28,7 @@ const RAIL_TOP_Y = 30      // Governance rail at top
 const RAIL_CENTER_Y = 300  // Account graph hub centered
 
 // Column mapping for pipeline categories
-const PIPELINE_COLUMNS: Record<PipelineCategory, number> = {
-    source: 0,
-    collection: 1,
-    ingestion: 2,
-    storage_raw: 3,
-    storage_warehouse: 4,
-    transform: 5,
-    analytics: 6,
-    activation: 7,
-    destination: 8
-}
+// Using imported CATEGORY_ORDER for columns
 
 // ============================================
 // B2B SAAS DEFAULT STACKS (by profile)
@@ -48,64 +39,52 @@ interface ProfileStack {
     edges: Array<{ source: string; target: string }>
 }
 
-const profileStacks: Record<DemoProfile, ProfileStack> = {
+const profileStacks: Partial<Record<DemoProfile, ProfileStack>> = {
     // ==================================================
     // PREFERRED STACK: Snowflake + AWS + Neptune + Hightouch
     // ==================================================
-    preferred_stack: {
+    snowflake_composable: {
         nodes: [
             // Sources (col 0)
             'product_events', 'salesforce_crm', 'billing_system',
             // Collection (col 1)
             'segment',
             // Ingestion (col 2)
-            'kinesis_firehose', 'fivetran',
+            'fivetran',
             // Raw Storage (col 3)
             's3_raw',
             // Warehouse (col 4)
             'snowflake',
             // Transform (col 5)
             'dbt_core',
+            // Semantic Layer (col 6)
+            'cube_js',
             // Account Graph Hub (rail - center)
-            'neptune_graph', 'account_resolution', 'sixsense',
+            'neptune_graph', 'account_resolution',
             // Governance Rail (top)
-            'consent_manager', 'access_control', 'data_quality',
-            // Analytics (col 6)
-            'looker', 'opportunity_influence',
-            // Activation (col 7)
+            'consent_manager', 'snowflake_horizon',
+            // Analytics (col 7)
+            'looker',
+            // Activation (col 8)
             'hightouch',
-            // Destinations (col 8)
+            // Destinations (col 9)
             'salesforce_crm_dest', 'linkedin_ads', 'slack_alerts'
         ],
         edges: [
-            // Sources → Collection/Ingestion
             { source: 'product_events', target: 'segment' },
             { source: 'salesforce_crm', target: 'fivetran' },
             { source: 'billing_system', target: 'fivetran' },
-            // Collection → Ingestion
-            { source: 'segment', target: 'kinesis_firehose' },
-            // Ingestion → Raw Storage / Warehouse
-            { source: 'kinesis_firehose', target: 's3_raw' },
+            { source: 'segment', target: 's3_raw' },
             { source: 's3_raw', target: 'snowflake' },
             { source: 'fivetran', target: 'snowflake' },
-            // Warehouse → Transform
             { source: 'snowflake', target: 'dbt_core' },
-            // Transform → Account Graph Hub
+            { source: 'dbt_core', target: 'cube_js' },
+            { source: 'cube_js', target: 'looker' },
             { source: 'dbt_core', target: 'neptune_graph' },
             { source: 'neptune_graph', target: 'account_resolution' },
-            { source: 'sixsense', target: 'account_resolution' },
-            // Transform → Analytics (parallel)
-            { source: 'dbt_core', target: 'looker' },
-            { source: 'dbt_core', target: 'opportunity_influence' },
-            { source: 'opportunity_influence', target: 'looker' },
-            // Account Graph → Activation
             { source: 'account_resolution', target: 'hightouch' },
-            // Governance attachments (dashed)
-            { source: 'consent_manager', target: 'segment' },
             { source: 'consent_manager', target: 'hightouch' },
-            { source: 'access_control', target: 'snowflake' },
-            { source: 'data_quality', target: 'dbt_core' },
-            // Activation → Destinations
+            { source: 'snowflake_horizon', target: 'snowflake' },
             { source: 'hightouch', target: 'salesforce_crm_dest' },
             { source: 'hightouch', target: 'linkedin_ads' },
             { source: 'hightouch', target: 'slack_alerts' }
@@ -262,11 +241,11 @@ const profileStacks: Record<DemoProfile, ProfileStack> = {
 
 function getCategoryColumn(category: NodeCategory): number {
     // Rail categories get special positioning (not in column flow)
-    if (category === 'governance_rail') return 4  // Center-ish
-    if (category === 'account_graph') return 5    // After transform
+    if (category === 'governance') return 4  // Center-ish
+    if (category === 'identity') return 5    // After transform
 
     // Pipeline categories use the defined order
-    return PIPELINE_COLUMNS[category as PipelineCategory] ?? 4
+    return CATEGORY_ORDER[category as PipelineCategory] ?? 4
 }
 
 function calculateNodePositions(
@@ -290,7 +269,7 @@ function calculateNodePositions(
     })
 
     // Position governance rail nodes at the TOP
-    const governanceNodes = categoryGroups['governance_rail'] || []
+    const governanceNodes = categoryGroups['governance'] || []
     governanceNodes.forEach((nodeId, idx) => {
         positions[nodeId] = {
             x: START_X + (idx + 2) * COLUMN_WIDTH, // Spread across top
@@ -298,8 +277,8 @@ function calculateNodePositions(
         }
     })
 
-    // Position account graph nodes in CENTER cluster
-    const accountGraphNodes = categoryGroups['account_graph'] || []
+    // Position identity hub nodes in CENTER cluster
+    const accountGraphNodes = categoryGroups['identity'] || []
     const graphStartX = START_X + 5 * COLUMN_WIDTH
     accountGraphNodes.forEach((nodeId, idx) => {
         const row = Math.floor(idx / 2)
@@ -312,13 +291,13 @@ function calculateNodePositions(
 
     // Position pipeline nodes in columns
     const pipelineCategories: PipelineCategory[] = [
-        'source', 'collection', 'ingestion', 'storage_raw',
-        'storage_warehouse', 'transform', 'analytics', 'activation', 'destination'
+        'sources', 'collection', 'ingestion', 'storage_raw',
+        'storage_warehouse', 'transform', 'identity', 'governance', 'analytics', 'activation', 'destination'
     ]
 
     pipelineCategories.forEach(category => {
         const nodes = categoryGroups[category] || []
-        const column = PIPELINE_COLUMNS[category]
+        const column = CATEGORY_ORDER[category]
         const x = START_X + column * COLUMN_WIDTH
 
         nodes.forEach((nodeId, idx) => {
@@ -343,7 +322,7 @@ export function analyzeGaps(wizardData: WizardData, profile: DemoProfile): GapAn
     const gapNodes = requiredFromGoals.filter(n => !existingNodes.includes(n))
 
     // Start with the profile's default stack
-    const profileStack = profileStacks[profile] || profileStacks.preferred_stack
+    const profileStack = profileStacks[profile] || profileStacks.snowflake_composable!
     const allNodesSet = new Set([...profileStack.nodes])
 
     // Add user's existing tools
@@ -387,7 +366,7 @@ export function generateDiagramFromWizard(
     profile: DemoProfile
 ): GraphData {
     const analysis = analyzeGaps(wizardData, profile)
-    const profileStack = profileStacks[profile] || profileStacks.preferred_stack
+    const profileStack = profileStacks[profile] || profileStacks.snowflake_composable!
 
     logger.debug('📊 Generating B2B SaaS diagram for profile:', profile, {
         existing: analysis.existingNodes,
@@ -420,11 +399,11 @@ export function generateDiagramFromWizard(
             data: {
                 catalogId,
                 label: catalogNode?.name || catalogId,
-                category: catalogNode?.category || 'source',
+                category: catalogNode?.category || 'sources',
                 status,
                 isRailNode: catalogNode?.isRailNode,
-                railPosition: catalogNode?.category === 'governance_rail' ? 'top' :
-                    catalogNode?.category === 'account_graph' ? 'center' : undefined
+                railPosition: catalogNode?.category === 'governance' ? 'top' :
+                    catalogNode?.category === 'identity' ? 'center' : undefined
             } as MdfNodeData
         }
     })
@@ -438,7 +417,7 @@ export function generateDiagramFromWizard(
                 id: `edge-${generateId()}`,
                 source: nodeMap[edge.source],
                 target: nodeMap[edge.target],
-                isGovernanceEdge: sourceNode?.category === 'governance_rail'
+                isGovernanceEdge: sourceNode?.category === 'governance'
             }
         })
 
@@ -451,7 +430,7 @@ export function generateDiagramFromWizard(
  * Generate default diagram for a profile (no wizard data)
  */
 export function generateDefaultDiagramForProfile(profile: DemoProfile): GraphData {
-    const profileStack = profileStacks[profile] || profileStacks.preferred_stack
+    const profileStack = profileStacks[profile] || profileStacks.snowflake_composable!
 
     // Filter to valid catalog nodes
     const nodesToInclude = profileStack.nodes.filter(nodeId => getNodeById(nodeId) !== undefined)
@@ -477,11 +456,11 @@ export function generateDefaultDiagramForProfile(profile: DemoProfile): GraphDat
             data: {
                 catalogId,
                 label: catalogNode?.name || catalogId,
-                category: catalogNode?.category || 'source',
+                category: catalogNode?.category || 'sources',
                 status: 'optional' as NodeStatus,
                 isRailNode: catalogNode?.isRailNode,
-                railPosition: catalogNode?.category === 'governance_rail' ? 'top' :
-                    catalogNode?.category === 'account_graph' ? 'center' : undefined
+                railPosition: catalogNode?.category === 'governance' ? 'top' :
+                    catalogNode?.category === 'identity' ? 'center' : undefined
             } as MdfNodeData
         }
     })
@@ -495,7 +474,7 @@ export function generateDefaultDiagramForProfile(profile: DemoProfile): GraphDat
                 id: `edge-${generateId()}`,
                 source: nodeMap[edge.source],
                 target: nodeMap[edge.target],
-                isGovernanceEdge: sourceNode?.category === 'governance_rail'
+                isGovernanceEdge: sourceNode?.category === 'governance'
             }
         })
 
@@ -525,7 +504,7 @@ export function generateDiagramFromTemplate(
             data: {
                 catalogId: spec.catalogId,
                 label: catalogNode?.name || spec.catalogId,
-                category: catalogNode?.category || 'source',
+                category: catalogNode?.category || 'sources',
                 status: 'optional' as NodeStatus,
                 isRailNode: catalogNode?.isRailNode
             } as MdfNodeData
@@ -568,8 +547,9 @@ export const edgeCaseTemplates: EdgeCaseTemplate[] = [
             'fivetran',
             'snowflake',
             'dbt_core',
+            'cube_js',
             'neptune_graph', 'account_resolution',
-            'consent_manager', 'data_quality',
+            'consent_manager', 'snowflake_horizon',
             'looker', 'opportunity_influence',
             'hightouch',
             'salesforce_crm_dest', 'linkedin_ads'
@@ -580,15 +560,16 @@ export const edgeCaseTemplates: EdgeCaseTemplate[] = [
             { source: 'billing_system', target: 'fivetran' },
             { source: 'fivetran', target: 'snowflake' },
             { source: 'snowflake', target: 'dbt_core' },
+            { source: 'dbt_core', target: 'cube_js' },
+            { source: 'cube_js', target: 'looker' },
             { source: 'dbt_core', target: 'neptune_graph' },
             { source: 'neptune_graph', target: 'account_resolution' },
-            { source: 'dbt_core', target: 'looker' },
             { source: 'dbt_core', target: 'opportunity_influence' },
             { source: 'account_resolution', target: 'hightouch' },
             { source: 'hightouch', target: 'salesforce_crm_dest' },
             { source: 'hightouch', target: 'linkedin_ads' },
             { source: 'consent_manager', target: 'hightouch' },
-            { source: 'data_quality', target: 'dbt_core' }
+            { source: 'snowflake_horizon', target: 'snowflake' }
         ]
     },
 
@@ -772,7 +753,7 @@ export const edgeCaseTemplates: EdgeCaseTemplate[] = [
  */
 export function generateDiagramFromEdgeCaseTemplate(
     templateId: string,
-    profile: DemoProfile = 'preferred_stack'
+    profile: DemoProfile = 'snowflake_composable'
 ): GraphData | null {
     const template = edgeCaseTemplates.find(t => t.id === templateId)
     if (!template) {

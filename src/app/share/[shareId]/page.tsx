@@ -106,6 +106,15 @@ function ShareCanvas() {
                             <Calendar className="w-3 h-3" />
                             {new Date(shareData.createdAt).toLocaleDateString()}
                         </Badge>
+                        <Button variant="outline" size="sm" onClick={() => {
+                            // Store graph data for the simulator to pick up
+                            sessionStorage.setItem('mdf_shared_graph', JSON.stringify(shareData.graphData))
+                            sessionStorage.setItem('mdf_shared_profile', shareData.profile || '')
+                            window.location.href = '/simulator/new?from=share'
+                        }}>
+                            <Copy className="w-3.5 h-3.5 mr-1.5" />
+                            Duplicate to Edit
+                        </Button>
                         <Button variant="default" size="sm" onClick={() => window.location.href = '/'}>
                             Create Your Own
                         </Button>
@@ -146,10 +155,10 @@ function ShareCanvas() {
                         nodeColor={(n: any) => {
                             const data = n.data as { category?: string } | undefined
                             switch (data?.category) {
-                                case 'identity': return 'hsl(158, 64%, 52%)'
+                                case 'account_graph': return 'hsl(158, 64%, 52%)'
                                 case 'source': return 'hsl(199, 89%, 48%)'
                                 case 'activation': return 'hsl(142, 71%, 45%)'
-                                case 'governance': return 'hsl(43, 96%, 56%)'
+                                case 'governance_rail': return 'hsl(43, 96%, 56%)'
                                 default: return 'hsl(217, 91%, 60%)'
                             }
                         }}

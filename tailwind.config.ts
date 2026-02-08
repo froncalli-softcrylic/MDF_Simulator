@@ -76,13 +76,38 @@ const config: Config = {
                     '0%, 100%': { opacity: '1' },
                     '50%': { opacity: '0.5' },
                 },
+                'pulse-glow': {
+                    '0%, 100%': { opacity: '1', boxShadow: '0 0 20px theme("colors.primary.DEFAULT")' },
+                    '50%': { opacity: '0.8', boxShadow: '0 0 10px theme("colors.primary.DEFAULT")' },
+                },
+                float: {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(-10px)' },
+                },
+                'scale-in': {
+                    '0%': { transform: 'scale(0.95)', opacity: '0' },
+                    '100%': { transform: 'scale(1)', opacity: '1' },
+                },
+                'slide-in-right': {
+                    '0%': { transform: 'translateX(100%)', opacity: '0' },
+                    '100%': { transform: 'translateX(0)', opacity: '1' },
+                }
             },
             animation: {
                 'accordion-down': 'accordion-down 0.2s ease-out',
                 'accordion-up': 'accordion-up 0.2s ease-out',
                 shimmer: 'shimmer 2s infinite',
                 pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                'pulse-glow': 'pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                float: 'float 6s ease-in-out infinite',
+                'float-delayed': 'float 6s ease-in-out 3s infinite',
+                'scale-in': 'scale-in 0.2s ease-out',
+                'slide-in-right': 'slide-in-right 0.3s ease-out',
             },
+            backgroundImage: {
+                'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                'hero-glow': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+            }
         },
     },
     plugins: [require('tailwindcss-animate')],

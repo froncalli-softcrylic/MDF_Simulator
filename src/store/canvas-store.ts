@@ -65,6 +65,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     setEdges: (edges) => set({ edges, isDirty: true }),
 
     onNodesChange: (changes) => {
+        // console.log('onNodesChange:', changes)
         set({
             nodes: applyNodeChanges(changes, get().nodes),
             isDirty: true

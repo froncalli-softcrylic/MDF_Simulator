@@ -2,14 +2,14 @@
 
 // Smart Connect Panel - Shows edge suggestions after auto layout
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useCanvasStore } from '@/store/canvas-store'
 import type { SuggestedEdge, SuggestedFixes } from '@/types'
 import { getNodeById } from '@/data/node-catalog'
 import { generateId } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { Check, X, Link2, AlertCircle, Sparkles } from 'lucide-react'
+import { Check, X, Link2, AlertCircle, Sparkles, GripHorizontal } from 'lucide-react'
 
 interface SmartConnectPanelProps {
     suggestedFixes: SuggestedFixes
@@ -24,8 +24,11 @@ export default function SmartConnectPanel({
     onDismiss,
     className
 }: SmartConnectPanelProps) {
+    // Safe access with defaults
+    const edgesArray = suggestedFixes?.suggestedEdges ?? []
+
     const [selectedEdges, setSelectedEdges] = useState<Set<string>>(
-        () => new Set(suggestedFixes.suggestedEdges.filter(e => e.confidence === 'high').map(e => e.id))
+        () => new Set(edgesArray.filter(e => e.confidence === 'high').map(e => e.id))
     )
 
     const toggleEdge = useCallback((id: string) => {
@@ -41,19 +44,66 @@ export default function SmartConnectPanel({
     }, [])
 
     const handleApply = useCallback(() => {
-        const edgesToApply = suggestedFixes.suggestedEdges.filter(e => selectedEdges.has(e.id))
+        const edgesToApply = edgesArray.filter(e => selectedEdges.has(e.id))
         onApply(edgesToApply)
-    }, [suggestedFixes.suggestedEdges, selectedEdges, onApply])
+    }, [edgesArray, selectedEdges, onApply])
 
     const selectAll = useCallback(() => {
-        setSelectedEdges(new Set(suggestedFixes.suggestedEdges.map(e => e.id)))
-    }, [suggestedFixes.suggestedEdges])
+        setSelectedEdges(new Set(edgesArray.map(e => e.id)))
+    }, [edgesArray])
 
     const selectNone = useCallback(() => {
         setSelectedEdges(new Set())
     }, [])
 
-    const { suggestedEdges, missingNodes, orphanedNodes } = suggestedFixes
+    // Drag functionality
+    const [position, setPosition] = useState({ x: 0, y: 0 })
+    const [isDragging, setIsDragging] = useState(false)
+    const dragRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number } | null>(null)
+
+    const handleMouseDown = useCallback((e: React.MouseEvent) => {
+        e.preventDefault()
+        setIsDragging(true)
+        dragRef.current = {
+            startX: e.clientX,
+            startY: e.clientY,
+            initialX: position.x,
+            initialY: position.y
+        }
+    }, [position])
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isDragging || !dragRef.current) return
+            const deltaX = e.clientX - dragRef.current.startX
+            const deltaY = e.clientY - dragRef.current.startY
+            setPosition({
+                x: dragRef.current.initialX + deltaX,
+                y: dragRef.current.initialY + deltaY
+            })
+        }
+
+        const handleMouseUp = () => {
+            setIsDragging(false)
+            dragRef.current = null
+        }
+
+        if (isDragging) {
+            document.addEventListener('mousemove', handleMouseMove)
+            document.addEventListener('mouseup', handleMouseUp)
+        }
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove)
+            document.removeEventListener('mouseup', handleMouseUp)
+        }
+    }, [isDragging])
+
+    const {
+        suggestedEdges = [],
+        missingNodes = [],
+        orphanedNodes = []
+    } = suggestedFixes ?? {}
     const hasSuggestions = suggestedEdges.length > 0 || missingNodes.length > 0
 
     if (!hasSuggestions) {
@@ -63,16 +113,28 @@ export default function SmartConnectPanel({
     return (
         <div
             className={cn(
-                'absolute bottom-4 left-1/2 -translate-x-1/2 z-30',
+                'absolute bottom-4 left-1/2 z-30',
                 'bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-200',
-                'w-[480px] max-h-[400px] overflow-hidden',
-                'animate-in slide-in-from-bottom-4 fade-in duration-300',
+                'w-[480px] max-w-[calc(100%-2rem)] max-h-[400px] overflow-hidden',
+                position.x === 0 && position.y === 0 && 'animate-in slide-in-from-bottom-4 fade-in duration-300',
+                isDragging && 'cursor-grabbing',
                 className
             )}
+            style={{
+                transform: `translate(calc(-50% + ${position.x}px), ${position.y}px)`
+            }}
         >
-            {/* Header */}
-            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+            {/* Header - Drag Handle */}
+            <div
+                onMouseDown={handleMouseDown}
+                className={cn(
+                    "px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50",
+                    "cursor-grab select-none",
+                    isDragging && "cursor-grabbing"
+                )}
+            >
                 <div className="flex items-center gap-2">
+                    <GripHorizontal className="w-4 h-4 text-slate-400" />
                     <Sparkles className="w-4 h-4 text-blue-500" />
                     <span className="font-medium text-slate-800">
                         Smart Connect Suggestions
@@ -127,7 +189,7 @@ export default function SmartConnectPanel({
                                     </span>
                                 </div>
                                 <div className="text-xs text-slate-500 mt-0.5">
-                                    Port: {edge.portTypes.source} → {edge.portTypes.target}
+                                    Port: {edge.portTypes?.source ?? 'any'} → {edge.portTypes?.target ?? 'any'}
                                 </div>
                             </div>
 

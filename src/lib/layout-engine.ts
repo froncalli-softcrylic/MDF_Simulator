@@ -31,7 +31,18 @@ export async function applyAutoLayout(
     edges: Edge[],
     options: LayoutOptions = {}
 ): Promise<Node[]> {
-    if (nodes.length === 0) return nodes
+    if (!nodes || nodes.length === 0) return nodes ?? []
+
+    // Ensure we have valid arrays
+    // Ensure we have valid arrays
+    const safeNodes = nodes.filter(n => n?.id)
+    const nodeIds = new Set(safeNodes.map(n => n.id))
+    const safeEdges = (edges ?? []).filter(e =>
+        e?.source &&
+        e?.target &&
+        nodeIds.has(e.source) &&
+        nodeIds.has(e.target)
+    )
 
     // Default node dimensions
     const NODE_WIDTH = 180
@@ -46,12 +57,12 @@ export async function applyAutoLayout(
             'elk.spacing.nodeNode': String(options.nodeSpacing || 80),
             'elk.layered.spacing.nodeNodeBetweenLayers': String(options.layerSpacing || 100)
         },
-        children: nodes.map(node => ({
+        children: safeNodes.map(node => ({
             id: node.id,
             width: NODE_WIDTH,
             height: NODE_HEIGHT
         })),
-        edges: edges.map(edge => ({
+        edges: safeEdges.map(edge => ({
             id: edge.id,
             sources: [edge.source],
             targets: [edge.target]
@@ -69,7 +80,7 @@ export async function applyAutoLayout(
             }
         })
 
-        return nodes.map(node => {
+        return safeNodes.map(node => {
             const newPos = positionMap.get(node.id)
             return newPos
                 ? { ...node, position: newPos }
@@ -77,7 +88,7 @@ export async function applyAutoLayout(
         })
     } catch (error) {
         console.error('Auto-layout failed:', error)
-        return nodes
+        return safeNodes
     }
 }
 

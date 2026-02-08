@@ -49,7 +49,7 @@ export const useProfileStore = create<ProfileStore>()(
     persist(
         (set, get) => ({
             // Current profile
-            activeProfile: 'preferred_stack',
+            activeProfile: 'snowflake_composable',
             setActiveProfile: (profile) => set({ activeProfile: profile }),
 
             // Wizard data

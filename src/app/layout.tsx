@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import '@xyflow/react/dist/style.css'
 import MobileCheck from '@/components/MobileCheck'
 import ErrorBoundary from '@/components/ErrorBoundary'
 

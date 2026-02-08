@@ -9,8 +9,8 @@ import type {
     SuggestedFixes,
     DuplicateConflict,
     MissingNodeSuggestion,
-    STAGE_TO_COLUMN
 } from '@/types'
+import { STAGE_TO_COLUMN } from '@/types'
 import { getNodeById, nodeCatalog } from '@/data/node-catalog'
 import { generateId } from '@/lib/utils'
 import { ALLOWED_CATEGORY_EDGES } from '@/types'
@@ -51,32 +51,25 @@ const GOVERNANCE_RAIL_Y = 40
 const IDENTITY_HUB_Y = 350
 
 // Pipeline flow order
+// Pipeline flow order
 const PIPELINE_FLOW: PipelineStage[] = [
-    'source',
+    'sources',
     'collection',
     'ingestion',
     'storage_raw',
     'storage_warehouse',
     'transform',
-    'identity_hub',
+    'identity',
+    'governance',
     'analytics',
     'activation',
     'destination'
 ]
 
 // Stage column positions
-const STAGE_COLUMNS: Record<PipelineStage, number> = {
-    source: 0,
-    collection: 1,
-    ingestion: 2,
-    storage_raw: 3,
-    storage_warehouse: 4,
-    transform: 5,
-    identity_hub: 6,
-    analytics: 7,
-    activation: 7,  // Parallel with analytics
-    destination: 8
-}
+// Stage column positions
+// Using imported STAGE_TO_COLUMN from types
+const STAGE_COLUMNS = STAGE_TO_COLUMN
 
 // Singleton uniqueness keys for preventing duplicates
 const SINGLETON_KEYS: Record<string, string> = {
@@ -114,19 +107,21 @@ const SINGLETON_KEYS: Record<string, string> = {
  */
 function inferStageFromCategory(category: NodeCategory): PipelineStage {
     const mapping: Record<NodeCategory, PipelineStage> = {
-        source: 'source',
+        sources: 'sources',
         collection: 'collection',
         ingestion: 'ingestion',
         storage_raw: 'storage_raw',
         storage_warehouse: 'storage_warehouse',
         transform: 'transform',
+        identity: 'identity',
+        governance: 'governance',
         analytics: 'analytics',
         activation: 'activation',
-        destination: 'destination',
-        governance_rail: 'transform',     // Floats at top
-        account_graph: 'identity_hub'     // Hub between transform and outputs
+        clean_room: 'clean_room',
+        realtime_serving: 'realtime_serving',
+        destination: 'destination'
     }
-    return mapping[category] || 'source'
+    return mapping[category] || 'sources'
 }
 
 /**
@@ -193,17 +188,21 @@ export function normalizeGraph(nodes: CanvasNode[]): NormalizationResult {
  */
 function getNextStages(stage: PipelineStage): PipelineStage[] {
     const flow: Record<PipelineStage, PipelineStage[]> = {
-        source: ['collection', 'ingestion'],
+        sources: ['collection', 'ingestion'],
         collection: ['ingestion'],
         ingestion: ['storage_raw', 'storage_warehouse'],
         storage_raw: ['storage_warehouse'],
         storage_warehouse: ['transform'],
-        transform: ['identity_hub', 'analytics', 'activation'],
-        identity_hub: ['analytics', 'activation'],
+        transform: ['identity', 'analytics', 'activation'],
+        identity: ['analytics', 'activation'],
+        governance: ['collection', 'ingestion', 'storage_raw', 'storage_warehouse', 'activation', 'analytics'],
         analytics: [],
         activation: ['destination'],
+        clean_room: ['analytics'],
+        realtime_serving: ['destination'],
         destination: []
     }
+
     return flow[stage] || []
 }
 
@@ -216,8 +215,8 @@ function findCompatiblePorts(
 ): { sourcePort: { id: string; type: PortType }; targetPort: { id: string; type: PortType } } | null {
     for (const output of sourceOutputs) {
         for (const input of targetInputs) {
-            // Type match or 'any' type accepts all
-            if (output.type === input.type || output.type === 'any' || input.type === 'any') {
+            // Type match
+            if (output.type === input.type) {
                 return { sourcePort: output, targetPort: input }
             }
         }
@@ -277,7 +276,7 @@ export function generateSmartConnectSuggestions(
         if (!catalog) continue
 
         // Skip governance rail nodes (they connect conceptually, not physically)
-        if (catalog.isRailNode && catalog.category === 'governance_rail') continue
+        if (catalog.isRailNode && catalog.category === 'governance') continue
 
         const currentStage = stageAssignments.get(node.id) || getNodeStage(node)
         const nextStages = getNextStages(currentStage)
@@ -334,18 +333,21 @@ export function generateSmartConnectSuggestions(
 // MISSING STAGE DETECTION
 // ============================================
 
-const CRITICAL_STAGES: PipelineStage[] = ['source', 'storage_warehouse', 'transform']
+const CRITICAL_STAGES: PipelineStage[] = ['sources', 'storage_warehouse', 'transform']
 
 const DEFAULT_NODES_BY_STAGE: Record<PipelineStage, string[]> = {
-    source: ['product_events', 'salesforce_crm'],
+    sources: ['product_events', 'salesforce_crm'],
     collection: ['segment'],
     ingestion: ['kinesis_firehose', 'fivetran'],
     storage_raw: ['s3_raw'],
     storage_warehouse: ['snowflake'],
     transform: ['dbt_core'],
-    identity_hub: ['neptune_graph', 'account_resolution'],
+    identity: ['neptune_graph', 'account_resolution'],
+    governance: ['data_quality', 'access_control'],
     analytics: ['looker'],
     activation: ['hightouch'],
+    clean_room: [],
+    realtime_serving: [],
     destination: ['salesforce_crm_dest', 'linkedin_ads']
 }
 
@@ -382,11 +384,11 @@ export function detectMissingStages(
     }
 
     // If activation exists, recommend identity hub
-    if (presentStages.has('activation') && !presentStages.has('identity_hub')) {
+    if (presentStages.has('activation') && !presentStages.has('identity')) {
         suggestions.push({
-            stage: 'identity_hub',
+            stage: 'identity',
             recommendedCatalogIds: ['neptune_graph', 'account_resolution'],
-            reason: 'Account Graph Hub recommended for B2B SaaS accuracy',
+            reason: 'Identity Hub recommended for B2B SaaS accuracy',
             severity: 'recommended'
         })
     }
@@ -421,9 +423,9 @@ export function calculateLayout(
         const stage = stageAssignments.get(node.id) || getNodeStage(node)
 
         // Separate governance rail and hub nodes
-        if (catalog?.category === 'governance_rail') {
+        if (catalog?.category === 'governance') {
             governanceNodes.push(node)
-        } else if (catalog?.isHub || catalog?.category === 'account_graph') {
+        } else if (catalog?.isHub || catalog?.category === 'identity') {
             hubNodes.push(node)
         } else {
             if (!nodesByStage.has(stage)) {
@@ -444,7 +446,7 @@ export function calculateLayout(
 
     // Position identity hub nodes in center
     hubNodes.forEach((node, idx) => {
-        const column = STAGE_COLUMNS['identity_hub']
+        const column = STAGE_COLUMNS['identity']
         const row = idx % 2
         const col = Math.floor(idx / 2)
         positions.set(node.id, {
@@ -487,18 +489,21 @@ export function generateSuggestedFixes(
     // Find orphaned nodes (no connections)
     const connectedNodeIds = new Set<string>()
     for (const edge of edges) {
-        connectedNodeIds.add(edge.source)
-        connectedNodeIds.add(edge.target)
+        if (edge?.source) connectedNodeIds.add(edge.source)
+        if (edge?.target) connectedNodeIds.add(edge.target)
     }
     const orphanedNodes = nodes
         .filter(n => !connectedNodeIds.has(n.id) && nodes.length > 1)
         .map(n => n.id)
 
     return {
+        autoApplyEdges: [],
         suggestedEdges,
+        suggestedNodes: [],
         missingNodes,
         duplicates,
-        orphanedNodes
+        orphanedNodes,
+        totalSuggestions: suggestedEdges.length + missingNodes.length
     }
 }
 

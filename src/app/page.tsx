@@ -60,62 +60,74 @@ const templates = [
     }
 ]
 
+import dynamic from 'next/dynamic'
+
+const LandingHero3D = dynamic(() => import('@/components/3d/LandingHero3D'), {
+    ssr: false,
+    loading: () => <div className="w-full h-full bg-slate-50/50 dark:bg-slate-900/50 animate-pulse" />
+})
+
 export default function LandingPage() {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
+        <div className="min-h-screen bg-background relative overflow-hidden text-slate-800 dark:text-slate-100">
+            {/* 3D Background Experience */}
+            <div className="absolute inset-0 z-0 opacity-80 pointer-events-none">
+                <LandingHero3D />
+            </div>
+
             {/* Header */}
-            <header className="border-b border-indigo-100 bg-white/70 backdrop-blur-md sticky top-0 z-50">
-                <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        {/* Softcrylic Logo */}
-                        <div className="relative h-8 w-32 mr-2">
-                            <Image
-                                src="/softcrylic-logo.png"
-                                alt="Softcrylic Logo"
-                                fill
-                                style={{ objectFit: 'contain' }}
-                                priority
-                            />
+            <header className="fixed top-4 left-4 right-4 z-50">
+                <div className="container mx-auto max-w-6xl">
+                    <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 rounded-full shadow-lg px-6 h-16 flex items-center justify-between transition-all duration-300 hover:bg-white/90 dark:hover:bg-slate-900/90 hover:shadow-xl hover:scale-[1.005]">
+                        <div className="flex items-center gap-3">
+                            {/* Logo */}
+                            <div className="relative h-8 w-8 bg-primary rounded-lg flex items-center justify-center shadow-md">
+                                <Sparkles className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-2" />
+                            <span className="font-bold text-lg tracking-tight">MDF Simulator</span>
                         </div>
-                        <div className="w-px h-6 bg-slate-300 mx-2" />
-                        <span className="font-semibold text-slate-700">MDF Simulator</span>
+                        <nav className="flex items-center gap-4">
+                            <Badge variant="secondary" className="hidden sm:inline-flex bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 border-none px-3 py-1">
+                                v2.0 • Sales Demo Tool
+                            </Badge>
+                        </nav>
                     </div>
-                    <nav className="flex items-center gap-4">
-                        <Badge variant="secondary" className="hidden sm:inline-flex">
-                            Sales Demo Tool
-                        </Badge>
-                    </nav>
                 </div>
             </header>
 
             {/* Hero */}
-            <section className="container mx-auto px-4 py-16 md:py-24">
-                <div className="max-w-4xl mx-auto text-center">
-                    <Badge className="mb-4" variant="outline">
-                        We Make Data Work®
-                    </Badge>
-                    <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-8 text-slate-900 drop-shadow-sm">
-                        Build Your{' '}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-500">
-                            Marketing Data Foundation
+            <section className="container mx-auto px-4 pt-32 pb-20 md:pt-48 md:pb-32 relative z-10">
+                <div className="max-w-5xl mx-auto text-center space-y-8">
+                    <div className="inline-flex animate-scale-in">
+                        <Badge className="px-4 py-1.5 text-sm bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors backdrop-blur-sm">
+                            We Make Data Work®
+                        </Badge>
+                    </div>
+
+                    <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-slate-900 dark:text-white leading-[0.9] drop-shadow-sm animate-scale-in [animation-delay:100ms]">
+                        Build Your <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-secondary animate-gradient-x bg-[length:200%_auto]">
+                            Data Foundation
                         </span>
                     </h1>
-                    <p className="text-xl md:text-2xl text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-                        Escape the Data Bermuda Triangle. Visualize how to capture, normalize,
-                        and activate your data — from strategy to implementation.
+
+                    <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed font-light animate-scale-in [animation-delay:200ms]">
+                        Escape the Bermuda Triangle of data. <br className="hidden md:block" />
+                        Visualize, simulate, and activate your marketing stack in real-time.
                     </p>
 
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8 animate-scale-in [animation-delay:300ms]">
                         <Link href="/wizard">
-                            <Button size="lg" className="gap-2 w-full sm:w-auto">
-                                <Sparkles className="w-5 h-5" />
+                            <Button size="lg" className="h-16 px-8 text-lg gap-3 rounded-2xl shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/40 hover:-translate-y-1 transition-all duration-300">
+                                <Sparkles className="w-6 h-6 animate-pulse" />
                                 Start with Wizard
-                                <ArrowRight className="w-4 h-4" />
+                                <ArrowRight className="w-5 h-5 opacity-50" />
                             </Button>
                         </Link>
                         <Link href="/simulator/new">
-                            <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto border-indigo-200 hover:bg-indigo-50 text-indigo-700">
-                                <LayoutTemplate className="w-5 h-5" />
+                            <Button size="lg" variant="outline" className="h-16 px-8 text-lg gap-3 rounded-2xl border-2 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm hover:-translate-y-1 transition-all duration-300">
+                                <LayoutTemplate className="w-6 h-6" />
                                 Start from Template
                             </Button>
                         </Link>
@@ -123,51 +135,67 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* Features */}
-            <section className="container mx-auto px-4 py-16">
+            {/* Features Staggered Grid */}
+            <section className="container mx-auto px-4 py-20 relative z-10">
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {features.map((feature) => (
-                        <Card key={feature.title} className="bg-white/60 backdrop-blur-lg border-indigo-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                    {features.map((feature, i) => (
+                        <Card
+                            key={feature.title}
+                            className="group bg-white/40 dark:bg-slate-900/40 backdrop-blur-lg border-white/50 dark:border-slate-700/50 shadow-lg hover:shadow-2xl hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-500 hover:-translate-y-2 overflow-hidden"
+                            style={{ animationDelay: `${i * 100}ms` }}
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/40 dark:from-white/0 dark:to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                             <CardHeader>
-                                <feature.icon className={`w-10 h-10 ${feature.color} mb-2`} />
-                                <CardTitle className="text-lg">{feature.title}</CardTitle>
+                                <div className={`w-14 h-14 rounded-2xl ${feature.color.replace('text-', 'bg-')}/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
+                                    <feature.icon className={`w-8 h-8 ${feature.color}`} />
+                                </div>
+                                <CardTitle className="text-xl font-bold">{feature.title}</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <CardDescription>{feature.description}</CardDescription>
+                                <CardDescription className="text-base leading-relaxed">
+                                    {feature.description}
+                                </CardDescription>
                             </CardContent>
                         </Card>
                     ))}
                 </div>
             </section>
 
-            {/* Templates */}
-            <section className="container mx-auto px-4 py-16">
-                <div className="text-center mb-10">
-                    <h2 className="text-2xl font-bold mb-2">Start with a Proven Architecture</h2>
-                    <p className="text-muted-foreground">
-                        Select a template built from Softcrylic&apos;s engineering expertise
+            {/* Templates Section - Horizontal Scroll Snap-like feel */}
+            <section className="container mx-auto px-4 py-20">
+                <div className="text-center mb-16 space-y-3">
+                    <h2 className="text-4xl font-bold tracking-tight">Proven Architectures</h2>
+                    <p className="text-lg text-muted-foreground max-w-lg mx-auto">
+                        Don't start from scratch. Select a battle-tested template built by Softcrylic engineers.
                     </p>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
                     {templates.map((template) => (
                         <Link
                             key={template.id}
                             href={`/simulator/new?template=${template.id}`}
+                            className="block"
                         >
-                            <Card className="h-full bg-white/80 backdrop-blur border-indigo-50 hover:border-blue-300 shadow-md hover:shadow-lg transition-all cursor-pointer group">
-                                <CardHeader>
-                                    <div className="flex items-center justify-between">
-                                        <CardTitle className="text-lg">{template.name}</CardTitle>
-                                        {template.badge && (
-                                            <Badge variant="secondary" className="text-xs">
-                                                {template.badge}
-                                            </Badge>
-                                        )}
+                            <Card className="h-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 hover:border-primary/50 dark:hover:border-primary/50 shadow-lg hover:shadow-2xl hover:shadow-primary/10 transition-all duration-300 group hover:-translate-y-2 relative overflow-hidden">
+                                {template.badge && (
+                                    <div className="absolute top-4 right-4">
+                                        <Badge className="bg-gradient-to-r from-primary to-secondary border-none shadow-md">
+                                            {template.badge}
+                                        </Badge>
                                     </div>
+                                )}
+                                <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                                <CardHeader className="pt-8">
+                                    <CardTitle className="text-2xl font-bold group-hover:text-primary transition-colors">
+                                        {template.name}
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <CardDescription>{template.description}</CardDescription>
+                                    <CardDescription className="text-base">
+                                        {template.description}
+                                    </CardDescription>
                                 </CardContent>
                             </Card>
                         </Link>
@@ -175,25 +203,32 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            <section className="container mx-auto px-4 py-16">
-                <Card className="max-w-2xl mx-auto bg-gradient-to-r from-red-50 to-orange-50 border-red-200">
-                    <CardContent className="p-8 text-center">
-                        <Users className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold mb-2">Ready to Make Your Data Work?</h3>
-                        <p className="text-muted-foreground mb-6">
+            {/* CTA */}
+            <section className="container mx-auto px-4 py-24">
+                <div className="max-w-4xl mx-auto bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2.5rem] p-12 text-center text-white relative overflow-hidden shadow-2xl">
+                    <div className="absolute top-0 left-0 w-full h-full bg-[url('/grid.svg')] opacity-10" />
+                    <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/30 rounded-full blur-[80px] animate-pulse-glow" />
+
+                    <div className="relative z-10 space-y-8">
+                        <Users className="w-16 h-16 mx-auto text-primary animate-bounce" />
+                        <h3 className="text-4xl md:text-5xl font-bold tracking-tight">
+                            Ready to make your data work?
+                        </h3>
+                        <p className="text-xl text-slate-300 max-w-2xl mx-auto">
                             Our team of data engineers and strategists can help you implement a production-ready Marketing Data Foundation.
                         </p>
-                        <Button variant="default" size="lg">
+                        <Button variant="secondary" size="lg" className="h-14 px-8 text-lg rounded-xl font-bold hover:scale-105 transition-transform">
                             Book a Consultation
                         </Button>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             </section>
 
             {/* Footer */}
-            <footer className="border-t py-8">
+            <footer className="border-t border-slate-200 dark:border-slate-800 py-12 bg-slate-50 dark:bg-slate-950">
                 <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-                    <p>MDF Simulator — A Softcrylic Solution | We Make Data Work®</p>
+                    <p className="font-medium">MDF Simulator — A Softcrylic Solution</p>
+                    <p className="mt-2 opacity-60">We Make Data Work®</p>
                 </div>
             </footer>
         </div>

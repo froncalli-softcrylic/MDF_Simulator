@@ -5,7 +5,8 @@
 
 import { useProfileStore } from '@/store/profile-store'
 import { useCanvasStore } from '@/store/canvas-store'
-import { generateDefaultDiagramForProfile } from '@/lib/diagram-generator'
+import { loadProfileDefinition, buildGraphFromProfile } from '@/lib/profile-pipeline'
+import { layoutGraphData } from '@/lib/semantic-layout-engine'
 import { profileOptions } from '@/data/demo-profiles'
 import { DemoProfile } from '@/types'
 import {
@@ -19,7 +20,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 // Profile colors for visual distinction
-const profileColors: Record<DemoProfile, string> = {
+const profileColors: Partial<Record<DemoProfile, string>> = {
     adobe_summit: 'bg-red-500',
     preferred_stack: 'bg-cyan-500',
     google_cloud: 'bg-blue-500',
@@ -41,13 +42,18 @@ export default function ProfileSelector({
     const { activeProfile, setActiveProfile } = useProfileStore()
     const { loadGraph } = useCanvasStore()
 
-    const handleProfileChange = (value: DemoProfile) => {
+    const handleProfileChange = async (value: DemoProfile) => {
         setActiveProfile(value)
 
-        // Optionally regenerate diagram with new profile
+        // Regenerate diagram using the unified semantic layout pipeline
         if (regenerateOnChange) {
-            const graph = generateDefaultDiagramForProfile(value)
-            loadGraph(graph)
+            const profileDef = loadProfileDefinition(value)
+            if (profileDef) {
+                const graph = buildGraphFromProfile(profileDef)
+                // Apply semantic layout (ELK with stage partitioning)
+                const layoutedNodes = await layoutGraphData(graph.nodes, graph.edges)
+                loadGraph({ nodes: layoutedNodes, edges: graph.edges })
+            }
         }
     }
 
@@ -63,7 +69,7 @@ export default function ProfileSelector({
                     <div className="flex items-center gap-2">
                         <div className={cn(
                             'w-2 h-2 rounded-full',
-                            profileColors[activeProfile]
+                            profileColors[activeProfile] || 'bg-slate-500'
                         )} />
                         <SelectValue placeholder="Select profile" />
                     </div>
@@ -78,7 +84,7 @@ export default function ProfileSelector({
                             <div className="flex items-center gap-2">
                                 <div className={cn(
                                     'w-2 h-2 rounded-full',
-                                    profileColors[profile.id]
+                                    profileColors[profile.id] || 'bg-slate-500'
                                 )} />
                                 <span>{profile.name}</span>
                             </div>
