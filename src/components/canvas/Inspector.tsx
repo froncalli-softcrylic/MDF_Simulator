@@ -1,5 +1,7 @@
 'use client'
 
+import React from 'react'
+
 // Inspector Panel - Right sidebar showing clicked node details
 // Slide animation for open/close
 
@@ -226,8 +228,8 @@ export default function Inspector() {
                                 <h3 className="text-xs font-medium mb-1.5 text-muted-foreground">Enables</h3>
                                 <div className="flex flex-wrap gap-1.5">
                                     {(catalogNode.enables || []).map(tag => {
-                                        const config = enablesConfig[tag]
-                                        const IconComponent: React.ElementType = config?.icon || Zap
+                                        const config = (enablesConfig as Record<string, { icon: React.ElementType; color: string; bg: string }>)[tag]
+                                        const IconComp = config?.icon ?? Zap
                                         return (
                                             <div
                                                 key={tag}
@@ -237,7 +239,7 @@ export default function Inspector() {
                                                     config?.color || 'text-foreground'
                                                 )}
                                             >
-                                                <IconComponent className="w-2.5 h-2.5" />
+                                                {React.createElement(IconComp, { className: 'w-2.5 h-2.5' })}
                                                 {tag}
                                             </div>
                                         )

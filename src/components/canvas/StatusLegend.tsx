@@ -1,5 +1,7 @@
 'use client'
 
+import React from 'react'
+
 // Status Legend - Shows meaning of node status indicators
 // Updated to match new clean aesthetic
 
@@ -46,11 +48,11 @@ export default function StatusLegend({ className, compact = false }: StatusLegen
     return (
         <div className={cn('bg-white/90 backdrop-blur border rounded-full px-4 py-2 shadow-lg flex items-center gap-4', className)}>
             {legendItems.map(item => {
-                const IconComponent = item.icon
+                const IconComponent: React.ElementType = item.icon
                 return (
                     <div key={item.status} className="flex items-center gap-2">
                         <div className={cn('w-4 h-4 rounded-full flex items-center justify-center text-white', item.bg)}>
-                            <IconComponent className="w-2.5 h-2.5" />
+                            {React.createElement(IconComponent, { className: 'w-2.5 h-2.5' })}
                         </div>
                         <span className="text-xs font-medium text-slate-600 hidden sm:inline">{item.label}</span>
                     </div>

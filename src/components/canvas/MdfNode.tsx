@@ -4,7 +4,7 @@
 // Updated for B2B SaaS categories with governance rail and account graph
 // Features distinct styling for rail nodes and gap states
 
-import { memo, useMemo, useCallback } from 'react'
+import React, { memo, useMemo, useCallback } from 'react'
 import { Handle, Position, type Node } from '@xyflow/react'
 import type { MdfNodeData, NodeCategory, ValueOverlay, NodeStatus } from '@/types'
 import { getNodeById, categoryMeta } from '@/data/node-catalog'
@@ -85,7 +85,7 @@ function MdfNodeComponent({ data, selected, dragging }: MdfNodeProps) {
         [data.catalogId, activeOverlay]
     )
 
-    const IconComponent = useMemo(() =>
+    const IconComponent: React.ElementType = useMemo(() =>
         iconMap[catalogNode?.icon || 'database'] || Database,
         [catalogNode?.icon]
     )
@@ -150,7 +150,7 @@ function MdfNodeComponent({ data, selected, dragging }: MdfNodeProps) {
                     'bg-white/80 dark:bg-black/20',
                     isGap && 'opacity-60'
                 )}>
-                    <IconComponent className={cn('w-6 h-6', theme.icon)} />
+                    {React.createElement(IconComponent, { className: cn('w-6 h-6', theme.icon) })}
                 </div>
 
                 {/* Content */}
