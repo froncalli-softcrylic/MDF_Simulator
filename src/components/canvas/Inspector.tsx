@@ -227,7 +227,7 @@ export default function Inspector() {
                                 <div className="flex flex-wrap gap-1.5">
                                     {(catalogNode.enables || []).map(tag => {
                                         const config = enablesConfig[tag]
-                                        const IconComponent = config?.icon || Zap
+                                        const IconComponent: React.ElementType = config?.icon || Zap
                                         return (
                                             <div
                                                 key={tag}
