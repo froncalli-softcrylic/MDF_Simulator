@@ -29,13 +29,13 @@ const steps: TourStep[] = [
     {
         targetId: 'tour-toolbar',
         title: 'Control Center',
-        content: 'Use the toolbar to change profiles, run auto-layout, check your Architecture Health Score, and access the AI Assistant.',
+        content: 'Use the toolbar to change profiles, run auto-layout, check your Architecture Health Score, and access the AI Assistant. Look for the "Run" button to see your data flow in action!',
         position: 'bottom'
     },
     {
         targetId: 'tour-inspector',
         title: 'Inspector Panel',
-        content: 'Click on any node to view details, configure properties, and see specific recommendations like ROI and Latency support.',
+        content: 'Click on any node to view details. Check out the "Sample Data" section to see what kind of data flows through this component.',
         position: 'left'
     },
     {

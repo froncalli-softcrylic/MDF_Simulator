@@ -4,6 +4,17 @@
 import { create } from 'zustand'
 import type { ValueOverlay, ValidationOutput, SuggestedFixes, DuplicateConflict } from '@/types'
 
+
+
+export type SimulationStep = 'idle' | 'extraction' | 'start_flow' | 'transformation' | 'activation' | 'complete';
+
+export interface SimulationState {
+    status: SimulationStep;
+    activeNodeId: string | null;
+    message: string | null;
+    dataPayload: any;
+}
+
 interface UIStore {
     // Selection
     selectedNodeId: string | null
@@ -69,6 +80,8 @@ interface UIStore {
     // Simulation
     isSimulationRunning: boolean
     setSimulationRunning: (running: boolean) => void
+    simulationState: SimulationState; // NEW
+    setSimulationState: (state: Partial<SimulationState>) => void; // NEW
 }
 
 export const useUIStore = create<UIStore>((set, get) => ({
@@ -140,7 +153,18 @@ export const useUIStore = create<UIStore>((set, get) => ({
     endTour: () => set({ isTourOpen: false, currentStep: 0 }),
 
     // Simulation
+    // Simulation
     isSimulationRunning: false,
-    setSimulationRunning: (running) => set({ isSimulationRunning: running })
+    setSimulationRunning: (running) => set({ isSimulationRunning: running }),
+
+    simulationState: {
+        status: 'idle',
+        activeNodeId: null,
+        message: null,
+        dataPayload: null
+    },
+    setSimulationState: (newState) => set((state) => ({
+        simulationState: { ...state.simulationState, ...newState }
+    }))
 }))
 

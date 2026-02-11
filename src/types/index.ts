@@ -315,12 +315,14 @@ export interface CatalogNode {
     identityType?: 'deterministic' | 'graph' | 'household' | 'account';
     valueText?: string;                     // Override or specific value text for badges
 
-    // NEW: Phase 10 Visuals
     metrics?: Array<{
         label: string;
         value: string;
         trend?: 'up' | 'down' | 'neutral';
     }>;
+
+    // NEW: Phase 17 Interactive Learning
+    sampleData?: Record<string, any>[]; // Array of example objects for Data Preview
 }
 
 // ============================================

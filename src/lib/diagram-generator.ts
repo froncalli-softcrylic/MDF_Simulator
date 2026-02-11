@@ -20,8 +20,8 @@ import { generateId } from '@/lib/utils'
 // LAYOUT CONSTANTS
 // ============================================
 
-const COLUMN_WIDTH = 260
-const ROW_HEIGHT = 120
+const COLUMN_WIDTH = 400  // Increased for larger nodes + spacing
+const ROW_HEIGHT = 220    // Increased for taller nodes + vertical spacing
 const START_X = 80
 const START_Y = 100
 const RAIL_TOP_Y = 30      // Governance rail at top
@@ -29,6 +29,26 @@ const RAIL_CENTER_Y = 300  // Account graph hub centered
 
 // Column mapping for pipeline categories
 // Using imported CATEGORY_ORDER for columns
+
+// ============================================
+// VISUAL CONSTANTS
+// ============================================
+
+export const CATEGORY_EDGE_COLORS: Record<string, string> = {
+    sources: 'hsl(199, 89%, 48%)', // Cyan/Blue
+    collection: 'hsl(270, 70%, 60%)', // Purple
+    ingestion: 'hsl(30, 90%, 55%)',   // Orange
+    storage_raw: 'hsl(45, 90%, 45%)', // Gold
+    storage_warehouse: 'hsl(217, 91%, 60%)', // Blue
+    transform: 'hsl(250, 70%, 60%)',  // Indigo
+    mdf: 'hsl(35, 90%, 50%)',         // Amber (Hub)
+    identity: 'hsl(158, 64%, 52%)',   // Emerald
+    governance: 'hsl(0, 70%, 55%)',   // Red
+    analytics: 'hsl(330, 70%, 55%)',  // Pink
+    activation: 'hsl(14, 80%, 55%)',  // Orange-Red
+    destination: 'hsl(180, 70%, 40%)',// Teal
+}
+export const DEFAULT_EDGE_COLOR = '#b0b8c8'
 
 // ============================================
 // B2B SAAS DEFAULT STACKS (by profile)
@@ -191,15 +211,15 @@ export function analyzeGaps(wizardData: WizardData, profile: DemoProfile): GapAn
     const gapNodes = requiredFromGoals.filter(n => !existingNodes.includes(n))
 
     // Start with the profile's default stack
-    const profileStack = profileStacks[profile] || profileStacks.generic!
-    const allNodesSet = new Set([...profileStack.nodes])
+    // UPDATE: User requests strict mapping of inputs. Do NOT add default profile stack.
+    // const profileStack = profileStacks[profile] || profileStacks.generic!
+    const allNodesSet = new Set<string>()
 
-    // Add user's existing tools
+    // Add user's existing tools (Strict Mode)
     existingNodes.forEach(n => allNodesSet.add(n))
 
-    // Add recommendations and requirements
-    recommendedFromPainPoints.forEach(n => allNodesSet.add(n))
-    requiredFromGoals.forEach(n => allNodesSet.add(n))
+    // Do NOT add recommended/required nodes to the VISUAL graph yet.
+    // requiredFromGoals.forEach(n => allNodesSet.add(n))
 
     // Filter to only nodes visible in this profile
     const filteredNodes = Array.from(allNodesSet).filter(nodeId =>
@@ -211,7 +231,7 @@ export function analyzeGaps(wizardData: WizardData, profile: DemoProfile): GapAn
         recommendedNodes: recommendedFromPainPoints.filter(n => !existingNodes.includes(n)),
         requiredNodes: requiredFromGoals,
         gapNodes,
-        allNodes: filteredNodes
+        allNodes: filteredNodes // purely existing nodes now
     }
 }
 
@@ -278,15 +298,20 @@ export function generateDiagramFromWizard(
     })
 
     // Use profile's edge definitions, filtered to existing nodes
+    // Apply COLOR CODING based on source node category
     const edges: GraphData['edges'] = profileStack.edges
         .filter(edge => nodeMap[edge.source] && nodeMap[edge.target])
         .map(edge => {
             const sourceNode = getNodeById(edge.source)
+            const category = sourceNode?.category || 'sources'
+            const color = CATEGORY_EDGE_COLORS[category] || DEFAULT_EDGE_COLOR
+
             return {
                 id: `edge-${generateId()}`,
                 source: nodeMap[edge.source],
                 target: nodeMap[edge.target],
-                isGovernanceEdge: sourceNode?.category === 'governance'
+                isGovernanceEdge: sourceNode?.category === 'governance',
+                style: { stroke: color, strokeWidth: 2.5 }
             }
         })
 
@@ -335,15 +360,20 @@ export function generateDefaultDiagramForProfile(profile: DemoProfile): GraphDat
     })
 
     // Create edges
+    // Apply COLOR CODING based on source node category
     const edges: GraphData['edges'] = profileStack.edges
         .filter(edge => nodeMap[edge.source] && nodeMap[edge.target])
         .map(edge => {
             const sourceNode = getNodeById(edge.source)
+            const category = sourceNode?.category || 'sources'
+            const color = CATEGORY_EDGE_COLORS[category] || DEFAULT_EDGE_COLOR
+
             return {
                 id: `edge-${generateId()}`,
                 source: nodeMap[edge.source],
                 target: nodeMap[edge.target],
-                isGovernanceEdge: sourceNode?.category === 'governance'
+                isGovernanceEdge: sourceNode?.category === 'governance',
+                style: { stroke: color, strokeWidth: 2.5 }
             }
         })
 
@@ -380,11 +410,18 @@ export function generateDiagramFromTemplate(
         }
     })
 
-    const edges: GraphData['edges'] = templateEdges.map(spec => ({
-        id: `edge-${generateId()}`,
-        source: nodeMap[spec.source],
-        target: nodeMap[spec.target]
-    })).filter(e => e.source && e.target)
+    const edges: GraphData['edges'] = templateEdges.map(spec => {
+        const sourceNode = getNodeById(spec.source)
+        const category = sourceNode?.category || 'sources'
+        const color = CATEGORY_EDGE_COLORS[category] || DEFAULT_EDGE_COLOR
+
+        return {
+            id: `edge-${generateId()}`,
+            source: nodeMap[spec.source],
+            target: nodeMap[spec.target],
+            style: { stroke: color, strokeWidth: 2.5 }
+        }
+    }).filter(e => e.source && e.target)
 
     return { nodes, edges }
 }

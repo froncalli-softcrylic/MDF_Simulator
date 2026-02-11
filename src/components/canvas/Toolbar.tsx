@@ -45,6 +45,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu'
+import { useSimulationRunner } from '@/hooks/use-simulation-runner'
 
 // Value overlay buttons
 const overlayButtons = [
@@ -58,6 +59,7 @@ export default function Toolbar() {
     const router = useRouter()
     const [isExpanded, setIsExpanded] = useState(true)
     const { nodes, edges, setNodes, canUndo, canRedo, undo, redo } = useCanvasStore()
+    const { runSimulation, stopSimulation } = useSimulationRunner() // Use Hook
     const {
         activeOverlay,
         toggleOverlay,
@@ -82,12 +84,11 @@ export default function Toolbar() {
 
     const handleRunSimulation = useCallback(() => {
         if (isSimulationRunning) {
-            setSimulationRunning(false)
+            stopSimulation()
             return
         }
-        setSimulationRunning(true)
-        setTimeout(() => setSimulationRunning(false), 8000)
-    }, [isSimulationRunning, setSimulationRunning])
+        runSimulation(nodes, edges)
+    }, [isSimulationRunning, runSimulation, stopSimulation, nodes, edges])
 
     const handleAutoLayout = useCallback(async () => {
         if (!nodes || nodes.length === 0) return

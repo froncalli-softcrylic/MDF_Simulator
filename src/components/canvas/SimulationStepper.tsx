@@ -1,111 +1,97 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React from 'react'
+import { motion } from 'framer-motion'
 import { useUIStore } from '@/store/ui-store'
-import { CheckCircle, Circle, Loader2, Play } from 'lucide-react'
+import { CheckCircle, Loader2, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const STEPS = [
-    { id: 'sources', label: 'Ingesting Data', duration: 1500 },
-    { id: 'unify', label: 'Unifying Profiles (MDF)', duration: 2500 },
-    { id: 'enrich', label: 'Enriching Identity', duration: 1500 },
-    { id: 'activate', label: 'Activating Segments', duration: 1500 },
-    { id: 'complete', label: 'Simulation Complete', duration: 1000 }
+    { id: 'extraction', label: 'Ingesting Data (Source)', status: 'extraction' },
+    { id: 'transformation', label: 'Unifying & Transforming (Hub)', status: 'transformation' },
+    { id: 'activation', label: 'Activating Segments (Dest)', status: 'activation' },
+    { id: 'complete', label: 'Simulation Complete', status: 'complete' }
 ] as const
 
 export default function SimulationStepper() {
-    const { isSimulationRunning, setSimulationRunning } = useUIStore()
-    const [currentStepIndex, setCurrentStepIndex] = useState(0)
+    const { isSimulationRunning, simulationState, setSimulationRunning } = useUIStore()
 
-    useEffect(() => {
-        if (isSimulationRunning) {
-            setCurrentStepIndex(0)
-            let step = 0
-
-            const nextStep = () => {
-                if (step < STEPS.length - 1) {
-                    setTimeout(() => {
-                        step++
-                        setCurrentStepIndex(step)
-                        nextStep()
-                    }, STEPS[step].duration)
-                } else {
-                    // Finished
-                    setTimeout(() => {
-                        setSimulationRunning(false)
-                    }, STEPS[step].duration)
-                }
-            }
-
-            nextStep()
+    // Map the string status to a numeric index for the progress bar
+    const currentStepIndex = React.useMemo(() => {
+        if (!isSimulationRunning) return -1
+        switch (simulationState.status) {
+            case 'extraction': return 0
+            case 'start_flow': return 0 // Still first step visually
+            case 'transformation': return 1
+            case 'activation': return 2
+            case 'complete': return 3
+            default: return 0
         }
-    }, [isSimulationRunning, setSimulationRunning])
+    }, [simulationState.status, isSimulationRunning])
 
     if (!isSimulationRunning) return null
 
     return (
-        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50">
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
             <motion.div
-                initial={{ opacity: 0, y: -20, scale: 0.9 }}
+                initial={{ opacity: 0, y: 50, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.9 }}
-                className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/20 shadow-2xl rounded-2xl p-4 min-w-[320px]"
+                exit={{ opacity: 0, y: 50, scale: 0.9 }}
+                className="bg-slate-950/80 backdrop-blur-xl border border-white/10 shadow-2xl rounded-full px-6 py-3 flex items-center gap-6 pointer-events-auto"
             >
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                        <Play className="w-4 h-4 text-blue-600 dark:text-blue-400 fill-current" />
+                <div className="flex items-center gap-2 pr-4 border-r border-white/10">
+                    <div className="p-1.5 bg-blue-500/20 rounded-full animate-pulse">
+                        <Play className="w-3.5 h-3.5 text-blue-400 fill-current" />
                     </div>
-                    <span className="font-semibold text-sm">Simulation in Progress</span>
+                    <span className="font-semibold text-xs text-white tracking-wide uppercase">Simulation Active</span>
                 </div>
 
-                <div className="space-y-3">
+                <div className="flex items-center gap-1">
                     {STEPS.map((step, index) => {
                         const isActive = index === currentStepIndex
                         const isCompleted = index < currentStepIndex
-                        const isPending = index > currentStepIndex
+                        // Special handling for 'complete' step
+                        const isFinished = simulationState.status === 'complete' && step.id === 'complete'
 
                         return (
-                            <div key={step.id} className="flex items-center gap-3">
-                                <div className="relative flex items-center justify-center w-5 h-5">
-                                    {isCompleted ? (
-                                        <motion.div
-                                            initial={{ scale: 0 }}
-                                            animate={{ scale: 1 }}
-                                        >
-                                            <CheckCircle className="w-5 h-5 text-emerald-500" />
-                                        </motion.div>
+                            <div key={step.id} className="flex items-center">
+                                {/* Indicator */}
+                                <div className={cn(
+                                    "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-500",
+                                    isActive ? "bg-white text-slate-900 scale-110 shadow-lg" :
+                                        isCompleted || isFinished ? "bg-emerald-500/20 text-emerald-400" :
+                                            "bg-white/5 text-slate-500"
+                                )}>
+                                    {isCompleted || isFinished ? (
+                                        <CheckCircle className="w-4 h-4" />
                                     ) : isActive ? (
-                                        <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                                        <Loader2 className="w-4 h-4 animate-spin" />
                                     ) : (
-                                        <Circle className="w-5 h-5 text-slate-300 dark:text-slate-700" />
+                                        <span className="text-[10px] font-mono">{index + 1}</span>
                                     )}
                                 </div>
-                                <span className={cn(
-                                    "text-xs font-medium transition-colors duration-300",
-                                    isActive ? "text-slate-900 dark:text-slate-100" :
-                                        isCompleted ? "text-slate-500 line-through decoration-slate-300" :
-                                            "text-slate-400"
-                                )}>
-                                    {step.label}
-                                </span>
+
+                                {/* Label (Only visible if active or large screen) */}
+                                {isActive && (
+                                    <motion.span
+                                        initial={{ opacity: 0, width: 0 }}
+                                        animate={{ opacity: 1, width: 'auto' }}
+                                        className="ml-2 text-xs font-medium text-white whitespace-nowrap"
+                                    >
+                                        {step.label}
+                                    </motion.span>
+                                )}
+
+                                {/* Dot Connector */}
+                                {index < STEPS.length - 1 && (
+                                    <div className={cn(
+                                        "w-8 h-[1px] mx-1 transition-colors duration-500",
+                                        isCompleted ? "bg-emerald-500/50" : "bg-white/10"
+                                    )} />
+                                )}
                             </div>
                         )
                     })}
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                    <div className="h-1 flex-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mr-3">
-                        <motion.div
-                            className="h-full bg-blue-500"
-                            initial={{ width: '0%' }}
-                            animate={{ width: `${((currentStepIndex + 1) / STEPS.length) * 100}%` }}
-                            transition={{ duration: 0.5 }}
-                        />
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                        {Math.round(((currentStepIndex + 1) / STEPS.length) * 100)}%
-                    </span>
                 </div>
             </motion.div>
         </div>

@@ -105,7 +105,7 @@ function DraggableNode({ catalogId, name, category, isEmphasized, onAdd }: Dragg
             onDragStart={handleDragStart}
             onDoubleClick={onAdd}
             className={cn(
-                'group flex items-center gap-3 p-3 rounded-xl cursor-grab active:cursor-grabbing',
+                'group flex items-center gap-3 p-3.5 rounded-xl cursor-grab active:cursor-grabbing',
                 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm',
                 'hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5 transition-all duration-200',
                 isEmphasized && 'ring-2 ring-cyan-400 bg-cyan-50/50 dark:bg-cyan-900/10',
@@ -116,18 +116,18 @@ function DraggableNode({ catalogId, name, category, isEmphasized, onAdd }: Dragg
             title={`Drag to canvas or double-click to add`}
         >
             <div className={cn(
-                "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors",
                 "bg-slate-50 dark:bg-slate-900 group-hover:bg-primary/10"
             )} style={{ color: categoryColor }}>
-                <GripVertical className="w-4 h-4 opacity-50 group-hover:opacity-100" />
+                <GripVertical className="w-5 h-5 opacity-50 group-hover:opacity-100" />
             </div>
 
             <div className="flex flex-col min-w-0 flex-1">
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">
+                <span className="text-base font-semibold text-slate-700 dark:text-slate-200 truncate">
                     {name}
                 </span>
                 {isEmphasized && (
-                    <span className="text-[10px] text-cyan-600 font-medium">Recommended</span>
+                    <span className="text-xs text-cyan-600 font-medium">Recommended</span>
                 )}
             </div>
         </div>
@@ -210,15 +210,15 @@ export default function NodePalette() {
                     'absolute left-0 top-16 bottom-4 ml-4 z-20 rounded-2xl overflow-hidden',
                     'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-2xl border border-white/20',
                     'transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)',
-                    isPaletteOpen ? 'w-72 translate-x-0 opacity-100' : 'w-0 -translate-x-full opacity-0'
+                    isPaletteOpen ? 'w-80 translate-x-0 opacity-100' : 'w-0 -translate-x-full opacity-0'
                 )}
             >
                 <div className="h-full flex flex-col">
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 border-b border-white/20 bg-white/50 dark:bg-slate-900/50">
                         <div className="flex items-center gap-2">
-                            <Layers className="w-5 h-5 text-primary" />
-                            <span className="text-sm font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
+                            <Layers className="w-6 h-6 text-primary" />
+                            <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
                                 Component Library
                             </span>
                         </div>
@@ -226,15 +226,15 @@ export default function NodePalette() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setIsPaletteOpen(false)}
-                            className="h-8 w-8 p-0 rounded-full hover:bg-slate-200/50"
+                            className="h-9 w-9 p-0 rounded-full hover:bg-slate-200/50"
                         >
-                            <ChevronLeft className="w-5 h-5" />
+                            <ChevronLeft className="w-6 h-6" />
                         </Button>
                     </div>
 
                     {/* Node list */}
-                    <ScrollArea className="flex-1 px-2">
-                        <div className="py-4 space-y-6">
+                    <ScrollArea className="flex-1 px-3">
+                        <div className="py-5 space-y-7">
                             {/* Pipeline Categories */}
                             {pipelineCategories.map(category => {
                                 const nodes = nodesByCategory[category]
@@ -245,18 +245,18 @@ export default function NodePalette() {
                                 const categoryColor = categoryColors[category]
 
                                 return (
-                                    <div key={category} className="space-y-2">
+                                    <div key={category} className="space-y-3">
                                         <div className="flex items-center gap-2 px-2">
                                             <div
-                                                className="w-1 h-4 rounded-full"
+                                                className="w-1.5 h-5 rounded-full"
                                                 style={{ backgroundColor: categoryColor }}
                                             />
-                                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                                 {meta?.label || category}
                                             </h3>
                                         </div>
 
-                                        <div className="grid gap-2">
+                                        <div className="grid gap-2.5">
                                             {nodes.map(node => (
                                                 <DraggableNode
                                                     key={node.id}
@@ -273,12 +273,12 @@ export default function NodePalette() {
                             })}
 
                             {/* Rail Categories */}
-                            <div className="relative py-2">
+                            <div className="relative py-3">
                                 <div className="absolute inset-0 flex items-center" aria-hidden="true">
                                     <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
                                 </div>
                                 <div className="relative flex justify-center">
-                                    <span className="bg-white dark:bg-slate-900 px-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                    <span className="bg-white dark:bg-slate-900 px-3 text-sm font-bold text-slate-400 uppercase tracking-widest">
                                         Governance Rails
                                     </span>
                                 </div>
@@ -289,8 +289,8 @@ export default function NodePalette() {
                                 if (nodes.length === 0) return null
 
                                 return (
-                                    <div key={category} className="space-y-2">
-                                        <div className="grid gap-2">
+                                    <div key={category} className="space-y-3">
+                                        <div className="grid gap-2.5">
                                             {nodes.map(node => (
                                                 <DraggableNode
                                                     key={node.id}
@@ -309,8 +309,8 @@ export default function NodePalette() {
                     </ScrollArea>
 
                     {/* Footer hint */}
-                    <div className="p-3 border-t border-white/20 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur text-center">
-                        <p className="text-[10px] font-medium text-slate-400">
+                    <div className="p-4 border-t border-white/20 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur text-center">
+                        <p className="text-xs font-medium text-slate-400">
                             Drag to canvas or double-click to add
                         </p>
                     </div>

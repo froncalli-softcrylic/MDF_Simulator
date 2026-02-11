@@ -16,12 +16,13 @@ import { sanitizeEdges } from '@/lib/smart-connect-engine'
 const elk = new ELK()
 
 // Node dimensions (match actual rendered size including padding and badges)
-const NODE_WIDTH = 240 // Updated for Card Style
-const NODE_HEIGHT = 140 // Estimated height with metrics
+// Node dimensions (match actual rendered size including padding and badges)
+const NODE_WIDTH = 260 // Updated for larger typography
+const NODE_HEIGHT = 160 // Estimated height with larger fonts
 
 // Spacing constants — generous for readable flowcharts
 const NODE_NODE_SPACING = 140          // Vertical spacing between nodes in same column
-const LAYER_SPACING = 380              // Horizontal spacing between pipeline stages
+const LAYER_SPACING = 400              // Horizontal spacing between pipeline stages
 const EDGE_NODE_SPACING = 80           // Edge-to-node breathing room
 const LEFT_PADDING = 150               // Left padding (sidebar handled by fitView now)
 const TOP_PADDING = 150                // Top padding for stage labels
@@ -225,16 +226,16 @@ async function runElkWithStageConstraints(
             'elk.direction': 'RIGHT',
             'elk.spacing.nodeNode': String(NODE_NODE_SPACING),
             'elk.layered.spacing.nodeNodeBetweenLayers': String(LAYER_SPACING),
-            'elk.layered.spacing.edgeNodeBetweenLayers': String(EDGE_NODE_SPACING),
+            'elk.layered.spacing.edgeNodeBetweenLayers': '120', // Increased to reduce overlaps
             'elk.padding': `[top=${TOP_PADDING},left=${LEFT_PADDING},bottom=${BOTTOM_PADDING},right=${RIGHT_PADDING}]`,
-            'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+            'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF', // Better for straight lines
             'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
             'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
             'elk.partitioning.activate': 'true',
             // Encourage straight long edges
             'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
-            // Better edge routing
-            'elk.edgeRouting': 'ORTHOGONAL'
+            // Better edge routing for curves
+            'elk.edgeRouting': 'SPLINES'
         },
         children: elkNodes.map(node => {
             const assignment = assignmentMap.get(node.id)
@@ -338,7 +339,7 @@ function pinInfrastructureBand(
     const gap = 300
     const totalWidth = (count - 1) * gap
     const startX = minX + (maxX - minX - totalWidth) / 2
-    const infraY = maxY + 150 // Below main graph
+    const infraY = maxY + 250 // Increased padding to prevent edge overlap with bottom nodes
 
     infraAssignments.forEach((a, idx) => {
         positionMap.set(a.nodeId, {
@@ -365,7 +366,7 @@ function pinIdentityHub(
 
     for (const [nodeId, pos] of positionMap) {
         const assignment = assignments.find(a => a.nodeId === nodeId)
-        if (!assignment || assignment.isGovernance) continue // Skip governance for Y bounds
+        if (!assignment || assignment.isGovernance || assignment.isInfrastructure) continue
 
         if (pos.y < minY) minY = pos.y
         if (pos.y > maxY) maxY = pos.y + NODE_HEIGHT
@@ -373,16 +374,36 @@ function pinIdentityHub(
 
     if (minY === Infinity) { minY = TOP_PADDING; maxY = 500 }
 
-    const centerY = minY + (maxY - minY) / 2
+    const graphCenterY = minY + (maxY - minY) / 2
 
-    // Reposition identity hub nodes to be vertically centered at their current X
-    hubAssignments.forEach((a, idx) => {
+    // Calculate current hub center
+    let hubMinY = Infinity, hubMaxY = -Infinity
+    hubAssignments.forEach(a => {
+        const pos = positionMap.get(a.nodeId)
+        if (pos) {
+            if (pos.y < hubMinY) hubMinY = pos.y
+            if (pos.y > hubMaxY) hubMaxY = pos.y + NODE_HEIGHT
+        }
+    })
+
+    if (hubMinY === Infinity) return
+
+    const hubCenterY = hubMinY + (hubMaxY - hubMinY) / 2
+
+    // If already roughly centered (within 100px), assume ELK did a good job and don't force it
+    // This preserves ELK's edge routing optimizations
+    if (Math.abs(graphCenterY - hubCenterY) < 100) {
+        return
+    }
+
+    // Otherwise, gently shift them to center
+    const offsetY = graphCenterY - hubCenterY
+    hubAssignments.forEach(a => {
         const currentPos = positionMap.get(a.nodeId)
         if (currentPos) {
-            const totalHeight = hubAssignments.length * (NODE_HEIGHT + 30)
             positionMap.set(a.nodeId, {
                 x: currentPos.x,
-                y: centerY - totalHeight / 2 + idx * (NODE_HEIGHT + 30)
+                y: currentPos.y + offsetY
             })
         }
     })

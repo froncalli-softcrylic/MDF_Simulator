@@ -46,6 +46,7 @@ import AIAssistantPanel from '@/components/canvas/AIAssistantPanel'
 import LeadCaptureModal from '@/components/modals/LeadCaptureModal'
 import ReplaceModal from '@/components/modals/ReplaceModal'
 import GuidedTour from '@/components/tour/GuidedTour'
+import { SimulationOverlay } from '@/components/canvas/SimulationOverlay'
 import StageLabels from '@/components/canvas/StageLabels'
 import type { SuggestedEdge } from '@/types'
 import { generateId, cn } from '@/lib/utils'
@@ -57,10 +58,10 @@ const nodeTypes = {
 
 // Default edge options for smoother connections
 const defaultEdgeOptions = {
-    type: 'smoothstep',
+    type: 'default', // Changed from smoothstep to default (Bezier) for better routing
     animated: false,
     style: { strokeWidth: 2.5, stroke: '#b0b8c8' },
-    pathOptions: { borderRadius: 16 }
+    // pathOptions: { borderRadius: 16 } // borderRadius not used for Bezier edges
 }
 
 // Pro options for better performance
@@ -126,20 +127,47 @@ function SimulatorCanvas() {
         if (currentEdges.length === 0) return
 
         const shouldBeAnimated = isSimulationRunning
-        // Prevent infinite loop if already in desired state
-        if (currentEdges[0].animated === shouldBeAnimated) return
+        // Note: We don't want to re-run this effect constantly if edges change, ONLY if simulation state toggles.
+        // However, if we add new nodes while simulation is running, they should get animated.
 
-        setEdges(currentEdges.map(e => ({
-            ...e,
-            animated: shouldBeAnimated,
-            style: {
-                ...e.style,
-                stroke: shouldBeAnimated ? '#10b981' : '#b0b8c8', // emerald-500 : slate-300
-                strokeWidth: shouldBeAnimated ? 3 : 2.5,
-                opacity: shouldBeAnimated ? 1 : 1
+        const { nodes } = useCanvasStore.getState()
+
+        setEdges(currentEdges.map(e => {
+            // Determine default color based on source category
+            let defaultColor = '#b0b8c8'
+            if (!shouldBeAnimated) {
+                const sourceNode = nodes.find(n => n.id === e.source)
+                // We need to resolve the category. The node data might have it.
+                // Or look up in catalog if needed, but node.data.category should be there.
+                const category = (sourceNode?.data as any)?.category || 'sources'
+
+                // We need to import these constants. 
+                // Since I can't easily add imports in this partial replace without breaking the file structure,
+                // I will hardcode the lookup access for now or assume imports are added. 
+                // Wait, I can't assume imports. I'll dynamically import or just replicate the map here for safety?
+                // Better: I added the import in the previous step (Wait, no I didn't add the import line in the file header yet).
+                // I will use a helper function that I'll declare inside or just use the raw values if I can't import.
+
+                // Actually, I will use a dynamic import approach for the constants if needed, OR 
+                // I will handle the import in a separate tool call. 
+                // For now, let's assume I will add the import at the top of the file in a separate call.
+                // Using a placeholder variable for now to act as if it's available.
+                const { CATEGORY_EDGE_COLORS, DEFAULT_EDGE_COLOR } = require('@/lib/diagram-generator')
+                defaultColor = CATEGORY_EDGE_COLORS[category] || DEFAULT_EDGE_COLOR
             }
-        })))
-    }, [isSimulationRunning, setEdges, edges]) // Re-run if edges change (e.g. adde new node) to apply style
+
+            return {
+                ...e,
+                animated: shouldBeAnimated,
+                style: {
+                    ...e.style,
+                    stroke: shouldBeAnimated ? '#10b981' : defaultColor,
+                    strokeWidth: shouldBeAnimated ? 3 : 2.5,
+                    opacity: shouldBeAnimated ? 1 : 1
+                }
+            }
+        }))
+    }, [isSimulationRunning, setEdges]) // Removed 'edges' to prevent loop, relying on explicit toggle or store state access
 
     // Initialize project - generate diagram from wizard data
     useEffect(() => {
@@ -286,6 +314,12 @@ function SimulatorCanvas() {
         prevProfileRef.current = activeProfile
 
         const regenerate = async () => {
+            // Prevent regeneration if we just loaded wizard data for this profile
+            if (wizardData && wizardData.tools.length > 0 && activeProfile === 'generic') {
+                logger.debug('🛑 Skipping profile regeneration (Wizard Data active)')
+                return
+            }
+
             const { loadProfileDefinition: loadPD, buildGraphFromProfile, normalizeGraph } = await import('@/lib/profile-pipeline')
             const profileDef = loadPD(activeProfile)
             if (!profileDef) return
@@ -447,7 +481,9 @@ function SimulatorCanvas() {
                 <NodePalette />
                 <Inspector />
                 <ValidationPanel />
+                <ValidationPanel />
                 <GuidedTour />
+                <SimulationOverlay />
 
                 {/* Status Legend - show when nodes have status */}
                 {nodes.some(n => n.data?.status && n.data.status !== 'optional') && (

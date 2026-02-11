@@ -157,7 +157,12 @@ export const nodeCatalog: CatalogNode[] = [
         enables: ['measurement', 'identity'],
         recommendedNext: ['segment', 'google_analytics'],
         availableIdentities: ['cookie', 'device_id'],
-        dataClassProduced: 'behavioral'
+        dataClassProduced: 'behavioral',
+        sampleData: [
+            { event_id: 'evt_12345', name: 'Page Viewed', url: '/pricing', timestamp: '2024-02-14T10:30:00Z', anonymous_id: 'anon_001' },
+            { event_id: 'evt_12346', name: 'Button Clicked', label: 'Sign Up', timestamp: '2024-02-14T10:31:15Z', anonymous_id: 'anon_001' },
+            { event_id: 'evt_12347', name: 'Form Submitted', form_id: 'demo_req', timestamp: '2024-02-14T10:35:22Z', anonymous_id: 'anon_002' }
+        ]
     },
 
     // CRM & Sales
@@ -203,7 +208,12 @@ export const nodeCatalog: CatalogNode[] = [
         // MDF v3 Metadata
         availableIdentities: ['crm_id', 'email', 'account_id', 'phone'],
         sampleFields: ['Lead Source', 'Annual Revenue', 'Stage', 'Close Date'],
-        dataClassProduced: 'transactional'
+        dataClassProduced: 'transactional',
+        sampleData: [
+            { id: 'LD-1001', first_name: 'John', last_name: 'Doe', email: 'john.doe@techcorp.com', company: 'TechCorp', status: 'MQL', annual_rev: '$50M' },
+            { id: 'LD-1002', first_name: 'Sarah', last_name: 'Smith', email: 'sarah.s@acme.io', company: 'Acme Inc', status: 'SQL', annual_rev: '$120M' },
+            { id: 'LD-1003', first_name: 'Mike', last_name: 'Jones', email: 'mike.j@startup.co', company: 'StartupCo', status: 'New', annual_rev: '$5M' }
+        ]
     },
     {
         id: 'hubspot_crm',
@@ -303,7 +313,11 @@ export const nodeCatalog: CatalogNode[] = [
         recommendedNext: ['fivetran', 'snowflake'],
         availableIdentities: ['email', 'marketo_id', 'lead_id'],
         sampleFields: ['Campaign Name', 'Program Status', 'Lead Score'],
-        dataClassProduced: 'marketing'
+        dataClassProduced: 'marketing',
+        sampleData: [
+            { lead_id: 'Mkto-5501', score: 85, program: 'Webinar-2024-Q1', behavior_score: 50, demographic_score: 35, email: 'alex.b@enterprise.net' },
+            { lead_id: 'Mkto-5502', score: 42, program: 'Ebook-Download', behavior_score: 20, demographic_score: 22, email: 'chris.p@midmarket.com' }
+        ]
     },
     {
         id: 'ad_platforms',
@@ -734,6 +748,11 @@ export const nodeCatalog: CatalogNode[] = [
         metrics: [
             { label: 'Match Rate', value: '72%', trend: 'up' },
             { label: 'Profiles', value: '160', trend: 'up' }
+        ],
+        sampleData: [
+            { profile_id: 'UP-8812', email: 'john.d@tech.com', phone: '+1555...', crm_id: 'LD-1001', segments: ['High Value', 'Churn Risk'], last_seen: '2m ago' },
+            { profile_id: 'UP-8813', email: 'sarah.s@acme.io', phone: '+1415...', crm_id: 'LD-1002', segments: ['Power User'], last_seen: '1h ago' },
+            { profile_id: 'UP-8814', email: 'mike@start.co', phone: 'null', crm_id: 'LD-1003', segments: ['New Sign-up'], last_seen: '1d ago' }
         ]
     },
     {
@@ -1238,7 +1257,12 @@ export const nodeCatalog: CatalogNode[] = [
         outputs: [],
         prerequisites: [],
         enables: ['advertising'],
-        recommendedNext: []
+        recommendedNext: [],
+        sampleData: [
+            { audience_name: 'All Site Visitors 30d', match_rate: '85%', size: 12500, status: 'Ready' },
+            { audience_name: 'Cart Abandoners', match_rate: '92%', size: 450, status: 'Ready' },
+            { audience_name: 'Lookalike 1% - High LTV', match_rate: 'N/A', size: 2400000, status: 'Populating' }
+        ]
     },
 
     // ==========================================================

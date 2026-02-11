@@ -91,6 +91,10 @@ const config: Config = {
                 'slide-in-right': {
                     '0%': { transform: 'translateX(100%)', opacity: '0' },
                     '100%': { transform: 'translateX(0)', opacity: '1' },
+                },
+                'scan-down': {
+                    '0%': { top: '0%' },
+                    '100%': { top: '100%' },
                 }
             },
             animation: {
@@ -103,6 +107,7 @@ const config: Config = {
                 'float-delayed': 'float 6s ease-in-out 3s infinite',
                 'scale-in': 'scale-in 0.2s ease-out',
                 'slide-in-right': 'slide-in-right 0.3s ease-out',
+                'scan-down': 'scan-down 2s linear infinite',
             },
             backgroundImage: {
                 'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
