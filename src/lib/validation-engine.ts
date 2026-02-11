@@ -476,7 +476,61 @@ function checkAccountGraphFlow(ctx: ValidationContext): ValidationResult[] {
     return results
 }
 
-// Rule: Profile Conformance (Strict Adherence)
+// Rule: MDF Hub Centrality (Hub-and-Spoke Enforcement)
+function checkHubCentrality(ctx: ValidationContext): ValidationResult[] {
+    const results: ValidationResult[] = []
+    const { nodes, edges } = ctx
+
+    const activationNodes = getNodesByCategory(nodes, 'activation')
+    const destinationNodes = getNodesByCategory(nodes, 'destination')
+    const hubNodes = nodes.filter(n => getNodeData(n)?.nodeRole === 'mdf_hub' || getNodeData(n)?.isHub)
+
+    // 1. Require Hub if Activation/Destinations exist
+    if ((activationNodes.length > 0 || destinationNodes.length > 0) && hubNodes.length === 0) {
+        results.push({
+            id: 'missing-mdf-hub',
+            severity: 'error',
+            message: 'Architecture Violation: Activation and Destination nodes require a central MDF Hub to unify data first.',
+            ruleViolated: 'hub-centrality',
+            recommendation: {
+                action: 'Add MDF Hub',
+                nodeToAdd: 'mdf_hub'
+            },
+            fixAction: {
+                type: 'add_node',
+                payload: { catalogId: 'mdf_hub' }
+            }
+        })
+    }
+
+    // 2. Ensure Activation/Destinations are downstream of Hub
+    if (hubNodes.length > 0) {
+        const hubId = hubNodes[0].id
+        const targets = [...activationNodes, ...destinationNodes]
+
+        for (const target of targets) {
+            // Simple check: Is there a path from Hub to Target?
+            // For now, checks direct connection or 1-hop? 
+            // Let's check direct upstream for simplicity or use a helper
+            const hasHubUpstream = hasUpstreamNode(target.id, 'mdf_hub', nodes, edges) ||
+                hasUpstreamNode(target.id, 'mdf', nodes, edges) // Check category too
+
+            // If not directly connected to Hub (and is not an activation node connected to a destination that is connected to Hub... complex)
+            // Let's just check if it has ANY upstream connection to the Hub
+            if (!hasHubUpstream && getNodeData(target)?.category === 'activation') {
+                results.push({
+                    id: `activation-bypass-${target.id}`,
+                    severity: 'warning',
+                    message: `Data Flow: '${getNodeData(target)?.label}' should receive data from the MDF Hub, not directly from sources.`,
+                    nodeIds: [target.id, hubId],
+                    ruleViolated: 'hub-centrality'
+                })
+            }
+        }
+    }
+
+    return results
+}
 function checkProfileConformance(ctx: ValidationContext): ValidationResult[] {
     const results: ValidationResult[] = []
     const { nodes, profileDef } = ctx
@@ -596,7 +650,15 @@ function checkAnalyticsCompliance(ctx: ValidationContext): ValidationResult[] {
                     severity: 'warning',
                     message: `Data Quality: '${catalogNode.name}' is consuming non-curated data. Consider adding a Transform or Semantic layer upstream.`,
                     nodeIds: [node.id],
-                    ruleViolated: 'analytics-compliance'
+                    ruleViolated: 'analytics-compliance',
+                    recommendation: {
+                        action: 'Add Semantic Layer',
+                        nodeToAdd: 'cube'
+                    },
+                    fixAction: {
+                        type: 'add_node',
+                        payload: { catalogId: 'cube' }
+                    }
                 })
             }
         }
@@ -639,6 +701,68 @@ function checkSemanticLayer(ctx: ValidationContext): ValidationResult[] {
     return results
 }
 
+// Rule: Hygiene required before Identity (MDF V2)
+function checkHygieneBeforeIdentity(ctx: ValidationContext): ValidationResult[] {
+    const results: ValidationResult[] = []
+    const identityNodes = getNodesByCategory(ctx.nodes, 'identity')
+
+    for (const node of identityNodes) {
+        const data = getNodeData(node)
+        // Skip if it's the hub itself, we check hub inputs separately. 
+        // Logic: Identity Resolution / Deduplication nodes need hygiene upstream.
+        // MDF Hub has internal hygiene, so it satisfies this.
+        if (data?.nodeRole === 'identity_hub' || data?.nodeRole === 'unified_profile' || data?.nodeRole === 'mdf_hub' || data?.isHub) continue
+
+        const hasHygieneUpstream = hasUpstreamNodeOfRole(node.id, 'hygiene', ctx)
+
+        if (!hasHygieneUpstream) {
+            results.push({
+                id: `missing-hygiene-${node.id}`,
+                severity: 'warning',
+                message: `Data Quality: '${data?.label}' should have upstream Data Hygiene (Standardization) to improve match rates.`,
+                nodeIds: [node.id],
+                ruleViolated: 'hygiene-first',
+                recommendation: {
+                    action: 'Add Data Hygiene',
+                    nodeToAdd: 'data_standardization'
+                },
+                fixAction: {
+                    type: 'add_node',
+                    payload: { catalogId: 'data_standardization' } // This would need smart insertion logic
+                }
+            })
+        }
+    }
+    return results
+}
+
+// Helper for role-based upstream check
+function hasUpstreamNodeOfRole(nodeId: string, role: string, ctx: ValidationContext): boolean {
+    const { nodes, edges } = ctx
+    const visited = new Set<string>()
+    const queue = [nodeId]
+
+    while (queue.length > 0) {
+        const current = queue.shift()!
+        if (visited.has(current)) continue
+        visited.add(current)
+
+        const incoming = edges.filter(e => e.target === current)
+        for (const edge of incoming) {
+            const source = nodes.find(n => n.id === edge.source)
+            if (source) {
+                const sData = getNodeData(source)
+                const sCatalog = sData?.catalogId ? getNodeById(sData.catalogId) : null
+                if (sCatalog?.nodeRole === role) return true
+                if (sCatalog?.category !== 'sources') { // Don't traverse past sources
+                    queue.push(source.id)
+                }
+            }
+        }
+    }
+    return false
+}
+
 // Rule: Identity Hub connectivity (Conformance Spec Rule 2 - Refined)
 function checkIdentityHubConnections(ctx: ValidationContext): ValidationResult[] {
     const results: ValidationResult[] = []
@@ -652,7 +776,7 @@ function checkIdentityHubConnections(ctx: ValidationContext): ValidationResult[]
     for (const hubNode of hubNodes) {
         const catalogHub = getNodeById(getNodeData(hubNode)!.catalogId)!
 
-        // Identity hubs should have high-quality input
+        // Identity hubs should have input with joinKeys
         const incoming = edges.filter(e => e.target === hubNode.id)
         const hasValidInput = incoming.some(e => {
             const source = nodes.find(n => n.id === e.source)
@@ -660,27 +784,28 @@ function checkIdentityHubConnections(ctx: ValidationContext): ValidationResult[]
             const sourceCatalog = getNodeById(getNodeData(source)?.catalogId || '')
             if (!sourceCatalog) return false
 
-            // Should be from transform or identity sources
-            return sourceCatalog.stage === 'transform' || sourceCatalog.stage === 'sources' || sourceCatalog.stage === 'storage_warehouse'
+            // Check if source has joinKeys
+            return (sourceCatalog.joinKeys && sourceCatalog.joinKeys.length > 0) ||
+                sourceCatalog.nodeRole === 'hygiene' // Hygiene passes through keys
         })
 
         if (incoming.length > 0 && !hasValidInput) {
             results.push({
                 id: `hub-input-quality-${hubNode.id}`,
                 severity: 'warning',
-                message: `Identity Hub '${catalogHub.name}' is receiving low-fidelity input. Identity resolution works best with curated or warehouse-cleansed data.`,
+                message: `Identity Hub '${catalogHub.name}' requires inputs with Identity Keys (e.g., Email, Phone) or Hygiene.`,
                 nodeIds: [hubNode.id],
                 ruleViolated: 'conformance-rule-2'
             })
         }
 
-        // Must connect to something downstream if it's a hub
+        // Must connect to something downstream if it's a hub (Unified Profile or Activation)
         const outgoing = edges.filter(e => e.source === hubNode.id)
         if (outgoing.length === 0 && nodes.length > 3) {
             results.push({
                 id: `hub-dangling-${hubNode.id}`,
                 severity: 'error',
-                message: `Identity Hub '${catalogHub.name}' is not powering any downstream activation or analytics.`,
+                message: `Identity Hub '${catalogHub.name}' is not powering any downstream Unified Profile or Activation.`,
                 nodeIds: [hubNode.id],
                 ruleViolated: 'conformance-rule-2'
             })
@@ -890,11 +1015,13 @@ export function validateGraph(
         ...checkIdentityHubConnections(ctx),
         ...checkGovernanceCrossCutting(ctx),
         ...checkCardinalityAndUniqueness(ctx),
+        ...checkHubCentrality(ctx), // Added checkHubCentrality
         ...checkAnalyticsCompliance(ctx),
         ...checkProfileConformance(ctx), // Added profile checks
         // Spec §4 Rules
         ...checkRawToDestination(ctx),
-        ...checkEnrichmentNotHub(ctx)
+        ...checkEnrichmentNotHub(ctx),
+        ...checkHygieneBeforeIdentity(ctx)
     ]
 
     const errors = allResults.filter(r => r.severity === 'error')

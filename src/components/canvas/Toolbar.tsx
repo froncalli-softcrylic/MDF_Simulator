@@ -34,7 +34,8 @@ import { cn } from '@/lib/utils'
 import {
     LayoutGrid, Undo2, Redo2, Maximize,
     Download, Share2, Zap, BarChart2, Users, Shield,
-    ChevronDown, ChevronUp, MoreHorizontal, Home, Sparkles, Loader2, Bot, Activity, AlertTriangle, HelpCircle, FileText
+    ChevronDown, ChevronUp, MoreHorizontal, Home, Sparkles, Loader2, Bot, Activity, AlertTriangle, HelpCircle, FileText,
+    Play, Square
 } from 'lucide-react'
 import {
     DropdownMenu,
@@ -69,13 +70,24 @@ export default function Toolbar() {
         setShowAIAssistant,
         startTour,
         lastActionWasAutoFix,
-        setLastActionWasAutoFix
+        setLastActionWasAutoFix,
+        isSimulationRunning,
+        setSimulationRunning
     } = useUIStore()
     const { activeProfile, setActiveProfile } = useProfileStore()
     const { fitView } = useReactFlow()
 
     // Calculate Flow Health Score
     const flowScore = useMemo(() => calculateFlowImpact(nodes), [nodes])
+
+    const handleRunSimulation = useCallback(() => {
+        if (isSimulationRunning) {
+            setSimulationRunning(false)
+            return
+        }
+        setSimulationRunning(true)
+        setTimeout(() => setSimulationRunning(false), 8000)
+    }, [isSimulationRunning, setSimulationRunning])
 
     const handleAutoLayout = useCallback(async () => {
         if (!nodes || nodes.length === 0) return
@@ -322,6 +334,24 @@ export default function Toolbar() {
                                 <LayoutGrid className="w-4 h-4" />
                             )}
                             <span className="hidden xl:inline">Clean Up</span>
+                        </Button>
+
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRunSimulation}
+                            className={cn(
+                                "h-9 px-3 gap-2 rounded-xl text-xs font-medium transition-all ml-1",
+                                isSimulationRunning ? "bg-green-50 text-green-600 animate-pulse border border-green-200" : "hover:bg-slate-100 text-slate-700"
+                            )}
+                            title={isSimulationRunning ? "Stop Simulation" : "Run Simulation"}
+                        >
+                            {isSimulationRunning ? (
+                                <Square className="w-3.5 h-3.5 fill-current" />
+                            ) : (
+                                <Play className="w-3.5 h-3.5 fill-current" />
+                            )}
+                            <span className="hidden xl:inline ml-1.5">{isSimulationRunning ? 'Stop' : 'Run'}</span>
                         </Button>
                     </div>
 

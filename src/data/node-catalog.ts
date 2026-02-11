@@ -45,6 +45,12 @@ export const categoryMeta: Record<NodeCategory, {
         icon: 'layers',
         description: 'dbt transformations and data modeling'
     },
+    mdf: {
+        label: 'MDF Hub',
+        icon: 'cpu',
+        description: 'Unified Identity & Profile Engine',
+        color: 'bg-indigo-600'
+    },
 
     identity: {
         label: 'Identity & Entity Resolution',
@@ -90,17 +96,10 @@ export const categoryMeta: Record<NodeCategory, {
 }
 
 // All profiles for convenience
-// All profiles for convenience
 const ALL_PROFILES: DemoProfile[] = [
-    // Vendor Suites
-    'snowflake_composable', 'databricks_lakehouse', 'gcp_bigquery', 'microsoft_fabric',
-    'salesforce_data_cloud', 'adobe_aep', 'segment_composable', 'mparticle_composable', 'clean_room_layer',
-    // Marketing Ecosystems
-    'marketo_centric', 'hubspot_centric', 'braze_centric', 'sfmc_centric',
-    'abm_intent_centric', 'sales_activation_centric', 'plg_activation_centric', 'customerio_centric',
-    // Legacy/Fallback
-    'preferred_stack', 'adobe_summit', 'google_cloud', 'salesforce', 'generic'
-]
+    'adobe_summit',
+    'generic'
+];
 
 // ============================================
 // NODE CATALOG - B2B SaaS
@@ -133,7 +132,9 @@ export const nodeCatalog: CatalogNode[] = [
         enables: ['measurement', 'identity', 'account_intelligence'],
         recommendedNext: ['segment', 'rudderstack', 'amplitude'],
         b2bSpecific: true,
-        preferredStackNode: true
+        preferredStackNode: true,
+        availableIdentities: ['user_id', 'device_id', 'account_id'],
+        dataClassProduced: 'behavioral'
     },
     {
         id: 'web_app_events',
@@ -154,7 +155,9 @@ export const nodeCatalog: CatalogNode[] = [
         outputs: [{ id: 'events_out', name: 'Event Stream', type: 'raw_events' }],
         prerequisites: [],
         enables: ['measurement', 'identity'],
-        recommendedNext: ['segment', 'google_analytics']
+        recommendedNext: ['segment', 'google_analytics'],
+        availableIdentities: ['cookie', 'device_id'],
+        dataClassProduced: 'behavioral'
     },
 
     // CRM & Sales
@@ -194,7 +197,13 @@ export const nodeCatalog: CatalogNode[] = [
         costEstimate: 'high',
         supportedLatency: ['batch', 'realtime'],
         supportedIdentifiers: ['crm_id', 'email', 'account_id'],
-        governanceFlags: ['pii_safe', 'needs_consent']
+        governanceFlags: ['pii_safe', 'needs_consent'],
+        joinKeys: ['email', 'crm_id', 'account_id'],
+        valueText: 'System of Record',
+        // MDF v3 Metadata
+        availableIdentities: ['crm_id', 'email', 'account_id', 'phone'],
+        sampleFields: ['Lead Source', 'Annual Revenue', 'Stage', 'Close Date'],
+        dataClassProduced: 'transactional'
     },
     {
         id: 'hubspot_crm',
@@ -205,7 +214,7 @@ export const nodeCatalog: CatalogNode[] = [
         uniquenessKey: 'source:hubspot',
         cardinality: 'single',
         icon: 'cloud',
-        vendorProfileAvailability: ['generic', 'google_cloud'],
+        vendorProfileAvailability: ['generic'],
         description: 'Companies, Contacts, Deals from HubSpot.',
         whyItMatters: [
             'SMB-friendly CRM',
@@ -220,7 +229,9 @@ export const nodeCatalog: CatalogNode[] = [
         prerequisites: [],
         enables: ['identity', 'activation'],
         recommendedNext: ['fivetran', 'airbyte'],
-        b2bSpecific: true
+        b2bSpecific: true,
+        joinKeys: ['email', 'crm_id'],
+        valueText: 'CRM Data'
     },
 
     // Billing & Revenue
@@ -278,7 +289,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'source',
         stage: 'sources',
         icon: 'mail',
-        vendorProfileAvailability: ['adobe_summit', 'preferred_stack', 'generic'],
+        vendorProfileAvailability: ['adobe_summit', 'generic'],
         description: 'Marketing automation leads, campaigns, and engagement.',
         whyItMatters: [
             'Marketing qualified leads',
@@ -289,7 +300,10 @@ export const nodeCatalog: CatalogNode[] = [
         outputs: [{ id: 'records_out', name: 'Marketing Records', type: 'raw_records' }],
         prerequisites: [],
         enables: ['measurement', 'identity'],
-        recommendedNext: ['fivetran', 'snowflake']
+        recommendedNext: ['fivetran', 'snowflake'],
+        availableIdentities: ['email', 'marketo_id', 'lead_id'],
+        sampleFields: ['Campaign Name', 'Program Status', 'Lead Score'],
+        dataClassProduced: 'marketing'
     },
     {
         id: 'ad_platforms',
@@ -350,7 +364,9 @@ export const nodeCatalog: CatalogNode[] = [
         costEstimate: 'medium',
         supportedLatency: ['realtime'],
         supportedIdentifiers: ['cookie', 'device_id', 'email'],
-        governanceFlags: ['needs_hashing', 'needs_consent']
+        governanceFlags: ['needs_hashing', 'needs_consent'],
+        availableIdentities: ['user_id', 'anonymous_id', 'email'],
+        dataClassProduced: 'behavioral'
     },
     {
         id: 'rudderstack',
@@ -360,7 +376,7 @@ export const nodeCatalog: CatalogNode[] = [
         stage: 'collection',
         uniquenessKey: 'collector:rudderstack',
         icon: 'git-branch',
-        vendorProfileAvailability: ['preferred_stack', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Open-source customer data platform.',
         whyItMatters: [
             'Warehouse-native CDP',
@@ -400,7 +416,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'collector',
         stage: 'collection',
         icon: 'radio',
-        vendorProfileAvailability: ['preferred_stack', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Open-source event pipeline with rich schemas.',
         whyItMatters: [
             'Full data ownership',
@@ -427,7 +443,7 @@ export const nodeCatalog: CatalogNode[] = [
         stage: 'ingestion',
         uniquenessKey: 'ingestor:kinesis',
         icon: 'zap',
-        vendorProfileAvailability: ['preferred_stack', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Real-time streaming data ingestion.',
         whyItMatters: [
             'Sub-second latency',
@@ -448,7 +464,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'ingestor',
         stage: 'ingestion',
         icon: 'arrow-right',
-        vendorProfileAvailability: ['preferred_stack', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Batch delivery from Kinesis to S3/Redshift/Snowflake.',
         whyItMatters: [
             'Zero-admin batch loading',
@@ -495,7 +511,7 @@ export const nodeCatalog: CatalogNode[] = [
         stage: 'ingestion',
         uniquenessKey: 'ingestor:airbyte',
         icon: 'refresh-cw',
-        vendorProfileAvailability: ['generic', 'google_cloud'],
+        vendorProfileAvailability: ['generic'],
         description: 'Open-source ELT platform.',
         whyItMatters: [
             'Self-hosted option',
@@ -534,7 +550,7 @@ export const nodeCatalog: CatalogNode[] = [
         uniquenessKey: 'storage:raw:s3',
         cardinality: 'single',
         icon: 'hard-drive',
-        vendorProfileAvailability: ['preferred_stack', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Immutable raw data landing zone in S3.',
         whyItMatters: [
             'Full data history',
@@ -558,7 +574,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'storage_raw',
         stage: 'storage_raw',
         icon: 'database',
-        vendorProfileAvailability: ['preferred_stack', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Open table format for large analytic datasets.',
         whyItMatters: [
             'Time travel queries',
@@ -611,7 +627,11 @@ export const nodeCatalog: CatalogNode[] = [
         costEstimate: 'medium',
         supportedLatency: ['batch'],
         supportedIdentifiers: [],
-        governanceFlags: ['pii_safe']
+        governanceFlags: ['pii_safe'],
+        metrics: [
+            { label: 'Rows', value: '1,728', trend: 'up' },
+            { label: 'Audience', value: '10', trend: 'neutral' }
+        ]
     },
     {
         id: 'bigquery',
@@ -622,7 +642,7 @@ export const nodeCatalog: CatalogNode[] = [
         uniquenessKey: 'storage:warehouse',
         cardinality: 'single',
         icon: 'database',
-        vendorProfileAvailability: ['google_cloud', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Google Cloud serverless data warehouse.',
         whenToUse: 'When your infrastructure is on GCP and you want a serverless, ML-integrated warehouse.',
         whyItMatters: [
@@ -645,7 +665,7 @@ export const nodeCatalog: CatalogNode[] = [
         uniquenessKey: 'storage:warehouse',
         cardinality: 'single',
         icon: 'database',
-        vendorProfileAvailability: ['preferred_stack', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'AWS data warehouse.',
         whyItMatters: [
             'AWS native',
@@ -657,6 +677,112 @@ export const nodeCatalog: CatalogNode[] = [
         prerequisites: [],
         enables: ['measurement'],
         recommendedNext: ['dbt_core']
+    },
+
+    // ==========================================================
+    // MDF HUB (Central)
+    // ==========================================================
+
+    {
+        id: 'mdf_hub',
+        name: 'Unified Profile (MDF Hub)',
+        category: 'mdf',
+        nodeRole: 'mdf_hub',
+        stage: 'mdf',
+        isHub: true,
+        uniquenessKey: 'mdf:hub',
+        cardinality: 'single',
+        icon: 'cpu',
+        vendorProfileAvailability: ALL_PROFILES,
+        description: 'ALL-IN-ONE Central Hub: Hygiene, Identity, Profile, & Measurement.',
+        whenToUse: 'Required. The "Brain" of the architecture that unifies all customer data.',
+        whyItMatters: [
+            'Unified capabilities: Hygiene, Identity, Profile, Measurement',
+            'Resolves identities across sources (Email, Phone, CRM ID)',
+            'Creates the "Golden Record" for activation'
+        ],
+        inputs: [
+            { id: 'records_in', name: 'Ingested Records', type: 'raw_records', position: 'left' },
+            { id: 'events_in', name: 'Stream Events', type: 'raw_events', position: 'left' },
+            { id: 'policies_in', name: 'Governance', type: 'governance_policies', position: 'top' }
+        ],
+        outputs: [
+            { id: 'profiles_out', name: 'Unified Profiles', type: 'curated_entities', position: 'right' },
+            { id: 'audiences_out', name: 'Audiences', type: 'audiences_people', position: 'right' },
+            { id: 'metrics_out', name: 'Measurement', type: 'metrics', position: 'right' }
+        ],
+        prerequisites: ['ingestion'],
+        enables: ['activation', 'measurement', 'identity', 'hygiene', 'account_intelligence'],
+        recommendedNext: ['adobe_aep', 'hightouch', 'braze'],
+        b2bSpecific: true,
+        preferredStackNode: true,
+        // Consultant Metadata
+        complexity: 7,
+        costEstimate: 'medium',
+        supportedLatency: ['batch', 'realtime'],
+        businessValue: {
+            proposition: 'The "Brain" of the architecture: Clean, Unite, and Prepare data.',
+            impact: 'efficiency',
+            roi: 'high'
+        },
+        // MDF v3 Metadata
+        identityStrategyOptions: ['Deterministic (Email/Phone)', 'Account-Based (Domain)', 'Probabilistic'],
+        hygieneRules: ['E.164 Phone Format', 'Email Lowercase', 'Address Standardization', 'Title Casing'],
+        profileDataClasses: ['Identity Graph', 'Behavioral Events', 'Transactions', 'Consent Status'],
+        measurementOutputs: ['Multi-Touch Attribution', 'Lead Scoring', 'Churn Propensity'],
+        joinKeys: ['email', 'phone', 'crm_id', 'user_id', 'device_id'],
+        metrics: [
+            { label: 'Match Rate', value: '72%', trend: 'up' },
+            { label: 'Profiles', value: '160', trend: 'up' }
+        ]
+    },
+    {
+        id: 'data_hygiene',
+        name: 'Data Hygiene (Legacy)',
+        category: 'mdf',
+        nodeRole: 'hygiene',
+        stage: 'mdf',
+        uniquenessKey: 'mdf:hygiene',
+        cardinality: 'single',
+        icon: 'sparkles',
+        vendorProfileAvailability: [] as DemoProfile[], // Hide from new profiles
+        description: 'Legacy node. Use MDF Hub for integrated hygiene.',
+        whyItMatters: [
+            'Ensures data quality before processing',
+            'Standardizes formats (phone, address, email)',
+            'Removes duplicates and invalid records'
+        ],
+        inputs: [{ id: 'records_in', name: 'Raw Records', type: 'raw_records' }],
+        outputs: [{ id: 'clean_records_out', name: 'Clean Records', type: 'raw_records' }],
+        prerequisites: ['ingestion'],
+        enables: ['identity', 'mdf_hub'],
+        recommendedNext: ['mdf_hub'],
+        b2bSpecific: true,
+        preferredStackNode: true
+    },
+    {
+        id: 'measurement',
+        name: 'Measurement (Legacy)',
+        category: 'mdf',
+        nodeRole: 'measurement',
+        stage: 'mdf',
+        uniquenessKey: 'mdf:measurement',
+        cardinality: 'single',
+        icon: 'bar-chart-2',
+        vendorProfileAvailability: [] as DemoProfile[], // Hide from new profiles
+        description: 'Legacy node. Use MDF Hub for integrated measurement.',
+        whyItMatters: [
+            'Tracks campaign ROI and performance',
+            'Multi-touch attribution models',
+            'Customer journey analytics'
+        ],
+        inputs: [{ id: 'profiles_in', name: 'Unified Profiles', type: 'curated_entities' }],
+        outputs: [{ id: 'metrics_out', name: 'Metrics', type: 'metrics' }],
+        prerequisites: ['mdf_hub'],
+        enables: ['activation'],
+        recommendedNext: ['looker', 'tableau'],
+        b2bSpecific: true,
+        preferredStackNode: true
     },
 
     // ==========================================================
@@ -727,7 +853,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'transform',
         stage: 'transform',
         icon: 'layers',
-        vendorProfileAvailability: ['preferred_stack', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Serverless ETL and data catalog.',
         whyItMatters: [
             'Serverless Spark',
@@ -747,7 +873,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'transform',
         stage: 'transform',
         icon: 'zap',
-        vendorProfileAvailability: ['preferred_stack', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Distributed data processing.',
         whyItMatters: [
             'Large-scale processing',
@@ -759,6 +885,63 @@ export const nodeCatalog: CatalogNode[] = [
         prerequisites: [],
         enables: ['hygiene'],
         recommendedNext: ['snowflake', 'iceberg']
+    },
+
+    // ==========================================================
+    // HYGIENE & STANDARDIZATION
+    // ==========================================================
+
+    {
+        id: 'data_standardization',
+        name: 'Data Hygiene',
+        category: 'transform',  // Or new 'hygiene' category if supported in UI
+        nodeRole: 'hygiene',
+        stage: 'transform',
+        icon: 'check-square',
+        vendorProfileAvailability: ['generic'],
+        description: 'Cleanse, normalize, and format incoming data.',
+        whyItMatters: [
+            'Improves match rates',
+            'Ensures data quality',
+            'Standardizes formats (phone, email)'
+        ],
+        hygieneRules: ['Phone Normalization', 'Email Lowercasing', 'Address Standardization'],
+        inputs: [{ id: 'raw_in', name: 'Raw Records', type: 'raw_records' }],
+        outputs: [{ id: 'clean_out', name: 'Clean Records', type: 'raw_records' }],
+        prerequisites: [],
+        enables: ['identity'],
+        recommendedNext: ['deduplication'],
+        businessValue: {
+            proposition: 'Improve match rates and data trust by standardizing formats.',
+            impact: 'efficiency',
+            roi: 'medium'
+        }
+    },
+    {
+        id: 'deduplication',
+        name: 'Deduplication',
+        category: 'identity', // Or transform/hygiene
+        nodeRole: 'hygiene',
+        stage: 'transform', // Pre-identity
+        icon: 'copy',
+        vendorProfileAvailability: ['generic'],
+        description: 'Identify and merge duplicate records.',
+        whyItMatters: [
+            'Reduces storage costs',
+            'Single customer view',
+            'Marketing efficiency'
+        ],
+        hygieneRules: ['Fuzzy Matching', 'Exact Match', 'Survivor Logic'],
+        inputs: [{ id: 'records_in', name: 'Records', type: 'raw_records' }],
+        outputs: [{ id: 'unique_out', name: 'Unique Records', type: 'raw_records' }],
+        prerequisites: ['data_standardization'],
+        enables: ['identity'],
+        recommendedNext: ['account_graph'],
+        businessValue: {
+            proposition: 'Stop marketing to the same person twice.',
+            impact: 'efficiency',
+            roi: 'high'
+        }
     },
 
     // ==========================================================
@@ -801,7 +984,42 @@ export const nodeCatalog: CatalogNode[] = [
             proposition: 'Resolve cross-device identity to a single customer view.',
             impact: 'experience',
             roi: 'high'
-        }
+        },
+        identityType: 'graph',
+        joinKeys: ['email', 'phone', 'device_id', 'account_id']
+    },
+    {
+        id: 'unified_customer_profile',
+        name: 'Unified Profile',
+        category: 'identity', // or unified_profile role
+        nodeRole: 'unified_profile',
+        stage: 'identity',
+        icon: 'user-check', // or similar
+        vendorProfileAvailability: ALL_PROFILES,
+        description: 'The Golden Record containing all attributes and history.',
+        whyItMatters: [
+            'Single source of truth',
+            'Full customer history',
+            'Personalization engine'
+        ],
+        dataConcepts: ['behavioral', 'transactional', 'demographic', 'preferences'], // V2 Requirement
+        inputs: [
+            { id: 'graph_in', name: 'Identity Graph', type: 'graph_edges' },
+            { id: 'attr_in', name: 'Attributes', type: 'curated_entities' }
+        ],
+        outputs: [
+            { id: 'segment_out', name: 'Segments', type: 'audiences_people' },
+            { id: 'activation_out', name: 'Activation Payload', type: 'audiences_accounts' }
+        ],
+        prerequisites: ['account_graph'],
+        enables: ['activation', 'personalization'],
+        recommendedNext: ['hightouch', 'braze'],
+        businessValue: {
+            proposition: 'The complete, accessible view of every customer.',
+            impact: 'revenue',
+            roi: 'high'
+        },
+        valueText: 'Golden Record'
     },
     {
         id: 'salesforce_data_cloud',
@@ -813,7 +1031,7 @@ export const nodeCatalog: CatalogNode[] = [
         cardinality: 'single',
         isHub: true,
         icon: 'cloud-lightning', // Or specific Salesforce icon
-        vendorProfileAvailability: ['salesforce_data_cloud', 'salesforce'],
+        vendorProfileAvailability: ['generic'],
         description: 'Real-time hyperscale data platform for Salesforce.',
         whenToUse: 'When your stack centers on Salesforce and you need native identity resolution across the Customer 360.',
         whyItMatters: [
@@ -838,7 +1056,9 @@ export const nodeCatalog: CatalogNode[] = [
         enables: ['identity', 'activation', 'personalization'],
         recommendedNext: ['salesforce_crm_dest', 'marketing_cloud'],
         b2bSpecific: true,
-        preferredStackNode: true
+        preferredStackNode: true,
+        dataConcepts: ['behavioral', 'sales_activity', 'service_history'],
+        valueText: 'Customer 360'
     },
 
     // ==========================================================
@@ -941,7 +1161,8 @@ export const nodeCatalog: CatalogNode[] = [
         ],
         prerequisites: [],
         enables: ['activation'],
-        recommendedNext: ['salesforce_crm_dest', 'linkedin_ads']
+        recommendedNext: ['salesforce_crm_dest', 'linkedin_ads'],
+        valueText: 'Reverse ETL'
     },
 
     // ==========================================================
@@ -1085,7 +1306,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Identity Resolution',
         category: 'identity',
         icon: 'users',
-        vendorProfileAvailability: ['preferred_stack', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Email/user→Contact identity resolution.',
         whyItMatters: [
             'Deduplicate contacts',
@@ -1186,7 +1407,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Encryption (KMS)',
         category: 'governance',
         icon: 'key',
-        vendorProfileAvailability: ['preferred_stack', 'google_cloud', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Data encryption key management.',
         whyItMatters: [
             'Encryption at rest',
@@ -1224,7 +1445,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'PII Detection',
         category: 'governance',
         icon: 'alert-triangle',
-        vendorProfileAvailability: ['preferred_stack', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Sensitive data identification and masking.',
         whyItMatters: [
             'Auto-detect PII',
@@ -1288,7 +1509,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Tableau',
         category: 'analytics',
         icon: 'bar-chart-2',
-        vendorProfileAvailability: ['salesforce', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Visual analytics platform.',
         whyItMatters: [
             'Best-in-class visualization',
@@ -1438,6 +1659,35 @@ export const nodeCatalog: CatalogNode[] = [
         }
     },
     {
+        id: 'adobe_aep',
+        name: 'Adobe Experience Platform',
+        category: 'activation',
+        nodeRole: 'activation_connector',
+        stage: 'activation',
+        icon: 'layers',
+        vendorProfileAvailability: ['adobe_summit'],
+        description: 'Real-Time CDP for audience activation and profile storage.',
+        whyItMatters: [
+            'Real-time segmentation',
+            'Cross-channel orchestration',
+            'Unified profile activation'
+        ],
+        inputs: [{ id: 'profiles_in', name: 'Unified Profiles', type: 'curated_entities' }],
+        outputs: [
+            { id: 'audiences_ppl', name: 'People Audiences', type: 'audiences_people' },
+            { id: 'audiences_acc', name: 'Account Audiences', type: 'audiences_accounts' }
+        ],
+        prerequisites: ['mdf_hub'],
+        enables: ['activation', 'personalization'],
+        recommendedNext: ['adobe_target', 'journey_optimizer', 'meta_ads'],
+        preferredStackNode: true,
+        businessValue: {
+            proposition: 'Activate unified profiles to delivering real-time experiences.',
+            impact: 'revenue',
+            roi: 'high'
+        }
+    },
+    {
         id: 'census',
         name: 'Census',
         category: 'activation',
@@ -1446,7 +1696,7 @@ export const nodeCatalog: CatalogNode[] = [
         uniquenessKey: 'activation:primary',
         cardinality: 'single',
         icon: 'upload',
-        vendorProfileAvailability: ['generic', 'google_cloud'],
+        vendorProfileAvailability: ['generic'],
         description: 'Reverse ETL alternative.',
         whyItMatters: [
             'Warehouse-native',
@@ -1578,7 +1828,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Gong',
         category: 'analytics',
         icon: 'mic',
-        vendorProfileAvailability: ['sales_activation_centric', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Revenue intelligence and conversation analytics.',
         whyItMatters: ['Deal risks', 'Competitor mentions', 'Pipeline visibility'],
         inputs: [{ id: 'crm_in', name: 'CRM Data', type: 'raw_records' }],
@@ -1593,7 +1843,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Clari',
         category: 'analytics',
         icon: 'trending-up',
-        vendorProfileAvailability: ['sales_activation_centric', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Forecasting and revenue operations.',
         whyItMatters: ['Pipeline inspection', 'Forecast accuracy', 'Deal health'],
         inputs: [{ id: 'crm_in', name: 'CRM Data', type: 'raw_records' }],
@@ -1608,7 +1858,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Pendo',
         category: 'analytics',
         icon: 'mouse-pointer',
-        vendorProfileAvailability: ['plg_activation_centric', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Product usage analytics and guides.',
         whyItMatters: ['Feature adoption', 'In-app guides', 'NPS surveys'],
         inputs: [{ id: 'app_in', name: 'App Events', type: 'raw_events' }],
@@ -1623,7 +1873,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Drift',
         category: 'destination',
         icon: 'message-circle',
-        vendorProfileAvailability: ['plg_activation_centric', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Conversational marketing and sales.',
         whyItMatters: ['Chatbots', 'Live chat', 'Meeting scheduling'],
         inputs: [{ id: 'seg_in', name: 'Segments', type: 'audiences_people' }],
@@ -1638,7 +1888,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Customer.io',
         category: 'destination',
         icon: 'mail',
-        vendorProfileAvailability: ['customerio_centric', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Automated messaging platform.',
         whyItMatters: ['Data-driven emails', 'Push notifications', 'SMS'],
         inputs: [{ id: 'prof_in', name: 'Profiles', type: 'audiences_people' }],
@@ -1653,7 +1903,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Braze',
         category: 'destination',
         icon: 'smartphone',
-        vendorProfileAvailability: ['braze_centric', 'segment_composable', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Cross-channel customer engagement.',
         whyItMatters: ['Mobile push', 'In-app messages', 'Canvas journeys'],
         inputs: [{ id: 'user_in', name: 'User Profiles', type: 'audiences_people' }],
@@ -1673,7 +1923,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'collector',
         stage: 'collection',
         icon: 'code',
-        vendorProfileAvailability: ['adobe_aep', 'adobe_summit'],
+        vendorProfileAvailability: ['adobe_summit'],
         description: 'Adobe Experience Platform Web SDK for unified data collection.',
         whyItMatters: ['Single SDK for Adobe ecosystem', 'Real-time data collection', 'XDM schema enforcement'],
         inputs: [{ id: 'events_in', name: 'Web Events', type: 'raw_events' }],
@@ -1689,7 +1939,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'ingestor',
         stage: 'ingestion',
         icon: 'download',
-        vendorProfileAvailability: ['adobe_aep', 'adobe_summit'],
+        vendorProfileAvailability: ['adobe_summit'],
         description: 'Adobe Experience Platform source connectors for batch and streaming data.',
         whyItMatters: ['150+ pre-built connectors', 'Schema mapping', 'Data quality validation'],
         inputs: [{ id: 'data_in', name: 'Source Data', type: 'raw_records' }],
@@ -1705,7 +1955,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'storage_raw',
         stage: 'storage_raw',
         icon: 'database',
-        vendorProfileAvailability: ['adobe_aep', 'adobe_summit'],
+        vendorProfileAvailability: ['adobe_summit'],
         description: 'Adobe Experience Platform Data Lake for unified profile and event storage.',
         whyItMatters: ['Petabyte-scale storage', 'XDM schema enforcement', 'Query Service access'],
         inputs: [{ id: 'xdm_in', name: 'XDM Data', type: 'raw_events' }],
@@ -1724,7 +1974,7 @@ export const nodeCatalog: CatalogNode[] = [
         cardinality: 'single',
         isHub: true,
         icon: 'users',
-        vendorProfileAvailability: ['adobe_aep', 'adobe_summit'],
+        vendorProfileAvailability: ['adobe_summit'],
         description: 'Real-time identity graph for cross-device and cross-channel identity resolution.',
         whyItMatters: ['Deterministic + probabilistic matching', 'Real-time identity stitching', 'Privacy-compliant'],
         inputs: [{ id: 'profile_in', name: 'Profile Data', type: 'identity_keys' }],
@@ -1740,7 +1990,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'activation_connector',
         stage: 'activation',
         icon: 'send',
-        vendorProfileAvailability: ['adobe_aep', 'adobe_summit'],
+        vendorProfileAvailability: ['adobe_summit'],
         description: 'Adobe Real-Time CDP for audience creation and activation.',
         whyItMatters: ['Real-time audience segmentation', 'Edge personalization', 'Consent-aware activation'],
         inputs: [{ id: 'identity_in', name: 'Unified Profiles', type: 'identity_keys' }],
@@ -1759,7 +2009,7 @@ export const nodeCatalog: CatalogNode[] = [
         cardinality: 'single',
         isHub: true,
         icon: 'user',
-        vendorProfileAvailability: ['adobe_aep', 'adobe_summit'],
+        vendorProfileAvailability: ['adobe_summit'],
         description: 'Real-time customer profile store for unified customer view.',
         whyItMatters: ['Sub-second profile access', 'Merge policies', 'Computed attributes'],
         inputs: [{ id: 'identity_in', name: 'Identity Data', type: 'identity_keys' }],
@@ -1773,7 +2023,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Adobe Journey Optimizer',
         category: 'destination',
         icon: 'navigation',
-        vendorProfileAvailability: ['adobe_aep', 'adobe_summit'],
+        vendorProfileAvailability: ['adobe_summit'],
         description: 'Orchestrate personalized journeys across email, push, SMS, and in-app.',
         whyItMatters: ['Cross-channel orchestration', 'AI-powered optimization', 'Real-time triggers'],
         inputs: [{ id: 'audience_in', name: 'Audiences', type: 'audiences_people' }],
@@ -1787,7 +2037,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Adobe Analytics',
         category: 'analytics',
         icon: 'bar-chart-2',
-        vendorProfileAvailability: ['adobe_aep', 'adobe_summit'],
+        vendorProfileAvailability: ['adobe_summit'],
         description: 'Enterprise web and app analytics for deep behavioral insights.',
         whyItMatters: ['Pathing analysis', 'Custom dimensions', 'Attribution modeling'],
         inputs: [{ id: 'events_in', name: 'Event Data', type: 'raw_events' }],
@@ -1801,7 +2051,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Customer Journey Analytics',
         category: 'analytics',
         icon: 'trending-up',
-        vendorProfileAvailability: ['adobe_aep', 'adobe_summit'],
+        vendorProfileAvailability: ['adobe_summit'],
         description: 'Cross-channel journey analysis built on AEP data.',
         whyItMatters: ['Unified data analysis', 'Cross-channel attribution', 'AI insights'],
         inputs: [{ id: 'profile_in', name: 'Profile Data', type: 'raw_records' }],
@@ -1815,7 +2065,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Adobe Target',
         category: 'destination',
         icon: 'target',
-        vendorProfileAvailability: ['adobe_aep', 'adobe_summit'],
+        vendorProfileAvailability: ['adobe_summit'],
         description: 'A/B testing and AI-powered personalization.',
         whyItMatters: ['Automated personalization', 'Edge decisioning', 'Multivariate testing'],
         inputs: [{ id: 'audience_in', name: 'Audiences', type: 'audiences_people' }],
@@ -1829,7 +2079,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'AEP Data Governance',
         category: 'governance',
         icon: 'shield',
-        vendorProfileAvailability: ['adobe_aep', 'adobe_summit'],
+        vendorProfileAvailability: ['adobe_summit'],
         description: 'Data labeling, policies, and enforcement for regulatory compliance.',
         whyItMatters: ['GDPR/CCPA compliance', 'Data lineage', 'Policy enforcement'],
         inputs: [],
@@ -1844,7 +2094,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Privacy Service',
         category: 'governance',
         icon: 'lock',
-        vendorProfileAvailability: ['adobe_aep', 'adobe_summit'],
+        vendorProfileAvailability: ['adobe_summit'],
         description: 'Centralized privacy request management for GDPR, CCPA, and LGPD.',
         whyItMatters: ['Automated DSR fulfillment', 'Audit trails', 'Cross-application privacy'],
         inputs: [],
@@ -1859,7 +2109,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'AEP B2B Edition',
         category: 'identity',
         icon: 'briefcase',
-        vendorProfileAvailability: ['adobe_aep', 'generic'],
+        vendorProfileAvailability: ['adobe_summit', 'generic'],
         description: 'B2B-specific identity and account profiles.',
         whyItMatters: ['Account hierarchies', 'Buying groups', 'Opportunity linking'],
         inputs: [{ id: 'crm_in', name: 'CRM Data', type: 'crm_data' }],
@@ -1882,7 +2132,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'ingestor',
         stage: 'ingestion',
         icon: 'plug',
-        vendorProfileAvailability: ['salesforce_data_cloud', 'sfmc_centric', 'salesforce'],
+        vendorProfileAvailability: ['generic'],
         description: 'Connect Salesforce clouds and external systems to Data Cloud.',
         whyItMatters: ['Native Salesforce integration', 'Pre-built connectors', 'Real-time streaming'],
         inputs: [{ id: 'data_in', name: 'CRM/Cloud Data', type: 'raw_records' }],
@@ -1900,7 +2150,7 @@ export const nodeCatalog: CatalogNode[] = [
         uniquenessKey: 'storage:warehouse',
         cardinality: 'single',
         icon: 'cloud',
-        vendorProfileAvailability: ['salesforce_data_cloud', 'sfmc_centric', 'salesforce'],
+        vendorProfileAvailability: ['generic'],
         description: 'Hyperscale data platform powering unified customer profiles.',
         whyItMatters: ['Petabyte scale', 'Native Tableau integration', 'Einstein AI readiness'],
         inputs: [{ id: 'dm_in', name: 'Data Model Objects', type: 'stream_events' }],
@@ -1919,7 +2169,7 @@ export const nodeCatalog: CatalogNode[] = [
         cardinality: 'single',
         isHub: true,
         icon: 'users',
-        vendorProfileAvailability: ['salesforce_data_cloud', 'sfmc_centric', 'salesforce'],
+        vendorProfileAvailability: ['generic'],
         description: 'AI-powered identity resolution for customer 360.',
         whyItMatters: ['Match rules engine', 'Probabilistic matching', 'Unified person/account'],
         inputs: [{ id: 'profile_in', name: 'Profile Data', type: 'identity_keys' }],
@@ -1933,7 +2183,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Marketing Cloud',
         category: 'sources',
         icon: 'mail',
-        vendorProfileAvailability: ['salesforce_data_cloud', 'sfmc_centric', 'salesforce'],
+        vendorProfileAvailability: ['generic'],
         description: 'Email, mobile, advertising, and social marketing platform.',
         whyItMatters: ['Enterprise email at scale', 'Journey orchestration', 'Cross-channel messaging'],
         inputs: [],
@@ -1947,7 +2197,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Journey Builder',
         category: 'destination',
         icon: 'git-branch',
-        vendorProfileAvailability: ['salesforce_data_cloud', 'sfmc_centric', 'salesforce'],
+        vendorProfileAvailability: ['generic'],
         description: 'Visual journey orchestration across all Salesforce channels.',
         whyItMatters: ['Drag-and-drop journeys', 'AI-powered optimization', 'Cross-channel'],
         inputs: [{ id: 'audience_in', name: 'Segments', type: 'audiences_people' }],
@@ -1961,7 +2211,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Commerce Cloud',
         category: 'sources',
         icon: 'shopping-cart',
-        vendorProfileAvailability: ['salesforce_data_cloud', 'salesforce'],
+        vendorProfileAvailability: ['generic'],
         description: 'B2C and B2B commerce platform with headless capabilities.',
         whyItMatters: ['E-commerce data', 'Purchase history', 'Cart abandonment signals'],
         inputs: [],
@@ -1977,7 +2227,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'ingestor',
         stage: 'ingestion',
         icon: 'zap',
-        vendorProfileAvailability: ['salesforce_data_cloud', 'salesforce'],
+        vendorProfileAvailability: ['generic'],
         description: 'API-led connectivity and integration platform.',
         whyItMatters: ['Enterprise integration', 'API management', 'Event-driven architecture'],
         inputs: [{ id: 'api_in', name: 'API Data', type: 'dataset_raw' }],
@@ -1991,7 +2241,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Salesforce Shield',
         category: 'governance',
         icon: 'shield',
-        vendorProfileAvailability: ['salesforce_data_cloud', 'salesforce'],
+        vendorProfileAvailability: ['generic'],
         description: 'Platform encryption, event monitoring, and field audit trail.',
         whyItMatters: ['Data encryption', 'Compliance monitoring', 'Audit trails'],
         inputs: [],
@@ -2006,7 +2256,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Slack Alerts',
         category: 'destination',
         icon: 'message-circle',
-        vendorProfileAvailability: ['salesforce_data_cloud', 'salesforce', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Real-time Slack notifications for sales and marketing signals.',
         whyItMatters: ['Instant notifications', 'Workflow automation', 'Team collaboration'],
         inputs: [{ id: 'event_in', name: 'Alert Events', type: 'raw_events' }],
@@ -2028,7 +2278,7 @@ export const nodeCatalog: CatalogNode[] = [
         uniquenessKey: 'storage:raw',
         cardinality: 'single',
         icon: 'database',
-        vendorProfileAvailability: ['databricks_lakehouse'],
+        vendorProfileAvailability: ['generic'],
         description: 'Raw ingestion layer with schema enforcement and time travel.',
         whyItMatters: ['ACID transactions', 'Schema evolution', 'Time travel'],
         inputs: [{ id: 'stream_in', name: 'Raw Data', type: 'stream_events' }],
@@ -2046,7 +2296,7 @@ export const nodeCatalog: CatalogNode[] = [
         uniquenessKey: 'storage:warehouse',
         cardinality: 'single',
         icon: 'layers',
-        vendorProfileAvailability: ['databricks_lakehouse'],
+        vendorProfileAvailability: ['generic'],
         description: 'Cleansed and enriched data layer.',
         whyItMatters: ['Data quality', 'Business rules applied', 'Reusable datasets'],
         inputs: [{ id: 'bronze_in', name: 'Bronze Tables', type: 'raw_records' }],
@@ -2064,7 +2314,7 @@ export const nodeCatalog: CatalogNode[] = [
         uniquenessKey: 'transform:primary',
         cardinality: 'single',
         icon: 'star',
-        vendorProfileAvailability: ['databricks_lakehouse'],
+        vendorProfileAvailability: ['generic'],
         description: 'Business-level aggregates and curated datasets.',
         whyItMatters: ['Business metrics', 'Performance optimized', 'Analytics ready'],
         inputs: [{ id: 'silver_in', name: 'Silver Tables', type: 'raw_records' }],
@@ -2078,7 +2328,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Databricks SQL',
         category: 'analytics',
         icon: 'terminal',
-        vendorProfileAvailability: ['databricks_lakehouse'],
+        vendorProfileAvailability: ['generic'],
         description: 'Serverless SQL analytics with photon acceleration.',
         whyItMatters: ['Sub-second queries', 'Native BI integration', 'Cost-effective'],
         inputs: [{ id: 'delta_in', name: 'Delta Tables', type: 'raw_records' }],
@@ -2097,7 +2347,7 @@ export const nodeCatalog: CatalogNode[] = [
         cardinality: 'single',
         isHub: true,
         icon: 'users',
-        vendorProfileAvailability: ['databricks_lakehouse'],
+        vendorProfileAvailability: ['generic'],
         description: 'Unified identity and access management for the lakehouse.',
         whyItMatters: ['Fine-grained access', 'Data lineage', 'Cross-workspace governance'],
         inputs: [{ id: 'data_in', name: 'Lakehouse Data', type: 'identity_keys' }],
@@ -2111,7 +2361,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Unity Catalog Governance',
         category: 'governance',
         icon: 'shield',
-        vendorProfileAvailability: ['databricks_lakehouse'],
+        vendorProfileAvailability: ['generic'],
         description: 'Centralized governance for data, AI, and analytics.',
         whyItMatters: ['Data lineage', 'Access control', 'Compliance'],
         inputs: [],
@@ -2126,7 +2376,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Spark Streaming',
         category: 'ingestion',
         icon: 'radio',
-        vendorProfileAvailability: ['databricks_lakehouse'],
+        vendorProfileAvailability: ['generic'],
         description: 'Real-time stream processing with structured streaming.',
         whyItMatters: ['Exactly-once semantics', 'Low latency', 'Unified batch/stream'],
         inputs: [{ id: 'stream_in', name: 'Event Stream', type: 'stream_events' }],
@@ -2140,7 +2390,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Apache Kafka',
         category: 'ingestion',
         icon: 'radio',
-        vendorProfileAvailability: ['databricks_lakehouse', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Distributed event streaming platform.',
         whyItMatters: ['High throughput', 'Durability', 'Real-time pipelines'],
         inputs: [{ id: 'events_in', name: 'Events', type: 'raw_events' }],
@@ -2161,7 +2411,7 @@ export const nodeCatalog: CatalogNode[] = [
         stage: 'collection',
         uniquenessKey: 'collector:ga4',
         icon: 'bar-chart-2',
-        vendorProfileAvailability: ['gcp_bigquery', 'google_cloud'],
+        vendorProfileAvailability: ['generic'],
         description: 'Event-based analytics with BigQuery export.',
         whyItMatters: ['Free BigQuery export', 'Machine learning ready', 'Cross-platform'],
         inputs: [{ id: 'events_in', name: 'Web/App Events', type: 'raw_events' }],
@@ -2178,7 +2428,7 @@ export const nodeCatalog: CatalogNode[] = [
         stage: 'ingestion',
         uniquenessKey: 'ingestor:pubsub',
         icon: 'radio',
-        vendorProfileAvailability: ['gcp_bigquery', 'google_cloud'],
+        vendorProfileAvailability: ['generic'],
         description: 'Serverless messaging for event-driven architectures.',
         whyItMatters: ['Serverless', 'Global scale', 'At-least-once delivery'],
         inputs: [{ id: 'events_in', name: 'Events', type: 'raw_events' }],
@@ -2195,7 +2445,7 @@ export const nodeCatalog: CatalogNode[] = [
         stage: 'ingestion',
         uniquenessKey: 'ingestor:dataflow',
         icon: 'git-merge',
-        vendorProfileAvailability: ['gcp_bigquery', 'google_cloud'],
+        vendorProfileAvailability: ['generic'],
         description: 'Serverless stream and batch data processing.',
         whyItMatters: ['Unified batch/stream', 'Auto-scaling', 'Apache Beam'],
         inputs: [{ id: 'stream_in', name: 'Event Stream', type: 'stream_events' }],
@@ -2213,7 +2463,7 @@ export const nodeCatalog: CatalogNode[] = [
         uniquenessKey: 'storage:raw:gcs',
         cardinality: 'single',
         icon: 'hard-drive',
-        vendorProfileAvailability: ['gcp_bigquery', 'google_cloud'],
+        vendorProfileAvailability: ['generic'],
         description: 'Object storage for data lake and raw files.',
         whyItMatters: ['Unlimited scale', 'Cost-effective', 'BigQuery external tables'],
         inputs: [{ id: 'data_in', name: 'Raw Data', type: 'dataset_raw' }],
@@ -2230,7 +2480,7 @@ export const nodeCatalog: CatalogNode[] = [
         stage: 'transform',
         uniquenessKey: 'transform:primary',
         icon: 'layers',
-        vendorProfileAvailability: ['gcp_bigquery', 'google_cloud'],
+        vendorProfileAvailability: ['generic'],
         description: 'SQL-based data transformation and orchestration.',
         whyItMatters: ['Native BigQuery', 'Version control', 'Data quality checks'],
         inputs: [{ id: 'bq_in', name: 'BigQuery Tables', type: 'raw_records' }],
@@ -2246,7 +2496,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'governance',
         uniquenessKey: 'gov:dataplex',
         icon: 'shield',
-        vendorProfileAvailability: ['gcp_bigquery', 'google_cloud'],
+        vendorProfileAvailability: ['generic'],
         description: 'Unified data management and governance.',
         whyItMatters: ['Data discovery', 'Quality management', 'Policy enforcement'],
         inputs: [],
@@ -2262,7 +2512,7 @@ export const nodeCatalog: CatalogNode[] = [
         category: 'governance',
         nodeRole: 'governance',
         icon: 'book',
-        vendorProfileAvailability: ['gcp_bigquery', 'google_cloud'],
+        vendorProfileAvailability: ['generic'],
         description: 'Metadata management and data discovery.',
         whyItMatters: ['Searchable metadata', 'Data lineage', 'Business glossary'],
         inputs: [],
@@ -2279,7 +2529,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'collector',
         stage: 'collection',
         icon: 'tag',
-        vendorProfileAvailability: ['gcp_bigquery', 'google_cloud', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Tag management for marketing and analytics.',
         whyItMatters: ['No-code tag deployment', 'Server-side tagging', 'Debug mode'],
         inputs: [],
@@ -2295,7 +2545,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'destination',
         stage: 'destination',
         icon: 'dollar-sign',
-        vendorProfileAvailability: ['gcp_bigquery', 'google_cloud', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Paid search and display advertising.',
         whyItMatters: ['Customer match', 'Conversion import', 'Audience sync'],
         inputs: [{ id: 'audience_in', name: 'Customer Lists', type: 'audiences_people' }],
@@ -2317,7 +2567,7 @@ export const nodeCatalog: CatalogNode[] = [
         uniquenessKey: 'storage:raw',
         cardinality: 'single',
         icon: 'database',
-        vendorProfileAvailability: ['microsoft_fabric'],
+        vendorProfileAvailability: ['generic'],
         description: 'Unified data lake storage for Microsoft Fabric.',
         whyItMatters: ['Single copy of data', 'Cross-workload access', 'Delta Lake format'],
         inputs: [{ id: 'data_in', name: 'Raw Data', type: 'dataset_raw' }],
@@ -2335,7 +2585,7 @@ export const nodeCatalog: CatalogNode[] = [
         uniquenessKey: 'storage:warehouse',
         cardinality: 'single',
         icon: 'server',
-        vendorProfileAvailability: ['microsoft_fabric'],
+        vendorProfileAvailability: ['generic'],
         description: 'T-SQL data warehouse with automatic optimization.',
         whyItMatters: ['Familiar T-SQL', 'Auto-optimization', 'Direct Lake mode'],
         inputs: [{ id: 'lake_in', name: 'OneLake Data', type: 'raw_records' }],
@@ -2352,7 +2602,7 @@ export const nodeCatalog: CatalogNode[] = [
         stage: 'transform',
         uniquenessKey: 'semantic:primary',
         icon: 'pie-chart',
-        vendorProfileAvailability: ['microsoft_fabric'],
+        vendorProfileAvailability: ['generic'],
         description: 'Business semantic layer with measures and relationships.',
         whyItMatters: ['Define once, use everywhere', 'Row-level security', 'DAX measures'],
         inputs: [{ id: 'wh_in', name: 'Warehouse Tables', type: 'raw_records' }],
@@ -2368,7 +2618,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'analytics',
         stage: 'analytics',
         icon: 'bar-chart-2',
-        vendorProfileAvailability: ['microsoft_fabric'],
+        vendorProfileAvailability: ['generic'],
         description: 'Interactive dashboards and reports.',
         whyItMatters: ['Self-service BI', 'Natural language Q&A', 'Mobile native'],
         inputs: [{ id: 'semantic_in', name: 'Semantic Model', type: 'raw_records' }],
@@ -2382,7 +2632,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Dynamics 365',
         category: 'sources',
         icon: 'briefcase',
-        vendorProfileAvailability: ['microsoft_fabric'],
+        vendorProfileAvailability: ['generic'],
         description: 'Microsoft CRM and ERP applications.',
         whyItMatters: ['Native integration', 'Customer data', 'Business processes'],
         inputs: [],
@@ -2396,7 +2646,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'ADLS Gen2',
         category: 'storage_raw',
         icon: 'hard-drive',
-        vendorProfileAvailability: ['microsoft_fabric'],
+        vendorProfileAvailability: ['generic'],
         description: 'Azure Data Lake Storage Gen2.',
         whyItMatters: ['Hierarchical namespace', 'Enterprise security', 'Hadoop compatible'],
         inputs: [{ id: 'data_in', name: 'Raw Data', type: 'dataset_raw' }],
@@ -2410,7 +2660,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Synapse Pipelines',
         category: 'ingestion',
         icon: 'git-branch',
-        vendorProfileAvailability: ['microsoft_fabric'],
+        vendorProfileAvailability: ['generic'],
         description: 'Data integration and orchestration.',
         whyItMatters: ['90+ connectors', 'Mapping data flows', 'Scheduling'],
         inputs: [{ id: 'source_in', name: 'Source Data', type: 'dataset_raw' }],
@@ -2424,7 +2674,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Azure Event Grid',
         category: 'ingestion',
         icon: 'radio',
-        vendorProfileAvailability: ['microsoft_fabric', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Event-driven messaging service.',
         whyItMatters: ['Serverless', 'Real-time events', 'Native Azure integration'],
         inputs: [{ id: 'events_in', name: 'Events', type: 'raw_events' }],
@@ -2438,7 +2688,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Microsoft Purview',
         category: 'governance',
         icon: 'shield',
-        vendorProfileAvailability: ['microsoft_fabric'],
+        vendorProfileAvailability: ['generic'],
         description: 'Unified data governance for Azure and multi-cloud.',
         whyItMatters: ['Data catalog', 'Sensitivity labels', 'Data lineage'],
         inputs: [],
@@ -2460,7 +2710,7 @@ export const nodeCatalog: CatalogNode[] = [
         stage: 'analytics',
         uniquenessKey: 'analytics:dcr',
         icon: 'lock',
-        vendorProfileAvailability: ['clean_room_layer', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Privacy-safe data collaboration on AWS.',
         whyItMatters: ['No data movement', 'Cryptographic controls', 'Pre-built templates'],
         inputs: [{ id: 'data_in', name: 'Partner Data', type: 'raw_records' }],
@@ -2477,7 +2727,7 @@ export const nodeCatalog: CatalogNode[] = [
         stage: 'analytics',
         uniquenessKey: 'analytics:dcr',
         icon: 'lock',
-        vendorProfileAvailability: ['clean_room_layer', 'snowflake_composable'],
+        vendorProfileAvailability: ['generic'],
         description: 'Data Clean Rooms powered by Snowflake.',
         whyItMatters: ['Native DCR', 'Python UDFs', 'Secure sharing'],
         inputs: [{ id: 'data_in', name: 'Shared Data', type: 'raw_records' }],
@@ -2493,7 +2743,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'activation_connector',
         stage: 'activation',
         icon: 'share-2',
-        vendorProfileAvailability: ['clean_room_layer', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Identity resolution and data connectivity.',
         whyItMatters: ['RampID graph', 'Authenticated traffic', 'Privacy-safe'],
         inputs: [{ id: 'identity_in', name: 'First-party Data', type: 'identity_keys' }],
@@ -2507,7 +2757,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Measurement Aggregates',
         category: 'analytics',
         icon: 'pie-chart',
-        vendorProfileAvailability: ['clean_room_layer'],
+        vendorProfileAvailability: ['generic'],
         description: 'Privacy-preserving measurement through aggregation.',
         whyItMatters: ['Differential privacy', 'K-anonymity', 'Regulatory compliant'],
         inputs: [{ id: 'clean_in', name: 'Clean Room Data', type: 'raw_records' }],
@@ -2523,7 +2773,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'destination',
         stage: 'destination',
         icon: 'monitor',
-        vendorProfileAvailability: ['clean_room_layer', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Programmatic advertising DSP.',
         whyItMatters: ['UID2 native', 'Retail media', 'CTV advertising'],
         inputs: [{ id: 'audience_in', name: 'Audiences', type: 'audiences_people' }],
@@ -2544,7 +2794,7 @@ export const nodeCatalog: CatalogNode[] = [
         stage: 'activation',
         uniquenessKey: 'activation:sixsense',
         icon: 'target',
-        vendorProfileAvailability: ['abm_intent_centric', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'B2B intent data and account-based orchestration.',
         whyItMatters: ['Intent signals', 'Buying stage prediction', 'Account identification'],
         inputs: [{ id: 'account_in', name: 'Account Data', type: 'identity_keys' }],
@@ -2561,7 +2811,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'activation_connector',
         stage: 'activation',
         icon: 'git-branch',
-        vendorProfileAvailability: ['abm_intent_centric'],
+        vendorProfileAvailability: ['generic'],
         description: 'Multi-channel ABM campaign orchestration.',
         whyItMatters: ['Personalized ads', 'Email sync', 'Sales alerts'],
         inputs: [{ id: 'intent_in', name: 'Intent Data', type: 'raw_records' }],
@@ -2576,7 +2826,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Bombora',
         category: 'sources',
         icon: 'trending-up',
-        vendorProfileAvailability: ['abm_intent_centric', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'B2B intent data from content consumption.',
         whyItMatters: ['Topic-level intent', 'Company surge scores', 'Data cooperative'],
         inputs: [],
@@ -2591,7 +2841,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'ZoomInfo',
         category: 'sources',
         icon: 'search',
-        vendorProfileAvailability: ['abm_intent_centric', 'sales_activation_centric', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'B2B contact and company intelligence.',
         whyItMatters: ['Contact data', 'Org charts', 'Buyer intent'],
         inputs: [],
@@ -2610,7 +2860,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Outreach',
         category: 'destination',
         icon: 'phone',
-        vendorProfileAvailability: ['sales_activation_centric', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Sales engagement platform for sequences.',
         whyItMatters: ['Cadence automation', 'Email tracking', 'Call coaching'],
         inputs: [{ id: 'lead_in', name: 'Leads', type: 'audiences_people' }],
@@ -2625,7 +2875,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Salesloft',
         category: 'destination',
         icon: 'phone-call',
-        vendorProfileAvailability: ['sales_activation_centric', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Revenue workflow platform.',
         whyItMatters: ['Cadence builder', 'Conversation intelligence', 'Forecasting'],
         inputs: [{ id: 'lead_in', name: 'Leads', type: 'audiences_people' }],
@@ -2646,7 +2896,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'collector',
         stage: 'collection',
         icon: 'eye',
-        vendorProfileAvailability: ['hubspot_centric'],
+        vendorProfileAvailability: ['generic'],
         description: 'Website visitor tracking and form capture.',
         whyItMatters: ['No-code setup', 'Form enrichment', 'Chat integration'],
         inputs: [{ id: 'events_in', name: 'Web Events', type: 'raw_events' }],
@@ -2665,7 +2915,7 @@ export const nodeCatalog: CatalogNode[] = [
         cardinality: 'single',
         isHub: true,
         icon: 'building',
-        vendorProfileAvailability: ['hubspot_centric'],
+        vendorProfileAvailability: ['generic'],
         description: 'Company records with automatic enrichment.',
         whyItMatters: ['Auto-enrichment', 'Contact-company linking', 'Deal association'],
         inputs: [{ id: 'contact_in', name: 'Contacts', type: 'identity_keys' }],
@@ -2684,7 +2934,7 @@ export const nodeCatalog: CatalogNode[] = [
         name: 'Segment Profiles',
         category: 'identity',
         icon: 'user',
-        vendorProfileAvailability: ['segment_composable', 'braze_centric'],
+        vendorProfileAvailability: ['generic'],
         description: 'Unified customer profiles in Segment.',
         whyItMatters: ['Real-time unification', 'Trait computation', 'Predictive traits'],
         inputs: [{ id: 'events_in', name: 'Events', type: 'stream_events' }],
@@ -2704,7 +2954,7 @@ export const nodeCatalog: CatalogNode[] = [
         cardinality: 'single',
         isHub: true,
         icon: 'user',
-        vendorProfileAvailability: ['segment_composable', 'braze_centric'],
+        vendorProfileAvailability: ['generic'],
         description: 'Unified customer profiles in Segment.',
         whyItMatters: ['Real-time unification', 'Trait computation', 'Predictive traits'],
         inputs: [{ id: 'events_in', name: 'Events', type: 'stream_events' }],
@@ -2720,7 +2970,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'activation_connector',
         stage: 'activation',
         icon: 'users',
-        vendorProfileAvailability: ['segment_composable'],
+        vendorProfileAvailability: ['generic'],
         description: 'Audience builder and destination activation.',
         whyItMatters: ['SQL audiences', 'Real-time sync', '400+ destinations'],
         inputs: [{ id: 'profile_in', name: 'Profiles', type: 'identity_keys' }],
@@ -2737,7 +2987,7 @@ export const nodeCatalog: CatalogNode[] = [
         stage: 'collection',
         uniquenessKey: 'collector:mparticle',
         icon: 'radio',
-        vendorProfileAvailability: ['mparticle_composable'],
+        vendorProfileAvailability: ['generic'],
         description: 'Customer data infrastructure platform.',
         whyItMatters: ['Mobile-first SDK', 'Quality guardrails', 'Identity resolution'],
         inputs: [{ id: 'events_in', name: 'Events', type: 'raw_events' }],
@@ -2756,7 +3006,7 @@ export const nodeCatalog: CatalogNode[] = [
         cardinality: 'single',
         isHub: true,
         icon: 'users',
-        vendorProfileAvailability: ['mparticle_composable'],
+        vendorProfileAvailability: ['generic'],
         description: 'Cross-device identity resolution.',
         whyItMatters: ['Deterministic matching', 'Custom identity priority', 'Real-time'],
         inputs: [{ id: 'events_in', name: 'Events', type: 'stream_events' }],
@@ -2772,7 +3022,7 @@ export const nodeCatalog: CatalogNode[] = [
         nodeRole: 'activation_connector',
         stage: 'activation',
         icon: 'users',
-        vendorProfileAvailability: ['mparticle_composable'],
+        vendorProfileAvailability: ['generic'],
         description: 'Real-time audience builder and activation.',
         whyItMatters: ['Real-time segments', 'Cross-platform sync', 'Lookalike modeling'],
         inputs: [{ id: 'identity_in', name: 'Identity', type: 'identity_keys' }],
@@ -2844,7 +3094,7 @@ export const nodeCatalog: CatalogNode[] = [
         stage: 'identity',
         uniquenessKey: 'identity:hub',
         icon: 'link',
-        vendorProfileAvailability: ['preferred_stack', 'generic'],
+        vendorProfileAvailability: ['generic'],
         description: 'Match and link related records across datasets.',
         whyItMatters: ['Automated entity matching', 'Probabilistic resolution', 'Privacy-compliant'],
         inputs: [{ id: 'records_in', name: 'Source Records', type: 'identity_keys' }],
@@ -2909,4 +3159,5 @@ export function getRecommendedNodes(nodeId: string): CatalogNode[] {
         .map(id => getNodeById(id))
         .filter((n): n is CatalogNode => n !== undefined)
 }
+
 

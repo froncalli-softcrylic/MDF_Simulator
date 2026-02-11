@@ -16,7 +16,7 @@ interface TourStep {
 
 const steps: TourStep[] = [
     {
-        title: 'Welcome to MDF Simulator',
+        title: 'Welcome to Marketing Data Foundation',
         content: 'This tool helps you design, validate, and simulate your Marketing Data Foundation. Let\'s take a quick tour.',
         position: 'center'
     },

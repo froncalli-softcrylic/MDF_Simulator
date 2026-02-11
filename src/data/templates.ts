@@ -12,7 +12,7 @@ export const templates: Template[] = [
         name: 'Snowflake Composable',
         description: 'Warehouse-first B2B foundation with Snowflake, dbt, and Hightouch.',
         industry: 'B2B SaaS',
-        profiles: ['snowflake_composable', 'preferred_stack', 'generic'],
+        profiles: ['generic'],
         nodes: [
             { catalogId: 'product_events', position: { x: 0, y: 100 } },
             { catalogId: 'salesforce_crm', position: { x: 0, y: 220 } },
@@ -54,7 +54,7 @@ export const templates: Template[] = [
         name: 'Databricks Medallion',
         description: 'Lakehouse architecture with Bronze/Silver/Gold layers.',
         industry: 'General',
-        profiles: ['databricks_lakehouse', 'generic'],
+        profiles: ['generic'],
         nodes: [
             { catalogId: 'product_events', position: { x: 0, y: 100 } },
             { catalogId: 'kafka', position: { x: 200, y: 100 } },
@@ -84,7 +84,7 @@ export const templates: Template[] = [
         name: 'GCP Modern Data Stack',
         description: 'BigQuery + Looker + Google ecosystem integration.',
         industry: 'General',
-        profiles: ['gcp_bigquery', 'google_cloud', 'generic'],
+        profiles: ['generic'],
         nodes: [
             { catalogId: 'google_analytics_4', position: { x: 0, y: 100 } },
             { catalogId: 'pubsub', position: { x: 200, y: 100 } },
@@ -109,7 +109,7 @@ export const templates: Template[] = [
         name: 'Fabric Analytics',
         description: 'Unified analytics with Map/OneLake/PowerBI.',
         industry: 'Enterprise',
-        profiles: ['microsoft_fabric', 'generic'],
+        profiles: ['generic'],
         nodes: [
             { catalogId: 'dynamics_365', position: { x: 0, y: 150 } },
             { catalogId: 'adls_gen2', position: { x: 300, y: 150 } },
@@ -131,7 +131,7 @@ export const templates: Template[] = [
         name: 'Salesforce Data Cloud',
         description: 'Complete Salesforce Customer 360 foundation.',
         industry: 'B2B',
-        profiles: ['salesforce_data_cloud', 'salesforce', 'generic'],
+        profiles: ['generic'],
         nodes: [
             { catalogId: 'salesforce_crm', position: { x: 0, y: 100 } },
             { catalogId: 'marketing_cloud', position: { x: 0, y: 250 } },
@@ -152,7 +152,7 @@ export const templates: Template[] = [
         name: 'Adobe Experience Platform',
         description: 'End-to-end Adobe stack for enterprise.',
         industry: 'Enterprise',
-        profiles: ['adobe_aep', 'adobe_summit', 'generic'],
+        profiles: ['adobe_summit', 'generic'],
         nodes: [
             { catalogId: 'adobe_web_sdk', position: { x: 0, y: 100 } },
             { catalogId: 'marketo', position: { x: 0, y: 250 } },
@@ -178,7 +178,7 @@ export const templates: Template[] = [
         name: 'Segment Composable',
         description: 'Hybrid approach using Segment + Warehouse.',
         industry: 'B2B/B2C',
-        profiles: ['segment_composable', 'generic'],
+        profiles: ['generic'],
         nodes: [
             { catalogId: 'product_events', position: { x: 0, y: 100 } },
             { catalogId: 'segment', position: { x: 300, y: 100 } },
@@ -204,7 +204,7 @@ export const templates: Template[] = [
         name: 'mParticle Composable',
         description: 'Mobile-heavy stack with mParticle and Warehouse.',
         industry: 'Mobile',
-        profiles: ['mparticle_composable', 'generic'],
+        profiles: ['generic'],
         nodes: [
             { catalogId: 'product_events', position: { x: 0, y: 100 } },
             { catalogId: 'mparticle', position: { x: 300, y: 100 } },
@@ -230,7 +230,7 @@ export const templates: Template[] = [
         name: 'Marketo Demand Engine',
         description: 'Classic B2B stack centered on Marketo and Salesforce.',
         industry: 'B2B',
-        profiles: ['marketo_centric', 'generic'],
+        profiles: ['generic'],
         nodes: [
             { catalogId: 'marketo', position: { x: 0, y: 100 } },
             { catalogId: 'salesforce_crm', position: { x: 200, y: 250 } },
@@ -252,7 +252,7 @@ export const templates: Template[] = [
         name: 'HubSpot All-in-One',
         description: 'HubSpot-centric stack for growth stage cos.',
         industry: 'Growth B2B',
-        profiles: ['hubspot_centric', 'generic'],
+        profiles: ['generic'],
         nodes: [
             { catalogId: 'hubspot_tracking', position: { x: 0, y: 100 } },
             { catalogId: 'hubspot_crm', position: { x: 300, y: 100 } },
@@ -270,7 +270,7 @@ export const templates: Template[] = [
         name: 'Braze PLG Stack',
         description: 'Mobile/Web engagement with Braze and Amplitude.',
         industry: 'B2C / PLG',
-        profiles: ['braze_centric', 'generic'],
+        profiles: ['generic'],
         nodes: [
             { catalogId: 'product_events', position: { x: 0, y: 100 } },
             { catalogId: 'segment', position: { x: 250, y: 100 } },
@@ -288,7 +288,7 @@ export const templates: Template[] = [
         name: 'ABM Intent Stack',
         description: '6sense and LinkedIn for high-value account targeting.',
         industry: 'B2B Enterprise',
-        profiles: ['abm_intent_centric', 'generic'],
+        profiles: ['generic'],
         nodes: [
             { catalogId: 'sixsense', position: { x: 0, y: 100 } },
             { catalogId: 'salesforce_crm', position: { x: 200, y: 250 } },
@@ -306,7 +306,7 @@ export const templates: Template[] = [
         name: 'Clean Room Collab',
         description: 'Secure data sharing pattern.',
         industry: 'Retail media / Partners',
-        profiles: ['clean_room_layer', 'generic'],
+        profiles: ['generic'],
         nodes: [
             { catalogId: 'snowflake', position: { x: 0, y: 100 } },
             { catalogId: 'aws_clean_rooms', position: { x: 300, y: 100 } },
@@ -327,7 +327,7 @@ export const templates: Template[] = [
         name: 'B2C E-Commerce Personalization',
         description: 'Customer data platform with real-time personalization and multi-channel activation.',
         industry: 'Retail / E-Commerce',
-        profiles: ['segment_composable', 'generic'],
+        profiles: ['generic'],
         nodes: [
             { catalogId: 'web_app_events', position: { x: 0, y: 100 } },
             { catalogId: 'product_events', position: { x: 0, y: 250 } },
@@ -362,7 +362,7 @@ export const templates: Template[] = [
         name: 'PLG Warehouse Activation',
         description: 'Product-led growth with warehouse-backed activation for trials, PQLs, and expansion.',
         industry: 'SaaS / PLG',
-        profiles: ['snowflake_composable', 'generic'],
+        profiles: ['generic'],
         nodes: [
             { catalogId: 'product_events', position: { x: 0, y: 100 } },
             { catalogId: 'billing_system', position: { x: 0, y: 250 } },
@@ -395,7 +395,7 @@ export const templates: Template[] = [
         id: 'blank',
         name: 'Blank Canvas',
         description: 'Start from scratch and build your own custom MDF architecture.',
-        profiles: ['generic', 'snowflake_composable', 'databricks_lakehouse'], // Available everywhere
+        profiles: ['generic'], // Available everywhere
         nodes: [],
         edges: []
     }
@@ -408,3 +408,4 @@ export function getTemplateById(id: string): Template | undefined {
 export function getTemplatesForProfile(profileId: string): Template[] {
     return templates.filter(t => t.profiles.includes(profileId as DemoProfile))
 }
+

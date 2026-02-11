@@ -8,9 +8,9 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-    title: 'MDF Simulator | Marketing Data Foundation',
-    description: 'Interactive simulator to visualize and design your Marketing Data Foundation architecture. Drag, drop, and explore data flows.',
-    keywords: ['Marketing Data Foundation', 'MDF', 'Data Architecture', 'Identity Graph', 'CDP'],
+    title: 'Marketing Data Foundation | Softcrylic',
+    description: 'Interactive tool to visualize and design your Marketing Data Foundation architecture. Drag, drop, and explore data flows.',
+    keywords: ['Marketing Data Foundation', 'MDF', 'Data Architecture', 'Identity Graph', 'CDP', 'Softcrylic'],
 }
 
 export const viewport: Viewport = {

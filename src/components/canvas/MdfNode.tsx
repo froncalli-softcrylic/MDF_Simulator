@@ -1,11 +1,10 @@
 'use client'
 
 // MDF Custom Node Component for React Flow
-// Updated for B2B SaaS categories with governance rail and account graph
-// Features distinct styling for rail nodes and gap states
+// Updated for Phase 10: Visual Replication (White Card + Left Border + Metrics)
 
-import React, { memo, useMemo, useCallback } from 'react'
-import { Handle, Position, type Node } from '@xyflow/react'
+import React, { memo, useMemo } from 'react'
+import { Handle, Position } from '@xyflow/react'
 import type { MdfNodeData, NodeCategory, ValueOverlay, NodeStatus } from '@/types'
 import { getNodeById, categoryMeta } from '@/data/node-catalog'
 import { useUIStore } from '@/store/ui-store'
@@ -16,7 +15,7 @@ import {
     Link, Home, CheckSquare, Lock, CheckCircle, TrendingUp, Upload, Mail,
     Check, AlertTriangle, Plus, Sparkles, Radio, HardDrive, Server, Code,
     ExternalLink, Eye, Info, Activity, CreditCard, HelpCircle, Key,
-    FileText, AlertCircle, PieChart, Target, Bell, MessageSquare, Search
+    FileText, AlertCircle, PieChart, Target, Bell, MessageSquare, Search, Fingerprint
 } from 'lucide-react'
 
 // Icon mapping (expanded for B2B SaaS)
@@ -40,26 +39,29 @@ const iconMap: Record<string, React.ElementType> = {
     'alert-triangle': AlertTriangle, 'cloud-lightning': Zap, linkedin: Link
 }
 
-// Category themes - B2B SaaS with rails
-const categoryThemes: Record<NodeCategory, { bg: string; border: string; icon: string; text: string }> = {
-    // Pipeline categories
-    sources: { bg: 'bg-cyan-50', border: 'border-cyan-200', icon: 'text-cyan-600', text: 'text-cyan-900' },
-    collection: { bg: 'bg-purple-50', border: 'border-purple-200', icon: 'text-purple-600', text: 'text-purple-900' },
-    ingestion: { bg: 'bg-violet-50', border: 'border-violet-200', icon: 'text-violet-600', text: 'text-violet-900' },
-    storage_raw: { bg: 'bg-slate-50', border: 'border-slate-200', icon: 'text-slate-600', text: 'text-slate-900' },
-    storage_warehouse: { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'text-blue-600', text: 'text-blue-900' },
-    transform: { bg: 'bg-indigo-50', border: 'border-indigo-200', icon: 'text-indigo-600', text: 'text-indigo-900' },
-    analytics: { bg: 'bg-pink-50', border: 'border-pink-200', icon: 'text-pink-600', text: 'text-pink-900' },
-    activation: { bg: 'bg-green-50', border: 'border-green-200', icon: 'text-green-600', text: 'text-green-900' },
-    destination: { bg: 'bg-teal-50', border: 'border-teal-200', icon: 'text-teal-600', text: 'text-teal-900' },
-    // Rail categories (distinct styling)
-    governance: { bg: 'bg-amber-50', border: 'border-amber-300', icon: 'text-amber-600', text: 'text-amber-900' },
-    identity: { bg: 'bg-emerald-50', border: 'border-emerald-300', icon: 'text-emerald-600', text: 'text-emerald-900' },
-    clean_room: { bg: 'bg-slate-100', border: 'border-slate-300', icon: 'text-slate-600', text: 'text-slate-900' },
-    realtime_serving: { bg: 'bg-orange-50', border: 'border-orange-200', icon: 'text-orange-600', text: 'text-orange-900' }
+// Category Colors (Left Border & Icon)
+const categoryColors: Partial<Record<NodeCategory, { border: string; icon: string; bg: string }>> = {
+    sources: { border: 'border-l-cyan-500', icon: 'text-cyan-600', bg: 'bg-cyan-50/50' },
+    collection: { border: 'border-l-purple-500', icon: 'text-purple-600', bg: 'bg-purple-50/50' },
+    ingestion: { border: 'border-l-violet-500', icon: 'text-violet-600', bg: 'bg-violet-50/50' },
+    storage_raw: { border: 'border-l-slate-400', icon: 'text-slate-600', bg: 'bg-slate-50/50' },
+    storage_warehouse: { border: 'border-l-blue-600', icon: 'text-blue-700', bg: 'bg-blue-50/50' },
+    transform: { border: 'border-l-indigo-500', icon: 'text-indigo-600', bg: 'bg-indigo-50/50' },
+    analytics: { border: 'border-l-pink-500', icon: 'text-pink-600', bg: 'bg-pink-50/50' },
+    activation: { border: 'border-l-orange-500', icon: 'text-orange-600', bg: 'bg-orange-50/50' },
+    destination: { border: 'border-l-teal-500', icon: 'text-teal-600', bg: 'bg-teal-50/50' },
+    // Hub
+    mdf: { border: 'border-l-amber-500', icon: 'text-amber-700', bg: 'bg-amber-50/50' },
+    // Rails
+    governance: { border: 'border-l-red-500', icon: 'text-red-700', bg: 'bg-red-50/50' },
+    identity: { border: 'border-l-emerald-500', icon: 'text-emerald-700', bg: 'bg-emerald-50/50' },
+    clean_room: { border: 'border-l-slate-500', icon: 'text-slate-700', bg: 'bg-slate-100/50' },
+    realtime_serving: { border: 'border-l-lime-500', icon: 'text-lime-700', bg: 'bg-lime-50/50' }
 }
 
-// Check if node should be highlighted for overlay
+// Default fallback
+const defaultColor = { border: 'border-l-slate-400', icon: 'text-slate-600', bg: 'bg-white' }
+
 function isNodeHighlightedForOverlay(catalogId: string, overlay: ValueOverlay): boolean {
     if (!overlay) return true
     const catalogNode = getNodeById(catalogId)
@@ -75,8 +77,6 @@ interface MdfNodeProps {
 
 function MdfNodeComponent({ data, selected, dragging }: MdfNodeProps) {
     const activeOverlay = useUIStore(state => state.activeOverlay)
-    const selectedNodeId = useUIStore(state => state.selectedNodeId)
-    const setSelectedNodeId = useUIStore(state => state.setSelectedNodeId)
 
     const catalogNode = useMemo(() => getNodeById(data.catalogId), [data.catalogId])
 
@@ -85,146 +85,291 @@ function MdfNodeComponent({ data, selected, dragging }: MdfNodeProps) {
         [data.catalogId, activeOverlay]
     )
 
-    const IconComponent: React.ElementType = useMemo(() =>
+    const IconComponent: any = useMemo(() =>
         iconMap[catalogNode?.icon || 'database'] || Database,
         [catalogNode?.icon]
     )
 
     const status = data.status || 'optional'
-    const theme = categoryThemes[data.category] || categoryThemes.sources
+    const colors = categoryColors[data.category] || defaultColor
     const isGap = status === 'gap'
-    const isRailNode = data.isRailNode || data.category === 'governance' || data.category === 'identity'
-    const isAccountGraph = data.category === 'identity'
 
-    // Status badge styling
-    const statusConfig: Record<NodeStatus, { label: string; className: string; icon: React.ElementType }> = {
-        existing: { label: 'Existing', className: 'bg-green-100 text-green-700', icon: Check },
-        recommended: { label: 'Recommended', className: 'bg-cyan-100 text-cyan-700', icon: Sparkles },
-        required: { label: 'Required', className: 'bg-blue-100 text-blue-700', icon: Plus },
-        gap: { label: 'Missing', className: 'bg-rose-100 text-rose-700', icon: AlertTriangle },
-        optional: { label: 'Optional', className: 'bg-slate-100 text-slate-600', icon: Plus }
+    // Metrics to display (if any)
+    const metrics = catalogNode?.metrics || []
+
+    // Determine if this is a HUB node
+    const isHub = catalogNode?.isHub || data.category === 'mdf' || data.category === 'identity' // Treat identity as part of hub visual if needed, but mainly 'mdf' category is the super node
+
+    // Hub specific state
+    const [activeTab, setActiveTab] = React.useState<'hygiene' | 'identity' | 'profile' | 'measurement'>('profile')
+
+    if (isHub) {
+        return (
+            <div
+                className={cn(
+                    'relative group animate-scale-in',
+                    'w-[400px]', // Larger width for Hub
+                    isGap && 'opacity-80',
+                    activeOverlay && !isHighlighted && 'opacity-30 blur-[1px]'
+                )}
+            >
+                {/* Hub Card */}
+                <div
+                    className={cn(
+                        'relative flex flex-col bg-white dark:bg-slate-900 rounded-xl shadow-lg border-2 border-amber-500/50 dark:border-amber-500/30 transition-all duration-300',
+                        'overflow-hidden',
+                        !dragging && !selected && 'hover:shadow-xl hover:-translate-y-1',
+                        selected && 'ring-2 ring-primary ring-offset-2 shadow-2xl',
+                        dragging && 'shadow-2xl scale-105 rotate-1 opacity-90'
+                    )}
+                >
+                    {/* Hub Header */}
+                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-b border-amber-100 dark:border-amber-900/50">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-white dark:bg-slate-800 shadow-sm text-amber-600">
+                            <IconComponent className="w-6 h-6" />
+                        </div>
+                        <div className="flex flex-col min-w-0 flex-1">
+                            <span className="text-lg font-bold text-slate-900 dark:text-slate-100 truncate">
+                                {data.label}
+                            </span>
+                            <span className="text-xs text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider truncate">
+                                Central Data Foundation
+                            </span>
+                        </div>
+                        {/* Status */}
+                        {status !== 'optional' && (
+                            <div className={cn(
+                                'px-2 py-0.5 rounded-full text-[10px] font-bold uppercase',
+                                status === 'required' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
+                            )}>
+                                {status}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Internal Capability Tabs */}
+                    <div className="flex border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                        {(['hygiene', 'identity', 'profile', 'measurement'] as const).map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={(e) => { e.stopPropagation(); setActiveTab(tab); }}
+                                className={cn(
+                                    'flex-1 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors relative',
+                                    activeTab === tab
+                                        ? 'text-amber-600 dark:text-amber-400 bg-white dark:bg-slate-800 shadow-sm z-10'
+                                        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                )}
+                            >
+                                {tab}
+                                {activeTab === tab && (
+                                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-amber-500" />
+                                )}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Tab Content */}
+                    <div className="p-4 bg-white dark:bg-slate-900 min-h-[120px]">
+                        {activeTab === 'hygiene' && (
+                            <div className="space-y-2 animate-fade-in">
+                                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase">
+                                    <Sparkles className="w-3 h-3" /> Hygiene Rules
+                                </div>
+                                <ul className="space-y-1">
+                                    {(catalogNode?.hygieneRules || ['Standardization', 'Deduplication']).map((rule, i) => (
+                                        <li key={i} className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+                                            <div className="w-1 h-1 rounded-full bg-emerald-400" />
+                                            {rule}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {activeTab === 'identity' && (
+                            <div className="space-y-3 animate-fade-in">
+                                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase">
+                                    <Fingerprint className="w-3 h-3" /> Resolution Strategy
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                    {(catalogNode?.identityStrategyOptions || ['Deterministic']).map((opt, i) => (
+                                        <span key={i} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                            {opt}
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                                    <span className="text-xs text-slate-500">Match Confidence</span>
+                                    <span className="text-xs font-bold text-emerald-600">High (Deterministic)</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'profile' && (
+                            <div className="space-y-3 animate-fade-in">
+                                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase">
+                                    <Users className="w-3 h-3" /> Unified Profile Data
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {(catalogNode?.profileDataClasses || ['Identity', 'Events']).map((cls, i) => (
+                                        <div key={i} className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 p-1 bg-slate-50 dark:bg-slate-800/50 rounded">
+                                            <Database className="w-3 h-3 text-amber-500" />
+                                            {cls}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'measurement' && (
+                            <div className="space-y-3 animate-fade-in">
+                                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase">
+                                    <BarChart2 className="w-3 h-3" /> Key Metrics
+                                </div>
+                                <div className="space-y-1">
+                                    {(catalogNode?.measurementOutputs || ['Attribution']).map((out, i) => (
+                                        <li key={i} className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+                                            <CheckCircle className="w-3 h-3 text-cyan-500" />
+                                            {out}
+                                        </li>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Metrics Footer */}
+                    <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 flex justify-between items-center">
+                        {metrics.slice(0, 2).map((m, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                                <span className="text-[10px] text-slate-400 uppercase">{m.label}</span>
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{m.value}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                </div>
+
+                <Handle type="target" position={Position.Left} className="w-3 h-3 !bg-amber-500 !border-2 !border-white" />
+                <Handle type="source" position={Position.Right} className="w-3 h-3 !bg-amber-500 !border-2 !border-white" />
+                <Handle type="target" position={Position.Top} id="top" className="!bg-slate-300" />
+                <Handle type="target" position={Position.Bottom} id="bottom" className="!bg-slate-300" />
+            </div>
+        )
     }
 
-    const statusInfo = statusConfig[status]
-    const StatusIcon = statusInfo.icon
-
+    // Standard Node Render
     return (
         <div
             className={cn(
-                'relative flex flex-col items-center group animate-scale-in',
-                // Larger minimum touch target
-                'min-w-[180px] min-h-[60px]',
-                // Gap state - dashed, faded
+                'relative group animate-scale-in',
+                // Size
+                'w-[240px]',
+                // Gap state
                 isGap && 'opacity-80',
-                // Rail node special styling
-                isRailNode && 'shadow-lg',
-                // Dimmed when overlay active and not highlighted
+                // Dimmed when overlay active
                 activeOverlay && !isHighlighted && 'opacity-30 blur-[1px]'
             )}
         >
-            {/* Main Node Card */}
+            {/* Main Card */}
             <div
                 className={cn(
-                    'relative flex items-center gap-3 px-4 py-3 rounded-xl w-full',
-                    'border-2 transition-all duration-300 ease-out backdrop-blur-md shadow-sm',
-                    theme.bg, theme.border,
-                    // Gap styling
-                    isGap && 'border-dashed border-2 animate-pulse',
-                    // Selection
-                    selected && 'ring-4 ring-offset-2 ring-primary border-primary shadow-xl scale-105 z-10',
-                    // Dragging
-                    dragging && 'shadow-2xl scale-110 rotate-2 cursor-grabbing opacity-90',
+                    'relative flex flex-col bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 transition-all duration-300',
+                    'overflow-hidden',
+                    // Left Border
+                    'border-l-4', colors.border,
                     // Hover
-                    !dragging && !selected && 'hover:shadow-lg hover:-translate-y-1 hover:border-primary/50 cursor-pointer',
-                    // Recommended glow
-                    status === 'recommended' && 'animate-pulse-glow border-cyan-400',
-                    // Rail nodes get thick left border
-                    isRailNode && 'border-l-[6px]',
-                    isRailNode && data.category === 'governance' && 'border-l-amber-400 bg-amber-50/90',
-                    isRailNode && isAccountGraph && 'border-l-emerald-400 bg-emerald-50/90'
+                    !dragging && !selected && 'hover:shadow-md hover:-translate-y-0.5',
+                    // Selected
+                    selected && 'ring-2 ring-primary ring-offset-2 shadow-lg',
+                    // Dragging
+                    dragging && 'shadow-xl scale-105 rotate-1 opacity-90'
                 )}
             >
-                {/* Icon Container */}
-                <div className={cn(
-                    'flex items-center justify-center w-10 h-10 rounded-lg shadow-inner shrink-0',
-                    'bg-white/80 dark:bg-black/20',
-                    isGap && 'opacity-60'
-                )}>
-                    {React.createElement(IconComponent, { className: cn('w-6 h-6', theme.icon) })}
+                {/* Header Section */}
+                <div className="flex items-center gap-3 p-3 border-b border-slate-100 dark:border-slate-800">
+                    {/* Icon */}
+                    <div className={cn(
+                        'flex items-center justify-center w-8 h-8 rounded-md shrink-0',
+                        colors.bg
+                    )}>
+                        <IconComponent className={cn('w-4 h-4', colors.icon)} />
+                    </div>
+
+                    {/* Title & Category */}
+                    <div className="flex flex-col min-w-0 flex-1">
+                        <span className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+                            {data.label}
+                        </span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
+                            {categoryMeta[data.category]?.label || data.category}
+                        </span>
+                    </div>
+
+                    {/* Status Dot/Icon */}
+                    {status !== 'optional' && status !== 'existing' && (
+                        <div className={cn(
+                            'w-2 h-2 rounded-full',
+                            status === 'recommended' && 'bg-cyan-500 animate-pulse',
+                            status === 'required' && 'bg-blue-500',
+                            status === 'gap' && 'bg-rose-500'
+                        )} title={status} />
+                    )}
                 </div>
 
-                {/* Content */}
-                <div className="flex flex-col min-w-0 flex-1">
-                    {/* Label */}
-                    <span className={cn(
-                        'text-sm font-bold truncate leading-tight',
-                        theme.text,
-                        isGap && 'opacity-70'
-                    )}>
-                        {data.label}
-                    </span>
-
-                    {/* Category Label (New) */}
-                    <span className="text-[10px] uppercase tracking-wider font-semibold opacity-60 truncate">
-                        {categoryMeta[data.category]?.label || data.category}
-                    </span>
+                {/* Body / Metrics Section */}
+                <div className="p-3 bg-slate-50/50 dark:bg-slate-900/50 min-h-[40px]">
+                    {metrics.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-2">
+                            {metrics.map((m, idx) => (
+                                <div key={idx} className="flex flex-col">
+                                    <span className="text-[10px] text-slate-400 font-medium uppercase">{m.label}</span>
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{m.value}</span>
+                                        {m.trend === 'up' && <TrendingUp className="w-3 h-3 text-emerald-500" />}
+                                        {m.trend === 'down' && <TrendingUp className="w-3 h-3 text-rose-500 rotate-180" />}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-[11px] text-slate-400 leading-snug line-clamp-2">
+                            {catalogNode?.description || 'Loading module data...'}
+                        </p>
+                    )}
                 </div>
 
-                {/* Status indicator (Badge style) */}
-                {status !== 'optional' && status !== 'existing' && (
-                    <div className={cn(
-                        'absolute -top-3 -right-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide shadow-sm flex items-center gap-1',
-                        statusInfo.className,
-                        (status === 'recommended' || status === 'required') && 'animate-bounce'
-                    )}>
-                        {status === 'gap' && <AlertTriangle className="w-3 h-3" />}
-                        {status === 'recommended' && <Sparkles className="w-3 h-3" />}
-                        {statusInfo.label}
-                    </div>
-                )}
-
-                {/* Existing checkmark */}
-                {status === 'existing' && (
-                    <div className="absolute -top-2 -right-2 bg-green-500 text-white p-1 rounded-full shadow-md">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                    </div>
-                )}
-
-                {/* Rail indicator badge */}
-                {isRailNode && (
-                    <div className={cn(
-                        'absolute -bottom-2.5 left-1/2 -translate-x-1/2',
-                        'text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full shadow-sm border',
-                        data.category === 'governance' && 'bg-amber-100 text-amber-700 border-amber-200',
-                        isAccountGraph && 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                    )}>
-                        {isAccountGraph ? 'Identity Hub' : 'Governance'}
-                    </div>
-                )}
+                {/* Footer / Status Text (Optional) */}
+                <div className="px-3 py-1.5 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-[10px] text-slate-400">
+                    <span className="flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        Active
+                    </span>
+                    <span>1m ago</span>
+                </div>
             </div>
 
-            {/* Handles - Larger touch targets */}
+            {/* Connection Handles */}
             <Handle
                 type="target"
                 position={Position.Left}
                 className={cn(
-                    'w-4 h-4 !bg-slate-400 !border-4 !border-white dark:!border-slate-800 rounded-full',
-                    'hover:!bg-primary hover:scale-125 transition-all duration-200',
-                    '-ml-2'
+                    'w-3 h-3 !bg-slate-400 !border-2 !border-white rounded-full',
+                    'hover:!bg-primary transition-colors',
+                    '-ml-1.5'
                 )}
             />
             <Handle
                 type="source"
                 position={Position.Right}
                 className={cn(
-                    'w-4 h-4 !bg-slate-400 !border-4 !border-white dark:!border-slate-800 rounded-full',
-                    'hover:!bg-primary hover:scale-125 transition-all duration-200',
-                    '-mr-2'
+                    'w-3 h-3 !bg-slate-400 !border-2 !border-white rounded-full',
+                    'hover:!bg-primary transition-colors',
+                    '-mr-1.5'
                 )}
             />
         </div>
     )
 }
 
-// Memoize to prevent unnecessary re-renders
 export default memo(MdfNodeComponent)

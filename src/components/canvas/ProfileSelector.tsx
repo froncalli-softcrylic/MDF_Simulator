@@ -22,9 +22,6 @@ import { cn } from '@/lib/utils'
 // Profile colors for visual distinction
 const profileColors: Partial<Record<DemoProfile, string>> = {
     adobe_summit: 'bg-red-500',
-    preferred_stack: 'bg-cyan-500',
-    google_cloud: 'bg-blue-500',
-    salesforce: 'bg-sky-500',
     generic: 'bg-slate-500'
 }
 

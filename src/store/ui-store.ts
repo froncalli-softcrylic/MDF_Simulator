@@ -65,6 +65,10 @@ interface UIStore {
     nextStep: () => void
     prevStep: () => void
     endTour: () => void
+
+    // Simulation
+    isSimulationRunning: boolean
+    setSimulationRunning: (running: boolean) => void
 }
 
 export const useUIStore = create<UIStore>((set, get) => ({
@@ -128,13 +132,15 @@ export const useUIStore = create<UIStore>((set, get) => ({
     setLastActionWasAutoFix: (wasAutoFix) => set({ lastActionWasAutoFix: wasAutoFix }),
 
     // Guided Tour
-
-    // Guided Tour
     isTourOpen: false,
     currentStep: 0,
     startTour: () => set({ isTourOpen: true, currentStep: 0, isPaletteOpen: true, isInspectorOpen: true }), // Ensure panels are open for tour
     nextStep: () => set((state) => ({ currentStep: state.currentStep + 1 })),
     prevStep: () => set((state) => ({ currentStep: Math.max(0, state.currentStep - 1) })),
-    endTour: () => set({ isTourOpen: false, currentStep: 0 })
+    endTour: () => set({ isTourOpen: false, currentStep: 0 }),
+
+    // Simulation
+    isSimulationRunning: false,
+    setSimulationRunning: (running) => set({ isSimulationRunning: running })
 }))
 

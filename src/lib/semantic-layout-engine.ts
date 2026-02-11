@@ -16,17 +16,17 @@ import { sanitizeEdges } from '@/lib/smart-connect-engine'
 const elk = new ELK()
 
 // Node dimensions (match actual rendered size including padding and badges)
-const NODE_WIDTH = 220
-const NODE_HEIGHT = 80
+const NODE_WIDTH = 240 // Updated for Card Style
+const NODE_HEIGHT = 140 // Estimated height with metrics
 
 // Spacing constants — generous for readable flowcharts
-const NODE_NODE_SPACING = 100          // Vertical spacing between nodes in same column
-const LAYER_SPACING = 280              // Horizontal spacing between pipeline stages
-const EDGE_NODE_SPACING = 60           // Edge-to-node breathing room
-const LEFT_PADDING = 120               // Left padding (sidebar handled by fitView now)
-const TOP_PADDING = 100                // Top padding for stage labels
-const BOTTOM_PADDING = 80
-const RIGHT_PADDING = 80
+const NODE_NODE_SPACING = 140          // Vertical spacing between nodes in same column
+const LAYER_SPACING = 380              // Horizontal spacing between pipeline stages
+const EDGE_NODE_SPACING = 80           // Edge-to-node breathing room
+const LEFT_PADDING = 150               // Left padding (sidebar handled by fitView now)
+const TOP_PADDING = 150                // Top padding for stage labels
+const BOTTOM_PADDING = 120
+const RIGHT_PADDING = 120
 
 // Governance rail (positioned below main pipeline as cross-cutting concern)
 const GOVERNANCE_GAP_X = 300           // X spacing between governance nodes
@@ -43,6 +43,9 @@ const STAGE_ORDER: PipelineStage[] = [
     'storage_raw',
     'storage_warehouse',
     'transform',
+    'mdf_hygiene',
+    'mdf',
+    'mdf_measurement',
     'identity',
     'analytics',
     'activation',
@@ -52,20 +55,24 @@ const STAGE_ORDER: PipelineStage[] = [
 ]
 
 // Stage to partition index (integers for ELK layered partitioning)
+// Stage to partition index (Hub-Centric Layout)
 const STAGE_PARTITION: Record<PipelineStage, number> = {
     sources: 0,
     collection: 1,
-    ingestion: 2,
-    storage_raw: 3,
-    storage_warehouse: 4,
-    transform: 5,
-    identity: 6,
-    governance: 5,       // Governance is cross-cutting; placed post-ELK
-    analytics: 7,
-    activation: 8,
-    clean_room: 7,
-    realtime_serving: 8,
-    destination: 9
+    ingestion: 1,
+    storage_raw: 99,       // Handled by Infra Pinning (Bottom)
+    storage_warehouse: 99, // Handled by Infra Pinning (Bottom)
+    transform: 1,
+    mdf_hygiene: 2,        // Internal to Hub
+    mdf: 2,                // HUB CENTER
+    mdf_measurement: 2,    // Internal to Hub
+    identity: 2,           // Internal to Hub
+    governance: 99,        // Handled by Governance Pinning (Top)
+    analytics: 3,
+    activation: 3,
+    clean_room: 3,
+    realtime_serving: 3,
+    destination: 4
 }
 
 // Human-readable stage labels (exported for StageLabels component)
@@ -76,6 +83,9 @@ export const STAGE_LABELS: Record<PipelineStage, string> = {
     storage_raw: 'Raw Storage',
     storage_warehouse: 'Warehouse',
     transform: 'Transform',
+    mdf_hygiene: 'Data Hygiene',
+    mdf: 'MDF Hub',
+    mdf_measurement: 'Measurement',
     identity: 'Identity',
     governance: 'Governance',
     analytics: 'Analytics',
@@ -94,6 +104,12 @@ function inferStage(category: NodeCategory, catalogId?: string): PipelineStage {
     if (catalogId) {
         const catalogNode = getNodeById(catalogId)
         if (catalogNode?.stage) return catalogNode.stage
+
+        // Dynamic sub-stage inference for MDF
+        if (catalogNode?.category === 'mdf') {
+            if (catalogNode.nodeRole === 'hygiene') return 'mdf_hygiene'
+            if (catalogNode.nodeRole === 'measurement') return 'mdf_measurement'
+        }
     }
 
     // Default mapping from category
@@ -104,6 +120,7 @@ function inferStage(category: NodeCategory, catalogId?: string): PipelineStage {
         storage_raw: 'storage_raw',
         storage_warehouse: 'storage_warehouse',
         transform: 'transform',
+        mdf: 'mdf',
         identity: 'identity',
         governance: 'governance',
         analytics: 'analytics',
@@ -123,6 +140,7 @@ interface StageAssignment {
     nodeId: string
     stage: PipelineStage
     isGovernance: boolean
+    isInfrastructure: boolean
     isIdentityHub: boolean
 }
 
@@ -137,6 +155,9 @@ function normalizeStagesAndRoles(nodes: Node[]): StageAssignment[] {
             data.isRailNode === true ||
             catalogNode?.isRailNode === true
 
+        // Detect Bottom Band Infrastructure
+        const isInfrastructure = category === 'storage_raw' || category === 'storage_warehouse'
+
         const isIdentityHub = category === 'identity' ||
             catalogNode?.isHub === true ||
             data.railPosition === 'center'
@@ -145,6 +166,7 @@ function normalizeStagesAndRoles(nodes: Node[]): StageAssignment[] {
             nodeId: node.id,
             stage,
             isGovernance,
+            isInfrastructure,
             isIdentityHub
         }
     })
@@ -169,13 +191,13 @@ async function runElkWithStageConstraints(
         assignmentMap.set(a.nodeId, a)
     }
 
-    // Separate governance nodes (they'll be placed post-ELK at bottom)
-    const governanceNodeIds = new Set(
-        assignments.filter(a => a.isGovernance).map(a => a.nodeId)
+    // Separate special nodes (Gov + Infra)
+    const specialIds = new Set(
+        assignments.filter(a => a.isGovernance || a.isInfrastructure).map(a => a.nodeId)
     )
 
-    // Filter nodes for ELK (exclude governance — they get placed afterwards)
-    const elkNodes = nodes.filter(n => !governanceNodeIds.has(n.id))
+    // Filter nodes for ELK (exclude special nodes)
+    const elkNodes = nodes.filter(n => !specialIds.has(n.id))
     const elkNodeIds = new Set(elkNodes.map(n => n.id))
 
     // Filter edges where both endpoints are in the ELK graph
@@ -185,7 +207,7 @@ async function runElkWithStageConstraints(
 
     if (elkNodes.length === 0) {
         // Only governance nodes on the canvas — position them manually
-        const govNodes = nodes.filter(n => governanceNodeIds.has(n.id))
+        const govNodes = nodes.filter(n => assignments.find(a => a.nodeId === n.id)?.isGovernance)
         govNodes.forEach((node, idx) => {
             positionMap.set(node.id, {
                 x: LEFT_PADDING + idx * GOVERNANCE_GAP_X,
@@ -254,7 +276,7 @@ async function runElkWithStageConstraints(
 }
 
 // ============================================
-// STEP 3: PIN GOVERNANCE RAIL AT BOTTOM
+// STEP 3: PIN GOVERNANCE RAIL AT TOP (Was Bottom)
 // ============================================
 
 function pinGovernanceRail(
@@ -265,31 +287,63 @@ function pinGovernanceRail(
     const governanceAssignments = assignments.filter(a => a.isGovernance)
     if (governanceAssignments.length === 0) return
 
-    // Determine the bounding box of the main graph
+    // Find main graph bounds
+    let minX = Infinity, maxX = -Infinity
+    for (const [, pos] of positionMap) {
+        if (pos.x < minX) minX = pos.x
+        if (pos.x > maxX) maxX = pos.x
+    }
+    if (minX === Infinity) { minX = LEFT_PADDING; maxX = MIN_CANVAS_WIDTH }
+
+    // Place governance nodes centered TOP
+    const graphWidth = maxX - minX
+    const govCount = governanceAssignments.length
+    const totalGovWidth = (govCount - 1) * GOVERNANCE_GAP_X
+    const startX = minX + (graphWidth - totalGovWidth) / 2
+
+    // Top Rail Y
+    const govY = TOP_PADDING - 100 // Above the main graph
+
+    governanceAssignments.forEach((a, idx) => {
+        positionMap.set(a.nodeId, {
+            x: Math.max(startX + idx * GOVERNANCE_GAP_X, minX),
+            y: govY
+        })
+    })
+}
+
+// ============================================
+// STEP 3b: PIN INFRASTRUCTURE BAND AT BOTTOM
+// ============================================
+
+function pinInfrastructureBand(
+    nodes: Node[],
+    assignments: StageAssignment[],
+    positionMap: Map<string, { x: number; y: number }>
+): void {
+    const infraAssignments = assignments.filter(a => a.isInfrastructure)
+    if (infraAssignments.length === 0) return
+
+    // Find bounds
     let minX = Infinity, maxX = -Infinity, maxY = -Infinity
     for (const [, pos] of positionMap) {
         if (pos.x < minX) minX = pos.x
         if (pos.x > maxX) maxX = pos.x
         if (pos.y + NODE_HEIGHT > maxY) maxY = pos.y + NODE_HEIGHT
     }
+    if (minX === Infinity) { minX = LEFT_PADDING; maxX = MIN_CANVAS_WIDTH; maxY = 500 }
 
-    if (minX === Infinity) {
-        minX = LEFT_PADDING
-        maxX = MIN_CANVAS_WIDTH
-        maxY = 400
-    }
+    // Center Infra below main graph
+    const count = infraAssignments.length
+    const gap = 300
+    const totalWidth = (count - 1) * gap
+    const startX = minX + (maxX - minX - totalWidth) / 2
+    const infraY = maxY + 150 // Below main graph
 
-    // Place governance nodes centered below the main pipeline
-    const graphWidth = maxX - minX
-    const govCount = governanceAssignments.length
-    const totalGovWidth = (govCount - 1) * GOVERNANCE_GAP_X
-    const startX = minX + (graphWidth - totalGovWidth) / 2
-    const govY = maxY + GOVERNANCE_BOTTOM_MARGIN
-
-    governanceAssignments.forEach((a, idx) => {
+    infraAssignments.forEach((a, idx) => {
         positionMap.set(a.nodeId, {
-            x: Math.max(startX + idx * GOVERNANCE_GAP_X, minX),
-            y: govY
+            x: startX + idx * gap,
+            y: infraY
         })
     })
 }
@@ -464,7 +518,11 @@ export async function semanticAutoLayout(
     const positionMap = await runElkWithStageConstraints(safeNodes, safeEdges, assignments)
 
     // Step 3: Pin governance rail at bottom (cross-cutting concern)
+    // Step 3: Pin governance rail at TOP
     pinGovernanceRail(safeNodes, assignments, positionMap)
+
+    // Step 3b: Pin infrastructure at BOTTOM
+    pinInfrastructureBand(safeNodes, assignments, positionMap)
 
     // Step 4: Center identity hub vertically
     pinIdentityHub(safeNodes, assignments, positionMap)

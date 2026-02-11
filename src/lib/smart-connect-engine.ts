@@ -93,7 +93,7 @@ export interface StageGraph {
 
 const STAGE_ORDER: PipelineStage[] = [
     'sources', 'collection', 'ingestion', 'storage_raw',
-    'storage_warehouse', 'transform', 'identity',
+    'storage_warehouse', 'transform', 'mdf', 'identity',
     'governance', 'analytics', 'activation', 'destination'
 ]
 
@@ -101,14 +101,14 @@ const STAGE_COLUMNS = STAGE_TO_COLUMN
 
 // Port compatibility matrix
 const PORT_COMPATIBILITY: Record<PortType, PortType[]> = {
-    raw_events: ['raw_events', 'raw_records'],
-    raw_records: ['raw_records', 'raw_events'],
+    raw_events: ['raw_events', 'raw_records', 'stream_events'],
+    raw_records: ['raw_records', 'raw_events', 'dataset_raw'],
 
-    identity_keys: ['identity_keys', 'raw_records'],
-    curated_entities: ['curated_entities', 'audiences_accounts', 'audiences_people', 'raw_records'],
+    identity_keys: ['identity_keys', 'raw_records', 'identity_resolution'],
+    curated_entities: ['curated_entities', 'audiences_accounts', 'audiences_people', 'raw_records', 'crm_data'],
     graph_edges: ['graph_edges', 'identity_keys'],
 
-    metrics: ['metrics', 'curated_entities'],
+    metrics: ['metrics', 'curated_entities', 'analysis_result'],
     audiences_accounts: ['audiences_accounts', 'curated_entities'],
     audiences_people: ['audiences_people', 'curated_entities'],
 
@@ -126,7 +126,7 @@ const PORT_COMPATIBILITY: Record<PortType, PortType[]> = {
 
 // Destination input restrictions
 const DESTINATION_ALLOWED_INPUTS: PortType[] = [
-    'audiences_accounts', 'audiences_people', 'curated_entities'
+    'audiences_accounts', 'audiences_people', 'curated_entities', 'activation_payload'
 ]
 
 // Role to expected upstream/downstream
@@ -136,9 +136,10 @@ const UPSTREAM_ROLE_MAP: Partial<Record<NodeRole, NodeRole>> = {
     storage_raw: 'ingestor',
     warehouse: 'storage_raw',
     transform: 'warehouse',
+    mdf_hub: 'transform',
     identity_hub: 'transform',
     analytics: 'transform',
-    activation_connector: 'identity_hub',
+    activation_connector: 'mdf_hub',
     destination: 'activation_connector'
 }
 
@@ -148,7 +149,8 @@ const DOWNSTREAM_ROLE_MAP: Partial<Record<NodeRole, NodeRole>> = {
     ingestor: 'storage_raw',
     storage_raw: 'warehouse',
     warehouse: 'transform',
-    transform: 'identity_hub',
+    transform: 'mdf_hub',
+    mdf_hub: 'activation_connector',
     identity_hub: 'activation_connector',
     activation_connector: 'destination'
 }
@@ -229,6 +231,7 @@ function inferStage(catalogNode: CatalogNode): PipelineStage {
         storage_raw: 'storage_raw',
         storage_warehouse: 'storage_warehouse',
         transform: 'transform',
+        mdf: 'mdf',
         identity: 'identity',
         governance: 'governance',
         analytics: 'analytics',
@@ -340,6 +343,7 @@ function inferRoleFromCategory(category: NodeCategory): NodeRole {
         storage_raw: 'storage_raw',
         storage_warehouse: 'warehouse',
         transform: 'transform',
+        mdf: 'mdf_hub',
         identity: 'identity_hub',
         governance: 'governance',
         analytics: 'analytics',

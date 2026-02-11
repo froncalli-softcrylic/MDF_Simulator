@@ -14,6 +14,7 @@ export type PipelineCategory =
     | 'storage_raw'      // Immutable raw data lake
     | 'storage_warehouse'// Structured analytics store
     | 'transform'        // dbt, modeling
+    | 'mdf'              // New: Central Hub
     | 'identity'         // Identity & Entity Resolution
     | 'governance'       // Governance rail nodes
     | 'analytics'        // BI, attribution, MMM
@@ -29,17 +30,18 @@ export type NodeCategory = PipelineCategory;
 export const CATEGORY_ORDER: Record<PipelineCategory, number> = {
     sources: 0,
     collection: 1,
-    ingestion: 2,
-    storage_raw: 3,
-    storage_warehouse: 4,
-    transform: 5,
-    identity: 6,
-    governance: 6.5,
-    analytics: 7,
-    activation: 7,
-    clean_room: 7.5,
-    realtime_serving: 7.5,
-    destination: 8
+    ingestion: 1,
+    storage_raw: 1,
+    storage_warehouse: 1,
+    transform: 1,
+    mdf: 2,              // Central Hub
+    identity: 2,         // Merged into Hub conceptually, but keep col 2 if separate
+    governance: 2,       // Rail
+    analytics: 3,
+    activation: 3,
+    clean_room: 3,
+    realtime_serving: 3,
+    destination: 4
 };
 
 // ============================================
@@ -138,6 +140,7 @@ export type EnablesTag =
     | 'compliance'          // NEW: GDPR/CCPA
     | 'engagement'          // NEW: Customer Engagement
     | 'advertising'         // NEW: Paid Media
+    | 'mdf_hub'             // NEW: Central Hub
     | 'sales_enablement'    // NEW: Sales tools
     | 'sales_optimization'  // NEW: Sales Ops
     | 'sales_operations'    // NEW: Sales Ops
@@ -162,7 +165,11 @@ export type NodeRole =
     | 'storage_raw'         // Immutable raw landing
     | 'warehouse'           // Analytics warehouse (singleton)
     | 'transform'           // dbt, modeling
+    | 'mdf_hub'             // NEW: Central Hub (Singleton)
+    | 'hygiene'             // NEW: Standardization, dedupe
+    | 'measurement'         // NEW: Performance measurement
     | 'identity_hub'        // Account graph (singleton)
+    | 'unified_profile'     // NEW: Golden record
     | 'enrichment'          // Clearbit, ZoomInfo (NOT hub)
     | 'governance'          // Consent, quality, audit
     | 'analytics'           // BI, attribution, MMM
@@ -176,31 +183,8 @@ export type NodeRole =
 // ============================================
 
 export type DemoProfile =
-    // Vendor Suite Profiles
-    | 'snowflake_composable'
-    | 'databricks_lakehouse'
-    | 'gcp_bigquery'
-    | 'microsoft_fabric'
-    | 'salesforce_data_cloud'
-    | 'adobe_aep'
-    | 'segment_composable'
-    | 'mparticle_composable'
-    | 'clean_room_layer'
-    // Marketing Ecosystem Profiles
-    | 'marketo_centric'
-    | 'hubspot_centric'
-    | 'braze_centric'
-    | 'sfmc_centric'
-    | 'abm_intent_centric'
-    | 'sales_activation_centric'
-    | 'plg_activation_centric'
-    | 'customerio_centric'
-    // Legacy mapping / Fallback
-    | 'generic'
-    | 'preferred_stack'   // Kept for backward compat during migration
-    | 'adobe_summit'      // Kept for backward compat
-    | 'google_cloud'      // Kept for backward compat
-    | 'salesforce';       // Kept for backward compat
+    | 'adobe_summit'      // Canonical Adobe Flow
+    | 'generic';          // Standard B2B Stack
 
 // ============================================
 // Node Status
@@ -248,6 +232,10 @@ export type PipelineStage =
     | 'storage_raw'
     | 'storage_warehouse'
     | 'transform'
+    | 'transform'
+    | 'mdf'              // NEW: Central Hub/Unified Layer
+    | 'mdf_hygiene'      // NEW: Data Hygiene
+    | 'mdf_measurement'  // NEW: Measurement
     | 'identity'
     | 'governance'
     | 'analytics'
@@ -313,6 +301,26 @@ export interface CatalogNode {
         impact: 'revenue' | 'risk' | 'efficiency' | 'experience';
         roi: 'high' | 'medium' | 'low';
     };
+
+    // NEW: MDF Upgrade v3 Metadata (Hub-Centric)
+    availableIdentities?: string[];         // For sources: ['email', 'phone', 'crm_id']
+    sampleFields?: string[];                // For sources: ['first_name', 'last_name']
+    dataClassProduced?: 'behavioral' | 'transactional' | 'marketing' | 'other';
+    identityStrategyOptions?: string[];     // For Hub: ['deterministic', 'probabilistic']
+    profileDataClasses?: string[];          // For Hub Unified Profile: ['behavioral', 'transactional']
+    measurementOutputs?: string[];          // For Hub Measurement: ['attribution', 'lift']
+    hygieneRules?: string[];                // For Hub Hygiene: ['standardization', 'dedupe']
+    joinKeys?: string[];                    // Shared join keys
+    dataConcepts?: string[];                // Data concepts (legacy field)
+    identityType?: 'deterministic' | 'graph' | 'household' | 'account';
+    valueText?: string;                     // Override or specific value text for badges
+
+    // NEW: Phase 10 Visuals
+    metrics?: Array<{
+        label: string;
+        value: string;
+        trend?: 'up' | 'down' | 'neutral';
+    }>;
 }
 
 // ============================================
@@ -600,20 +608,24 @@ export interface AutoLayoutState {
 }
 
 // Stage-to-column mapping for layout
+// Stage-to-column mapping for layout (Hub-and-Spoke)
 export const STAGE_TO_COLUMN: Record<PipelineStage, number> = {
     sources: 0,
     collection: 1,
-    ingestion: 2,
-    storage_raw: 3,
-    storage_warehouse: 4,
-    transform: 5,
-    identity: 6,
-    governance: 6.5,
-    analytics: 7,
-    activation: 7,
-    clean_room: 7.5,
-    realtime_serving: 7.5,
-    destination: 8
+    ingestion: 1,
+    storage_raw: 1,
+    storage_warehouse: 1,
+    transform: 1,
+    mdf: 2,                 // Central Hub
+    mdf_hygiene: 2,         // Internal
+    mdf_measurement: 2,     // Internal
+    identity: 2,
+    governance: 2,          // Rail
+    analytics: 3,
+    activation: 3,
+    clean_room: 3,
+    realtime_serving: 3,
+    destination: 4
 };
 
 // ============================================

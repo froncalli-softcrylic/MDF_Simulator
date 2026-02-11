@@ -59,6 +59,9 @@ const PIPELINE_FLOW: PipelineStage[] = [
     'storage_raw',
     'storage_warehouse',
     'transform',
+    'mdf_hygiene',
+    'mdf',
+    'mdf_measurement',
     'identity',
     'governance',
     'analytics',
@@ -66,6 +69,52 @@ const PIPELINE_FLOW: PipelineStage[] = [
     'destination'
 ]
 
+// ...
+
+function inferStageFromCategory(category: NodeCategory): PipelineStage {
+    const mapping: Record<NodeCategory, PipelineStage> = {
+        sources: 'sources',
+        collection: 'collection',
+        ingestion: 'ingestion',
+        storage_raw: 'storage_raw',
+        storage_warehouse: 'storage_warehouse',
+        transform: 'transform',
+        mdf: 'mdf',
+        identity: 'identity',
+        governance: 'governance',
+        analytics: 'analytics',
+        activation: 'activation',
+        clean_room: 'clean_room',
+        realtime_serving: 'realtime_serving',
+        destination: 'destination'
+    }
+    return mapping[category] || 'sources'
+}
+
+// ...
+
+function getNextStages(stage: PipelineStage): PipelineStage[] {
+    const flow: Record<PipelineStage, PipelineStage[]> = {
+        sources: ['collection', 'ingestion'],
+        collection: ['ingestion'],
+        ingestion: ['storage_raw', 'storage_warehouse'],
+        storage_raw: ['storage_warehouse'],
+        storage_warehouse: ['transform'],
+        transform: ['mdf', 'mdf_hygiene', 'identity', 'analytics', 'activation'],
+        mdf: ['mdf_measurement', 'identity', 'analytics', 'activation'],
+        mdf_hygiene: ['mdf'],
+        mdf_measurement: ['analytics', 'activation'],
+        identity: ['analytics', 'activation'],
+        governance: ['collection', 'ingestion', 'storage_raw', 'storage_warehouse', 'activation', 'analytics'],
+        analytics: [],
+        activation: ['destination'],
+        clean_room: ['analytics'],
+        realtime_serving: ['destination'],
+        destination: []
+    }
+
+    return flow[stage] || []
+}
 // Stage column positions
 // Stage column positions
 // Using imported STAGE_TO_COLUMN from types
@@ -102,27 +151,7 @@ const SINGLETON_KEYS: Record<string, string> = {
 // STAGE INFERENCE
 // ============================================
 
-/**
- * Infer pipeline stage from category
- */
-function inferStageFromCategory(category: NodeCategory): PipelineStage {
-    const mapping: Record<NodeCategory, PipelineStage> = {
-        sources: 'sources',
-        collection: 'collection',
-        ingestion: 'ingestion',
-        storage_raw: 'storage_raw',
-        storage_warehouse: 'storage_warehouse',
-        transform: 'transform',
-        identity: 'identity',
-        governance: 'governance',
-        analytics: 'analytics',
-        activation: 'activation',
-        clean_room: 'clean_room',
-        realtime_serving: 'realtime_serving',
-        destination: 'destination'
-    }
-    return mapping[category] || 'sources'
-}
+
 
 /**
  * Get stage for a canvas node
@@ -183,28 +212,7 @@ export function normalizeGraph(nodes: CanvasNode[]): NormalizationResult {
 // SMART CONNECT SUGGESTIONS
 // ============================================
 
-/**
- * Get allowed next stages in the pipeline
- */
-function getNextStages(stage: PipelineStage): PipelineStage[] {
-    const flow: Record<PipelineStage, PipelineStage[]> = {
-        sources: ['collection', 'ingestion'],
-        collection: ['ingestion'],
-        ingestion: ['storage_raw', 'storage_warehouse'],
-        storage_raw: ['storage_warehouse'],
-        storage_warehouse: ['transform'],
-        transform: ['identity', 'analytics', 'activation'],
-        identity: ['analytics', 'activation'],
-        governance: ['collection', 'ingestion', 'storage_raw', 'storage_warehouse', 'activation', 'analytics'],
-        analytics: [],
-        activation: ['destination'],
-        clean_room: ['analytics'],
-        realtime_serving: ['destination'],
-        destination: []
-    }
 
-    return flow[stage] || []
-}
 
 /**
  * Find compatible ports between source and target
@@ -342,6 +350,9 @@ const DEFAULT_NODES_BY_STAGE: Record<PipelineStage, string[]> = {
     storage_raw: ['s3_raw'],
     storage_warehouse: ['snowflake'],
     transform: ['dbt_core'],
+    mdf: ['mdf_hub'],
+    mdf_hygiene: ['data_hygiene'],
+    mdf_measurement: ['measurement'],
     identity: ['neptune_graph', 'account_resolution'],
     governance: ['data_quality', 'access_control'],
     analytics: ['looker'],

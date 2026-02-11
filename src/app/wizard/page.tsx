@@ -81,7 +81,7 @@ export default function WizardPage() {
             {/* Header */}
             <header className="border-b bg-background/80 backdrop-blur">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-                    <h1 className="font-bold text-lg">MDF Simulator — Intake Wizard</h1>
+                    <h1 className="font-bold text-lg">Marketing Data Foundation — Intake Wizard</h1>
                     <Badge variant="outline">Step {wizardStep + 1} of {steps.length}</Badge>
                 </div>
             </header>

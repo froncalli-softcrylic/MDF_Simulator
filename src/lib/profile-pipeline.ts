@@ -253,7 +253,9 @@ function categoryToStage(category: NodeCategory): PipelineStage {
         ingestion: 'ingestion',
         storage_raw: 'storage_raw',
         storage_warehouse: 'storage_warehouse',
+
         transform: 'transform',
+        mdf: 'mdf',
         identity: 'identity',
         governance: 'governance',
         analytics: 'analytics',

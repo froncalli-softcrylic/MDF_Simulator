@@ -23,7 +23,6 @@ import {
 } from 'lucide-react'
 
 // Category icons (updated for B2B SaaS)
-// Category icons (updated for B2B SaaS)
 const categoryIcons: Record<NodeCategory, React.ElementType> = {
     sources: Database,
     collection: Radio,
@@ -31,6 +30,7 @@ const categoryIcons: Record<NodeCategory, React.ElementType> = {
     storage_raw: HardDrive,
     storage_warehouse: Server,
     transform: Code,
+    mdf: Layers,             // Hub icon
     identity: GitMerge,
     governance: Shield,
     analytics: BarChart2,
@@ -41,11 +41,10 @@ const categoryIcons: Record<NodeCategory, React.ElementType> = {
 }
 
 // Category order (B2B SaaS flow)
-// Category order (B2B SaaS flow)
 const categoryOrder: NodeCategory[] = [
     // Pipeline (main flow)
     'sources', 'collection', 'ingestion', 'storage_raw', 'storage_warehouse',
-    'transform', 'identity', 'governance', 'analytics', 'activation', 'clean_room', 'realtime_serving', 'destination'
+    'transform', 'mdf', 'identity', 'governance', 'analytics', 'activation', 'clean_room', 'realtime_serving', 'destination'
 ]
 
 // Category colors for drag preview
@@ -56,6 +55,7 @@ const categoryColors: Record<NodeCategory, string> = {
     storage_raw: '#64748b',  // Slate
     storage_warehouse: '#3b82f6', // Blue
     transform: '#6366f1',    // Indigo
+    mdf: '#f59e0b',          // Amber
     identity: '#10b981',     // Emerald
     governance: '#f59e0b',   // Amber
     analytics: '#ec4899',    // Pink
@@ -79,7 +79,7 @@ function DraggableNode({ catalogId, name, category, isEmphasized, onAdd }: Dragg
 
     // Handle drag start
     const handleDragStart = useCallback((event: React.DragEvent) => {
-        event.dataTransfer.setData('application/mdf-node', catalogId)
+        event.dataTransfer.setData('application/mdf-node', JSON.stringify({ catalogId, name, category }))
         event.dataTransfer.effectAllowed = 'copy'
 
         // Create custom drag image
@@ -148,6 +148,7 @@ export default function NodePalette() {
             storage_raw: [],
             storage_warehouse: [],
             transform: [],
+            mdf: [],
             identity: [],
             governance: [],
             analytics: [],

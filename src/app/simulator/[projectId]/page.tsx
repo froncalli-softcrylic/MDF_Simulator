@@ -34,6 +34,11 @@ import MdfNode from '@/components/canvas/MdfNode'
 import NodePalette from '@/components/canvas/NodePalette'
 import Inspector from '@/components/canvas/Inspector'
 import Toolbar from '@/components/canvas/Toolbar'
+import SimulationStepper from '@/components/canvas/SimulationStepper'
+
+// ... existing imports
+
+
 import ValidationPanel from '@/components/canvas/ValidationPanel'
 import StatusLegend from '@/components/canvas/StatusLegend'
 import SmartConnectPanel from '@/components/canvas/SmartConnectPanel'
@@ -63,7 +68,8 @@ const proOptions = {
     hideAttribution: true
 }
 
-import SimulatorLoader3D from '@/components/3d/SimulatorLoader3D'
+import SimulatorCinematicLoader from '@/components/ui/SimulatorCinematicLoader'
+import { AnimatePresence } from 'framer-motion'
 
 function SimulatorCanvas() {
     const params = useParams()
@@ -105,13 +111,35 @@ function SimulatorCanvas() {
         setPendingReplaceConflict,
         isPaletteOpen,
         showAIAssistant,
-        setShowAIAssistant
+        setShowAIAssistant,
+        isSimulationRunning // Added
     } = useUIStore()
     const { wizardData, activeProfile, setWizardData } = useProfileStore()
     const { setEdges, removeNode } = useCanvasStore()
 
     // Track if we've initialized
     const hasInitialized = useRef(false)
+
+    // Handle Simulation Mode - Animate edges
+    useEffect(() => {
+        const currentEdges = useCanvasStore.getState().edges
+        if (currentEdges.length === 0) return
+
+        const shouldBeAnimated = isSimulationRunning
+        // Prevent infinite loop if already in desired state
+        if (currentEdges[0].animated === shouldBeAnimated) return
+
+        setEdges(currentEdges.map(e => ({
+            ...e,
+            animated: shouldBeAnimated,
+            style: {
+                ...e.style,
+                stroke: shouldBeAnimated ? '#10b981' : '#b0b8c8', // emerald-500 : slate-300
+                strokeWidth: shouldBeAnimated ? 3 : 2.5,
+                opacity: shouldBeAnimated ? 1 : 1
+            }
+        })))
+    }, [isSimulationRunning, setEdges, edges]) // Re-run if edges change (e.g. adde new node) to apply style
 
     // Initialize project - generate diagram from wizard data
     useEffect(() => {
@@ -250,6 +278,28 @@ function SimulatorCanvas() {
         return () => runValidation.cancel()
     }, [nodes, edges, runValidation])
 
+    // Regenerate graph when activeProfile changes (after initial load)
+    const prevProfileRef = useRef(activeProfile)
+    useEffect(() => {
+        if (!hasInitialized.current) return
+        if (prevProfileRef.current === activeProfile) return
+        prevProfileRef.current = activeProfile
+
+        const regenerate = async () => {
+            const { loadProfileDefinition: loadPD, buildGraphFromProfile, normalizeGraph } = await import('@/lib/profile-pipeline')
+            const profileDef = loadPD(activeProfile)
+            if (!profileDef) return
+            let graph = buildGraphFromProfile(profileDef)
+            graph = normalizeGraph(graph, profileDef)
+            loadGraph(graph)
+            const { semanticAutoLayout } = await import('@/lib/semantic-layout-engine')
+            const layoutedNodes = await semanticAutoLayout(graph.nodes, graph.edges)
+            setNodes(layoutedNodes)
+            setTimeout(() => fitView({ padding: 0.35, duration: 600 }), 100)
+        }
+        regenerate()
+    }, [activeProfile, loadGraph, setNodes, fitView])
+
     // Sanitized edges for ReactFlow to prevent crashes
     const safeEdges = useMemo(() => {
         return edges.filter(e => e && e.source && e.target)
@@ -290,6 +340,9 @@ function SimulatorCanvas() {
     }, [])
 
     // Handle node selection
+    // Design choice: we use catalogId as the selected ID so the Inspector can
+    // look up catalog metadata via getNodeById(). This means clicking different
+    // instances of the same catalog node references the same catalog entry.
     const onNodeClick = useCallback(
         (_: React.MouseEvent, node: Node) => {
             const data = node.data as { catalogId?: string }
@@ -318,7 +371,11 @@ function SimulatorCanvas() {
 
     return (
         <div className="h-screen w-full flex flex-col overflow-hidden">
-            <SimulatorLoader3D isVisible={isLoading} />
+            <AnimatePresence mode="wait">
+                {isLoading && (
+                    <SimulatorCinematicLoader onComplete={() => setIsLoading(false)} />
+                )}
+            </AnimatePresence>
 
             {/* Canvas */}
             <div ref={canvasRef} className="flex-1 relative">
@@ -386,6 +443,7 @@ function SimulatorCanvas() {
 
                 {/* Panels */}
                 <Toolbar />
+                <SimulationStepper />
                 <NodePalette />
                 <Inspector />
                 <ValidationPanel />

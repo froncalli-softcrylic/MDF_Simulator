@@ -41,9 +41,9 @@ interface ProfileStack {
 
 const profileStacks: Partial<Record<DemoProfile, ProfileStack>> = {
     // ==================================================
-    // PREFERRED STACK: Snowflake + AWS + Neptune + Hightouch
+    // GENERIC (Simple starter)
     // ==================================================
-    snowflake_composable: {
+    generic: {
         nodes: [
             // Sources (col 0)
             'product_events', 'salesforce_crm', 'billing_system',
@@ -57,12 +57,10 @@ const profileStacks: Partial<Record<DemoProfile, ProfileStack>> = {
             'snowflake',
             // Transform (col 5)
             'dbt_core',
-            // Semantic Layer (col 6)
-            'cube_js',
-            // Account Graph Hub (rail - center)
-            'neptune_graph', 'account_resolution',
-            // Governance Rail (top)
-            'consent_manager', 'snowflake_horizon',
+            // MDF Hub (col 6 - Center)
+            'mdf_hub',
+            // Governance Rail (should be added by rules, but listing here for completeness if needed)
+            'consent_manager',
             // Analytics (col 7)
             'looker',
             // Activation (col 8)
@@ -71,6 +69,7 @@ const profileStacks: Partial<Record<DemoProfile, ProfileStack>> = {
             'salesforce_crm_dest', 'linkedin_ads', 'slack_alerts'
         ],
         edges: [
+            // Standard Flow
             { source: 'product_events', target: 'segment' },
             { source: 'salesforce_crm', target: 'fivetran' },
             { source: 'billing_system', target: 'fivetran' },
@@ -78,159 +77,29 @@ const profileStacks: Partial<Record<DemoProfile, ProfileStack>> = {
             { source: 's3_raw', target: 'snowflake' },
             { source: 'fivetran', target: 'snowflake' },
             { source: 'snowflake', target: 'dbt_core' },
-            { source: 'dbt_core', target: 'cube_js' },
-            { source: 'cube_js', target: 'looker' },
-            { source: 'dbt_core', target: 'neptune_graph' },
-            { source: 'neptune_graph', target: 'account_resolution' },
-            { source: 'account_resolution', target: 'hightouch' },
-            { source: 'consent_manager', target: 'hightouch' },
-            { source: 'snowflake_horizon', target: 'snowflake' },
+            { source: 'dbt_core', target: 'mdf_hub' }, // Into the Hub
+            { source: 'mdf_hub', target: 'hightouch' }, // Out of the Hub
+            { source: 'mdf_hub', target: 'looker' },    // Measurement
             { source: 'hightouch', target: 'salesforce_crm_dest' },
             { source: 'hightouch', target: 'linkedin_ads' },
-            { source: 'hightouch', target: 'slack_alerts' }
-        ]
-    },
+            { source: 'hightouch', target: 'slack_alerts' },
 
-    // ==================================================
-    // ADOBE SUMMIT
-    // ==================================================
-    adobe_summit: {
-        nodes: [
-            'web_app_events', 'marketo', 'ad_platforms',
-            'segment',
-            'fivetran',
-            's3_raw',
-            'snowflake',
-            'dbt_core',
-            'contact_stitching', 'clearbit',
-            'consent_manager', 'data_quality',
-            'attribution_model', 'mmm_model',
-            'hightouch',
-            'meta_ads', 'email_sms'
-        ],
-        edges: [
-            { source: 'web_app_events', target: 'segment' },
-            { source: 'marketo', target: 'fivetran' },
-            { source: 'ad_platforms', target: 'fivetran' },
-            { source: 'segment', target: 's3_raw' },
-            { source: 's3_raw', target: 'snowflake' },
-            { source: 'fivetran', target: 'snowflake' },
-            { source: 'snowflake', target: 'dbt_core' },
-            { source: 'dbt_core', target: 'contact_stitching' },
-            { source: 'clearbit', target: 'contact_stitching' },
-            { source: 'dbt_core', target: 'attribution_model' },
-            { source: 'dbt_core', target: 'mmm_model' },
-            { source: 'consent_manager', target: 'hightouch' },
-            { source: 'data_quality', target: 'dbt_core' },
-            { source: 'contact_stitching', target: 'hightouch' },
-            { source: 'hightouch', target: 'meta_ads' },
-            { source: 'hightouch', target: 'email_sms' }
-        ]
-    },
-
-    // ==================================================
-    // GOOGLE CLOUD
-    // ==================================================
-    google_cloud: {
-        nodes: [
-            'web_app_events', 'product_events', 'salesforce_crm',
-            'segment', 'amplitude',
-            'pubsub', 'airbyte',
-            'gcs_raw',
-            'bigquery',
-            'dbt_core',
-            'contact_stitching', 'clearbit',
-            'consent_manager', 'data_quality',
-            'looker', 'attribution_model',
-            'census',
-            'google_ads', 'linkedin_ads'
-        ],
-        edges: [
-            { source: 'web_app_events', target: 'segment' },
-            { source: 'product_events', target: 'amplitude' },
-            { source: 'salesforce_crm', target: 'airbyte' },
-            { source: 'segment', target: 'pubsub' },
-            { source: 'amplitude', target: 'bigquery' },
-            { source: 'pubsub', target: 'gcs_raw' },
-            { source: 'gcs_raw', target: 'bigquery' },
-            { source: 'airbyte', target: 'bigquery' },
-            { source: 'bigquery', target: 'dbt_core' },
-            { source: 'dbt_core', target: 'contact_stitching' },
-            { source: 'clearbit', target: 'contact_stitching' },
-            { source: 'dbt_core', target: 'looker' },
-            { source: 'dbt_core', target: 'attribution_model' },
-            { source: 'consent_manager', target: 'census' },
-            { source: 'data_quality', target: 'dbt_core' },
-            { source: 'contact_stitching', target: 'census' },
-            { source: 'census', target: 'google_ads' },
-            { source: 'census', target: 'linkedin_ads' }
-        ]
-    },
-
-    // ==================================================
-    // SALESFORCE
-    // ==================================================
-    salesforce: {
-        nodes: [
-            'salesforce_crm', 'hubspot_crm', 'support_tickets', 'marketo',
-            'fivetran',
-            'snowflake',
-            'dbt_core',
-            'contact_stitching', 'sixsense', 'zoominfo',
-            'consent_manager', 'data_quality',
-            'tableau', 'opportunity_influence',
-            'hightouch',
-            'salesforce_crm_dest', 'outreach', 'salesloft'
-        ],
-        edges: [
-            { source: 'salesforce_crm', target: 'fivetran' },
+            // Optional/Wizard Tool Connections
+            // CRM
             { source: 'hubspot_crm', target: 'fivetran' },
-            { source: 'support_tickets', target: 'fivetran' },
+            // Marketing
             { source: 'marketo', target: 'fivetran' },
-            { source: 'fivetran', target: 'snowflake' },
-            { source: 'snowflake', target: 'dbt_core' },
-            { source: 'dbt_core', target: 'contact_stitching' },
-            { source: 'sixsense', target: 'contact_stitching' },
-            { source: 'zoominfo', target: 'contact_stitching' },
-            { source: 'dbt_core', target: 'tableau' },
-            { source: 'dbt_core', target: 'opportunity_influence' },
-            { source: 'consent_manager', target: 'hightouch' },
-            { source: 'data_quality', target: 'dbt_core' },
-            { source: 'contact_stitching', target: 'hightouch' },
-            { source: 'hightouch', target: 'salesforce_crm_dest' },
+            // Analytics
+            { source: 'amplitude', target: 'snowflake' }, // Or via Segment
+            { source: 'web_app_events', target: 'segment' },
+            // Activation Apps
+            { source: 'hightouch', target: 'braze' },
             { source: 'hightouch', target: 'outreach' },
-            { source: 'hightouch', target: 'salesloft' }
-        ]
-    },
-
-    // ==================================================
-    // GENERIC (Simple starter)
-    // ==================================================
-    generic: {
-        nodes: [
-            'product_events', 'salesforce_crm',
-            'segment',
-            'fivetran',
-            'snowflake',
-            'dbt_core',
-            'contact_stitching',
-            'consent_manager',
-            'looker',
-            'hightouch',
-            'salesforce_crm_dest', 'email_sms'
-        ],
-        edges: [
-            { source: 'product_events', target: 'segment' },
-            { source: 'salesforce_crm', target: 'fivetran' },
-            { source: 'segment', target: 'snowflake' },
-            { source: 'fivetran', target: 'snowflake' },
-            { source: 'snowflake', target: 'dbt_core' },
-            { source: 'dbt_core', target: 'contact_stitching' },
-            { source: 'dbt_core', target: 'looker' },
-            { source: 'consent_manager', target: 'hightouch' },
-            { source: 'contact_stitching', target: 'hightouch' },
-            { source: 'hightouch', target: 'salesforce_crm_dest' },
-            { source: 'hightouch', target: 'email_sms' }
+            { source: 'hightouch', target: 'salesloft' },
+            { source: 'hightouch', target: 'google_ads' },
+            { source: 'hightouch', target: 'meta_ads' },
+            // Governance
+            { source: 'consent_manager', target: 'mdf_hub' }
         ]
     }
 }
@@ -322,7 +191,7 @@ export function analyzeGaps(wizardData: WizardData, profile: DemoProfile): GapAn
     const gapNodes = requiredFromGoals.filter(n => !existingNodes.includes(n))
 
     // Start with the profile's default stack
-    const profileStack = profileStacks[profile] || profileStacks.snowflake_composable!
+    const profileStack = profileStacks[profile] || profileStacks.generic!
     const allNodesSet = new Set([...profileStack.nodes])
 
     // Add user's existing tools
@@ -366,7 +235,7 @@ export function generateDiagramFromWizard(
     profile: DemoProfile
 ): GraphData {
     const analysis = analyzeGaps(wizardData, profile)
-    const profileStack = profileStacks[profile] || profileStacks.snowflake_composable!
+    const profileStack = profileStacks[profile] || profileStacks.generic!
 
     logger.debug('📊 Generating B2B SaaS diagram for profile:', profile, {
         existing: analysis.existingNodes,
@@ -430,7 +299,7 @@ export function generateDiagramFromWizard(
  * Generate default diagram for a profile (no wizard data)
  */
 export function generateDefaultDiagramForProfile(profile: DemoProfile): GraphData {
-    const profileStack = profileStacks[profile] || profileStacks.snowflake_composable!
+    const profileStack = profileStacks[profile] || profileStacks.generic!
 
     // Filter to valid catalog nodes
     const nodesToInclude = profileStack.nodes.filter(nodeId => getNodeById(nodeId) !== undefined)
@@ -753,7 +622,7 @@ export const edgeCaseTemplates: EdgeCaseTemplate[] = [
  */
 export function generateDiagramFromEdgeCaseTemplate(
     templateId: string,
-    profile: DemoProfile = 'snowflake_composable'
+    profile: DemoProfile = 'generic'
 ): GraphData | null {
     const template = edgeCaseTemplates.find(t => t.id === templateId)
     if (!template) {
@@ -806,4 +675,6 @@ export function generateDiagramFromEdgeCaseTemplate(
 export function getEdgeCaseTemplates(): EdgeCaseTemplate[] {
     return edgeCaseTemplates
 }
+
+
 

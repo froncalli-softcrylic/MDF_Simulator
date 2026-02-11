@@ -49,7 +49,7 @@ export const useProfileStore = create<ProfileStore>()(
     persist(
         (set, get) => ({
             // Current profile
-            activeProfile: 'snowflake_composable',
+            activeProfile: 'generic',
             setActiveProfile: (profile) => set({ activeProfile: profile }),
 
             // Wizard data
@@ -104,7 +104,7 @@ export const useProfileStore = create<ProfileStore>()(
                     painPoints: draftPainPoints,
                     goals: draftGoals
                 }
-                set({ wizardData })
+                set({ wizardData, activeProfile: 'generic' }) // Enforce generic profile for wizard results
                 logger.debug('🧙 Wizard finalized with data:', wizardData)
                 return wizardData
             }
