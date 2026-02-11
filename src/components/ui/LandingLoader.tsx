@@ -69,12 +69,13 @@ export default function LandingLoader({ onComplete }: LandingLoaderProps) {
                 {/* Main Text Stagger */}
                 <div className="overflow-hidden">
                     <motion.h1
-                        className="text-4xl md:text-6xl font-black tracking-tighter text-white"
+                        className="text-2xl md:text-3xl font-black tracking-tighter text-white text-center"
                         initial={{ y: 50, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
                     >
-                        MDF <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">SIMULATOR</span>
+                        MARKETING DATA FOUNDATION <br />
+                        <span className="text-sm font-normal text-slate-400 mt-2 block tracking-widest uppercase">by Softcrylic</span>
                     </motion.h1>
                 </div>
 

@@ -6,7 +6,7 @@ import { useUIStore } from '@/store/ui-store'
 import { useProfileStore } from '@/store/profile-store'
 import { semanticAutoLayout } from '@/lib/semantic-layout-engine'
 import { generateFixPlan as generateLegacyFixPlan, sanitizeEdges } from '@/lib/smart-connect-engine'
-import { calculateFlowImpact } from '@/lib/recommendation-engine'
+
 import { demoProfiles, profileOptions } from '@/data/demo-profiles'
 import { generateDefaultDiagramForProfile } from '@/lib/diagram-generator'
 import {
@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils'
 import {
     LayoutGrid, Undo2, Redo2, Maximize,
     Download, Share2, Zap, BarChart2, Users, Shield,
-    ChevronDown, ChevronUp, MoreHorizontal, Home, Sparkles, Loader2, Bot, Activity, AlertTriangle, HelpCircle, FileText,
+    ChevronDown, ChevronUp, MoreHorizontal, Home, Sparkles, Loader2, Bot, AlertTriangle, HelpCircle, FileText,
     Play, Square
 } from 'lucide-react'
 import {
@@ -79,16 +79,35 @@ export default function Toolbar() {
     const { activeProfile, setActiveProfile } = useProfileStore()
     const { fitView } = useReactFlow()
 
-    // Calculate Flow Health Score
-    const flowScore = useMemo(() => calculateFlowImpact(nodes), [nodes])
 
-    const handleRunSimulation = useCallback(() => {
+    const [showValidationDialog, setShowValidationDialog] = useState(false)
+    const [validationErrors, setValidationErrors] = useState<any[]>([])
+
+    const handleRunSimulation = useCallback(async () => {
         if (isSimulationRunning) {
             stopSimulation()
             return
         }
+
+        // 1. Run Pipeline Validation
+        const { validatePipelineCompleteness } = await import('@/lib/validation-engine')
+        const errors = validatePipelineCompleteness(nodes)
+
+        if (errors.length > 0) {
+            setValidationErrors(errors)
+            setShowValidationDialog(true)
+            return
+        }
+
+        // 2. Start Simulation if Valid
         runSimulation(nodes, edges)
     }, [isSimulationRunning, runSimulation, stopSimulation, nodes, edges])
+
+
+    const handleRunAnyway = useCallback(() => {
+        setShowValidationDialog(false)
+        runSimulation(nodes, edges)
+    }, [runSimulation, nodes, edges])
 
     const handleAutoLayout = useCallback(async () => {
         if (!nodes || nodes.length === 0) return
@@ -135,6 +154,12 @@ export default function Toolbar() {
             setAutoLayoutRunning(false)
         }
     }, [nodes, edges, setNodes, fitView, setAutoLayoutRunning, setSmartConnectFixes, setShowSmartConnectPanel])
+
+    const handleAutoFix = useCallback(async () => {
+        setShowValidationDialog(false)
+        // Trigger auto-layout which includes suggestions
+        handleAutoLayout()
+    }, [handleAutoLayout])
 
     const handleExport = useCallback(async () => {
         openLeadModal('export')
@@ -233,6 +258,7 @@ export default function Toolbar() {
         router.push('/')
     }, [router])
 
+
     return (
         <>
             {/* Collapsed toolbar toggle */}
@@ -263,9 +289,9 @@ export default function Toolbar() {
                 )}
             >
                 <div id="tour-toolbar" className={cn(
-                    'flex items-center gap-1 p-2 rounded-2xl',
+                    'flex items-center gap-1 p-1.5 md:p-2 rounded-2xl',
                     'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 shadow-2xl ring-1 ring-black/5',
-                    'min-w-max animate-float'
+                    'max-w-[95vw] sm:max-w-[90vw] overflow-x-auto no-scrollbar animate-float'
                 )}>
                     {/* Home Group */}
                     <div className="flex items-center px-1">
@@ -334,7 +360,7 @@ export default function Toolbar() {
                             ) : (
                                 <LayoutGrid className="w-4 h-4" />
                             )}
-                            <span className="hidden xl:inline">Clean Up</span>
+                            <span className="hidden lg:inline">Clean Up</span>
                         </Button>
 
                         <Button
@@ -352,72 +378,8 @@ export default function Toolbar() {
                             ) : (
                                 <Play className="w-3.5 h-3.5 fill-current" />
                             )}
-                            <span className="hidden xl:inline ml-1.5">{isSimulationRunning ? 'Stop' : 'Run'}</span>
+                            <span className="hidden lg:inline ml-1.5">{isSimulationRunning ? 'Stop' : 'Run'}</span>
                         </Button>
-                    </div>
-
-                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
-
-                    {/* Flow Health Score (New) */}
-                    <div className="flex items-center gap-1">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className={cn(
-                                        "h-9 gap-2 px-3 rounded-xl transition-all font-semibold",
-                                        flowScore.rating === 'excellent' ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" :
-                                            flowScore.rating === 'good' ? "text-blue-600 bg-blue-50 hover:bg-blue-100" :
-                                                flowScore.rating === 'fair' ? "text-amber-600 bg-amber-50 hover:bg-amber-100" :
-                                                    "text-red-600 bg-red-50 hover:bg-red-100"
-                                    )}
-                                >
-                                    <Activity className="w-4 h-4" />
-                                    <span className="hidden sm:inline">{flowScore.rating.charAt(0).toUpperCase() + flowScore.rating.slice(1)}</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-60">
-                                <DropdownMenuLabel>Architecture Health</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <div className="p-3 space-y-2">
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-slate-500">ROI Potential</span>
-                                        <span className={cn(
-                                            "font-bold",
-                                            flowScore.roiScore > 70 ? "text-emerald-600" : "text-slate-700"
-                                        )}>{flowScore.roiScore}/100</span>
-                                    </div>
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-slate-500">Complexity</span>
-                                        <span className={cn(
-                                            "font-bold",
-                                            flowScore.complexityScore > 70 ? "text-red-600" : "text-emerald-600"
-                                        )}>{flowScore.complexityScore}/100</span>
-                                    </div>
-                                    <div className="h-1 bg-slate-100 rounded-full overflow-hidden mt-1">
-                                        <div
-                                            className="h-full bg-emerald-500 rounded-full"
-                                            style={{ width: `${flowScore.roiScore}%` }}
-                                        />
-                                    </div>
-                                </div>
-
-                                {flowScore.warnings.length > 0 && (
-                                    <>
-                                        <DropdownMenuSeparator />
-                                        <div className="p-2 bg-amber-50 rounded-b-lg">
-                                            {flowScore.warnings.map((w, i) => (
-                                                <div key={i} className="flex gap-2 text-[10px] text-amber-700 mb-1 last:mb-0">
-                                                    <AlertTriangle className="w-3 h-3 shrink-0" />
-                                                    {w}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
                     </div>
 
                     <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
@@ -548,6 +510,62 @@ export default function Toolbar() {
                     </Button>
                 </div>
             </div>
+
+            {/* Pipeline Health Check Dialog */}
+            {showValidationDialog && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 max-w-md w-full m-4 border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-3 bg-red-100 text-red-600 rounded-xl">
+                                <AlertTriangle className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Pipeline Gaps Detected</h2>
+                                <p className="text-sm text-slate-500">The simulation needs a complete pipeline to run effectively.</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3 mb-6">
+                            {validationErrors.map((error, i) => (
+                                <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                                    <div className="flex gap-2 items-start">
+                                        <div className={cn(
+                                            "w-2 h-2 mt-1.5 rounded-full shrink-0",
+                                            error.severity === 'error' ? "bg-red-500" : "bg-amber-500"
+                                        )} />
+                                        <div>
+                                            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{error.message}</p>
+                                            {error.recommendation && (
+                                                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 flex items-center gap-1">
+                                                    <Sparkles className="w-3 h-3" />
+                                                    Suggestion: {error.recommendation.action}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                            <Button
+                                variant="outline"
+                                onClick={handleRunAnyway}
+                                className="flex-1 opacity-80 hover:opacity-100"
+                            >
+                                Run Anyway
+                            </Button>
+                            <Button
+                                onClick={handleAutoFix}
+                                className="flex-1 gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/20"
+                            >
+                                <LayoutGrid className="w-4 h-4" />
+                                Auto-Fix Layout
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     )
 }

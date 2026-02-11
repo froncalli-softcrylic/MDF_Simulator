@@ -73,12 +73,13 @@ export default function SimulatorCinematicLoader({ onComplete }: SimulatorCinema
                 {/* Main Text Stagger */}
                 <div className="overflow-hidden flex flex-col items-center gap-2">
                     <motion.h1
-                        className="text-3xl md:text-5xl font-black tracking-tighter text-white"
+                        className="text-2xl md:text-3xl font-black tracking-tighter text-white text-center"
                         initial={{ y: 30, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
                     >
-                        SIMULATOR <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-500">ENV</span>
+                        MARKETING DATA FOUNDATION <br />
+                        <span className="text-sm font-normal text-slate-400 mt-2 block tracking-widest uppercase">by Softcrylic</span>
                     </motion.h1>
                 </div>
 

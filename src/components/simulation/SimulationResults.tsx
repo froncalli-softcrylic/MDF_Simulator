@@ -70,7 +70,7 @@ export default function SimulationResults() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 40, scale: 0.95 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="relative w-full max-w-[700px] max-h-[85vh] overflow-y-auto rounded-2xl bg-slate-950/95 border border-white/10 shadow-2xl"
+                        className="relative w-[95vw] max-w-[700px] max-h-[90vh] overflow-y-auto rounded-2xl bg-slate-950/95 border border-white/10 shadow-2xl"
                     >
                         {/* Close button */}
                         <button

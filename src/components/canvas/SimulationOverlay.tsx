@@ -42,7 +42,7 @@ export function SimulationOverlay() {
     const stage = getStageForCategory(activeCategory)
 
     return (
-        <div className="absolute inset-0 z-[60] flex items-center justify-center pointer-events-none translate-x-[20vw]">
+        <div className="absolute inset-0 z-[60] flex items-center justify-center pointer-events-none sm:justify-end sm:pr-[10%] md:pr-[15%]">
             <AnimatePresence mode="wait">
                 <DataTransformationCard
                     key={`${simulationState.currentStepIndex}-${simulationState.status}`}
@@ -50,7 +50,8 @@ export function SimulationOverlay() {
                     data={{
                         input: simulationState.dataPayload?.input,
                         output: simulationState.dataPayload?.output,
-                        diff: simulationState.dataPayload?.diff
+                        diff: simulationState.dataPayload?.diff,
+                        mdf_pipeline: simulationState.dataPayload?.mdf_pipeline
                     }}
                     nodeName={activeNode?.data?.label as string || 'Node'}
                     stepInfo={{

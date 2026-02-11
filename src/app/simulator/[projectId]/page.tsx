@@ -15,7 +15,8 @@ import {
     BackgroundVariant,
     SelectionMode,
     ConnectionMode,
-    type Node
+    type Node,
+    type Edge
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import '@/styles/react-flow.css'
@@ -360,12 +361,66 @@ function SimulatorCanvas() {
             position.x -= 80
             position.y -= 30
 
-            // Add node with smooth animation hint
-            requestAnimationFrame(() => {
+            // Add node with AUTO-CONNECT + LAYOUT
+            requestAnimationFrame(async () => {
+                // 1. Add the new node
                 addNode(catalogId, name, category, position)
+
+                // 2. Auto-Connect: find the just-added node (unconnected, matching catalogId)
+                const state = useCanvasStore.getState()
+                const newNode = state.nodes.find(n =>
+                    (n.data as any).catalogId === catalogId &&
+                    !state.edges.some(e => e.source === n.id || e.target === n.id)
+                )
+
+                if (newNode) {
+                    const autoEdges: Edge[] = []
+
+                    // RULE 1: Sources/Collection → connect TO MDF Hub or Ingestion
+                    if (['sources', 'collection'].includes(category)) {
+                        const target = state.nodes.find(n =>
+                            (n.data as any).category === 'mdf' || (n.data as any).category === 'ingestion'
+                        )
+                        if (target) {
+                            autoEdges.push({
+                                id: `edge-auto-${Date.now()}-out`,
+                                source: newNode.id,
+                                target: target.id,
+                                sourceHandle: 'right',
+                                targetHandle: 'left'
+                            })
+                        }
+                    }
+
+                    // RULE 2: Analytics/Activation/Destination → connect FROM MDF Hub
+                    if (['analytics', 'activation', 'destination', 'realtime_serving'].includes(category)) {
+                        const source = state.nodes.find(n => (n.data as any).category === 'mdf')
+                        if (source) {
+                            autoEdges.push({
+                                id: `edge-auto-${Date.now()}-in`,
+                                source: source.id,
+                                target: newNode.id,
+                                sourceHandle: 'right',
+                                targetHandle: 'left'
+                            })
+                        }
+                    }
+
+                    // Apply auto-edges
+                    if (autoEdges.length > 0) {
+                        const { setEdges } = useCanvasStore.getState()
+                        setEdges([...useCanvasStore.getState().edges, ...autoEdges])
+                    }
+                }
+
+                // 3. Immediate Auto-Layout to enforce structure
+                const { semanticAutoLayout } = await import('@/lib/semantic-layout-engine')
+                const { nodes: updatedNodes, edges: updatedEdges } = useCanvasStore.getState()
+                const layoutedNodes = await semanticAutoLayout(updatedNodes, updatedEdges)
+                setNodes(layoutedNodes)
             })
         },
-        [screenToFlowPosition, addNode]
+        [screenToFlowPosition, addNode, setNodes]
     )
 
     const onDragOver = useCallback((event: React.DragEvent) => {
@@ -403,6 +458,36 @@ function SimulatorCanvas() {
         }
     }, [])
 
+    const handleConnect = useCallback(async (params: any) => {
+        // Run strict validation
+        const { validateEdgeConnection } = await import('@/lib/validation-engine')
+        const result = validateEdgeConnection(
+            params.source,
+            params.target,
+            nodes,
+            params.sourceHandle,
+            params.targetHandle
+        )
+
+        if (!result.isValid) {
+            // Toast would be nice here, but for now just log or we can construct a temp edge with error style
+            // Better: Don't allow connection and show alert?
+            // Since we don't have a toast hook imported easily here without checking imports,
+            // we will just block it.
+            // Ideally should show feedback.
+            console.warn('Connection blocked:', result.errorMessage)
+            alert(`Cannot connect: ${result.errorMessage}`) // Simple fallback
+            return
+        }
+
+        if (result.warningMessage) {
+            // Allow but warn?
+            // alert(`Warning: ${result.warningMessage}`)
+        }
+
+        onConnect(params)
+    }, [nodes, onConnect])
+
     return (
         <div className="h-screen w-full flex flex-col overflow-hidden">
             <AnimatePresence mode="wait">
@@ -418,7 +503,7 @@ function SimulatorCanvas() {
                     edges={safeEdges}
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
-                    onConnect={onConnect}
+                    onConnect={handleConnect}
                     onDrop={onDrop}
                     onDragOver={onDragOver}
                     onNodeClick={onNodeClick}
@@ -436,7 +521,7 @@ function SimulatorCanvas() {
                     maxZoom={2}
                     className="bg-background"
                     // Performance optimizations
-                    nodesDraggable={true}
+                    nodesDraggable={false} // LOCKED LAYOUT
                     nodesConnectable={true}
                     elementsSelectable={true}
                     panOnDrag={true}

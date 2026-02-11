@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { Database, Sparkles, CheckCircle, ArrowRight } from 'lucide-react'
+import { Database, Sparkles, CheckCircle, ArrowRight, Download, Fingerprint, Users, BarChart2 } from 'lucide-react'
 import { categoryMeta } from '@/data/node-catalog'
 
 interface DataTransformationCardProps {
@@ -11,6 +11,7 @@ interface DataTransformationCardProps {
         input?: Record<string, any>;
         output?: Record<string, any>;
         diff?: Record<string, { original: any; new: any }>;
+        mdf_pipeline?: Record<string, any>;
     };
     nodeName: string;
     stepInfo?: {
@@ -150,6 +151,87 @@ export function DataTransformationCard({ stage, data, nodeName, stepInfo }: Data
                             </div>
                             <div className="flex items-center gap-1.5 bg-amber-950/30 text-amber-400 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-amber-900/30">
                                 <Sparkles className="w-3 h-3" /> Enriched
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* MDF Pipeline: Show 5-Stage Process */}
+                {data.mdf_pipeline && (
+                    <div className="space-y-2">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">MDF Pipeline</div>
+
+                        {/* Pipeline Steps with Before/After Details */}
+                        <div className="space-y-1.5">
+                            {Object.entries(data.mdf_pipeline).map(([stepKey, stepData]: [string, any], idx: number) => {
+                                const stepIcons = [Download, Sparkles, Fingerprint, Users, BarChart2]
+                                const stepColors = [
+                                    'text-blue-400 bg-blue-500/10 border-blue-500/20',
+                                    'text-amber-400 bg-amber-500/10 border-amber-500/20',
+                                    'text-purple-400 bg-purple-500/10 border-purple-500/20',
+                                    'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+                                    'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'
+                                ]
+                                const StepIcon = stepIcons[idx] || Database
+                                const colorClasses = stepColors[idx] || stepColors[0]
+
+                                // Extract key metric for each step
+                                let metric = ''
+                                if (stepData.records_received) metric = `${stepData.records_received} records`
+                                else if (stepData.pass_rate) metric = `${stepData.duplicates_removed} dupes removed · ${stepData.pass_rate} pass`
+                                else if (stepData.identity_clusters) metric = `${stepData.identity_clusters} clusters · ${stepData.records_linked} linked`
+                                else if (stepData.golden_records) metric = `${stepData.golden_records} golden records · ${stepData.completeness} complete`
+                                else if (stepData.attribution_model) metric = `${stepData.attribution_model} · ${stepData.active_segments} segments`
+
+                                // Check for comparison data (Before -> After)
+                                const comparisons = Object.entries(stepData)
+                                    .filter(([_, v]: [string, any]) => v && typeof v === 'object' && 'before' in v && 'after' in v)
+                                    .slice(0, 3) // Limit to 3 rows
+
+                                return (
+                                    <motion.div
+                                        key={stepKey}
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: idx * 0.12 }}
+                                        className={cn(
+                                            "flex flex-col gap-2 p-2.5 rounded-lg border",
+                                            colorClasses
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-2.5">
+                                            <StepIcon className="w-4 h-4 shrink-0" />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-[11px] font-bold">{stepData.label}</div>
+                                                <div className="text-[10px] opacity-70 truncate">{metric}</div>
+                                            </div>
+                                            <div className="text-[9px] font-mono opacity-50 shrink-0">✓</div>
+                                        </div>
+
+                                        {/* Comparison Detail View */}
+                                        {comparisons.length > 0 && (
+                                            <div className="bg-black/20 rounded p-2 text-[10px] space-y-1 mt-1">
+                                                {comparisons.map(([key, val]: [string, any]) => (
+                                                    <div key={key} className="grid grid-cols-[1fr,auto,1fr] gap-2 items-center opacity-90">
+                                                        <span className="text-right truncate opacity-60 decoration-current/50 line-through decoration-1">{val.before}</span>
+                                                        <ArrowRight className="w-2.5 h-2.5 opacity-400" />
+                                                        <span className="font-bold truncate opacity-100">{val.after}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                )
+                            })}
+                        </div>
+
+                        {/* Summary badge */}
+                        <div className="flex gap-2 mt-2 pt-2 border-t border-slate-800">
+                            <div className="flex items-center gap-1.5 bg-emerald-950/30 text-emerald-400 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-emerald-900/30">
+                                <CheckCircle className="w-3 h-3" /> Activation-Ready
+                            </div>
+                            <div className="flex items-center gap-1.5 bg-purple-950/30 text-purple-400 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-purple-900/30">
+                                <Fingerprint className="w-3 h-3" /> Identity Resolved
                             </div>
                         </div>
                     </div>

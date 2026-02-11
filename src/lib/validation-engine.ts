@@ -161,6 +161,12 @@ export function validateEdgeConnection(
         }
     }
 
+    // Strict Pipeline Flow Check
+    const flowCheck = validatePipelineFlow(sourceCategory, targetCategory)
+    if (!flowCheck.isValid) {
+        return { isValid: false, errorMessage: flowCheck.message }
+    }
+
     // Find matching allowed edge rule
     const allowedRule = ALLOWED_CATEGORY_EDGES.find(
         rule => rule.source === sourceCategory && rule.target === targetCategory
@@ -246,6 +252,69 @@ export function validateEdgeConnection(
         },
         latencyResult: latencyCheck
     }
+}
+
+// Strict Pipeline Stage Order for Flow Validation
+const STRICT_STAGE_ORDER: NodeCategory[] = [
+    'sources',
+    'collection',
+    'ingestion',
+    'storage_raw',
+    'storage_warehouse',
+    'transform',
+    'mdf', // Hub
+    'identity', // Hub/Identity
+    'analytics',
+    'activation',
+    'destination'
+]
+const STAGE_RANKS: Record<string, number> = {
+    sources: 0,
+    collection: 1,
+    ingestion: 2,
+    storage_raw: 3,
+    storage_warehouse: 4,
+    transform: 5,
+    mdf: 6,
+    identity: 6,
+    governance: 99, // Floating
+    analytics: 7,
+    activation: 7,
+    clean_room: 7,
+    realtime_serving: 7,
+    destination: 8
+}
+
+/**
+ * Validates that a connection follows the strict left-to-right processing flow.
+ * Prevents "time travel" (backward edges) and invalid skipping.
+ */
+export function validatePipelineFlow(
+    sourceCategory: NodeCategory,
+    targetCategory: NodeCategory
+): { isValid: boolean; message?: string } {
+    // Governance can connect anywhere generally (policies in, audit out)
+    if (sourceCategory === 'governance' || targetCategory === 'governance') {
+        return { isValid: true }
+    }
+
+    const sourceRank = STAGE_RANKS[sourceCategory] ?? -1
+    const targetRank = STAGE_RANKS[targetCategory] ?? -1
+
+    if (sourceRank === -1 || targetRank === -1) return { isValid: true } // Unknown categories, be lenient
+
+    // Allow same-stage connections (e.g. Transform -> Transform)
+    if (sourceRank === targetRank) return { isValid: true }
+
+    // Strict Check: Downstream only
+    if (targetRank < sourceRank) {
+        return {
+            isValid: false,
+            message: `Invalid Flow: Cannot connect ${sourceCategory} (Stage ${sourceRank}) backwards to ${targetCategory} (Stage ${targetRank}).`
+        }
+    }
+
+    return { isValid: true }
 }
 
 /**
@@ -1064,4 +1133,60 @@ export function checkNodePrerequisites(
     }
 
     return { met, missing }
+}
+
+// Rule: Pipeline Completeness Check (Pre-flight for Simulation)
+export function validatePipelineCompleteness(nodes: RFNode[]): ValidationResult[] {
+    const results: ValidationResult[] = []
+
+    // Check for essential stages
+    const hasSource = getNodesByCategory(nodes, 'sources').length > 0
+    const hasIngestion = getNodesByCategory(nodes, 'collection').length > 0 || getNodesByCategory(nodes, 'ingestion').length > 0
+    const hasStorage = getNodesByCategory(nodes, 'storage_raw').length > 0 || getNodesByCategory(nodes, 'storage_warehouse').length > 0
+    const hasMdfHub = nodes.some(n => getNodeData(n)?.category === 'mdf' || getNodeData(n)?.nodeRole === 'mdf_hub')
+    const hasActivation = getNodesByCategory(nodes, 'activation').length > 0 || getNodesByCategory(nodes, 'analytics').length > 0
+    const hasDestination = getNodesByCategory(nodes, 'destination').length > 0
+
+    // 1. Critical: Sources
+    if (!hasSource) {
+        results.push({
+            id: 'missing-source',
+            severity: 'error',
+            message: 'Pipeline Empty: You need at least one Data Source (e.g., Marketo, Salesforce) to start.',
+            recommendation: { action: 'Add Source', nodeToAdd: 'salesforce_crm' }
+        })
+    }
+
+    // 2. Critical: Storage/Ingestion
+    if (hasSource && !hasStorage && !hasIngestion) {
+        results.push({
+            id: 'missing-storage',
+            severity: 'error',
+            message: 'Data Gaps: Sources need Ingestion or Storage to land data before it can be used.',
+            recommendation: { action: 'Add Warehouse', nodeToAdd: 'snowflake' }
+        })
+    }
+
+    // 3. Recommended: MDF Hub (The "Brain")
+    if (hasSource && !hasMdfHub) {
+        results.push({
+            id: 'missing-mdf-hub',
+            severity: 'warning',
+            message: 'Missing Core Logic: An MDF Hub is recommended to unify, clean, and resolve identity before activation.',
+            recommendation: { action: 'Add MDF Hub', nodeToAdd: 'mdf_hub' }
+        })
+    }
+
+    // 4. Critical: Destination (if Activation present)
+    const activationNodes = getNodesByCategory(nodes, 'activation')
+    if (activationNodes.length > 0 && !hasDestination) {
+        results.push({
+            id: 'missing-destination',
+            severity: 'error',
+            message: 'Dead End: Activation tools need a Destination (e.g., Sidebar, Slack) to send data to.',
+            recommendation: { action: 'Add Destination', nodeToAdd: 'slack_alerts' }
+        })
+    }
+
+    return results
 }

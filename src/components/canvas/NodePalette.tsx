@@ -3,7 +3,7 @@
 // Node Palette - Left sidebar with draggable nodes
 // Updated for B2B SaaS categories with governance and identity rules
 
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { nodeCatalog, categoryMeta } from '@/data/node-catalog'
 import { isNodeVisibleInProfile, isNodeEmphasizedInProfile } from '@/data/demo-profiles'
 import { useProfileStore } from '@/store/profile-store'
@@ -19,7 +19,7 @@ import {
     ChevronLeft, ChevronRight, GripVertical,
     Database, Zap, Layers, GitMerge, Shield, BarChart2, Send,
     Radio, HardDrive, Server, Code, ExternalLink, Eye, Info,
-    Lock as LockIcon
+    Lock as LockIcon, Search, XCircle
 } from 'lucide-react'
 
 // Category icons (updated for B2B SaaS)
@@ -138,6 +138,8 @@ export default function NodePalette() {
     const { activeProfile } = useProfileStore()
     const { addNode } = useCanvasStore()
     const { isPaletteOpen, setIsPaletteOpen } = useUIStore()
+    const [searchQuery, setSearchQuery] = useState('')
+    const searchInputRef = useRef<HTMLInputElement>(null)
 
     // Group and filter nodes by category (profile-aware)
     const nodesByCategory = useMemo(() => {
@@ -180,7 +182,7 @@ export default function NodePalette() {
     // Separate main pipeline categories from rails
     const pipelineCategories: NodeCategory[] = [
         'sources', 'collection', 'ingestion', 'storage_raw', 'storage_warehouse',
-        'transform', 'identity', 'analytics', 'activation', 'destination', 'clean_room', 'realtime_serving'
+        'transform', 'mdf', 'identity', 'analytics', 'activation', 'destination', 'clean_room', 'realtime_serving'
     ]
     const railCategories: NodeCategory[] = ['governance']
 
@@ -210,7 +212,7 @@ export default function NodePalette() {
                     'absolute left-0 top-16 bottom-4 ml-4 z-20 rounded-2xl overflow-hidden',
                     'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-2xl border border-white/20',
                     'transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)',
-                    isPaletteOpen ? 'w-80 translate-x-0 opacity-100' : 'w-0 -translate-x-full opacity-0'
+                    isPaletteOpen ? 'w-72 lg:w-80 translate-x-0 opacity-100' : 'w-0 -translate-x-full opacity-0'
                 )}
             >
                 <div className="h-full flex flex-col">
@@ -232,12 +234,38 @@ export default function NodePalette() {
                         </Button>
                     </div>
 
+                    {/* Search Bar */}
+                    <div className="px-3 pt-3 pb-1">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            <input
+                                ref={searchInputRef}
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search components..."
+                                className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 placeholder:text-slate-400"
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => { setSearchQuery(''); searchInputRef.current?.focus() }}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                >
+                                    <XCircle className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Node list */}
                     <ScrollArea className="flex-1 px-3">
                         <div className="py-5 space-y-7">
                             {/* Pipeline Categories */}
                             {pipelineCategories.map(category => {
-                                const nodes = nodesByCategory[category]
+                                const query = searchQuery.toLowerCase().trim()
+                                const nodes = query
+                                    ? nodesByCategory[category].filter(n => n.name.toLowerCase().includes(query) || n.id.toLowerCase().includes(query))
+                                    : nodesByCategory[category]
                                 if (nodes.length === 0) return null
 
                                 const meta = categoryMeta[category]
@@ -284,7 +312,10 @@ export default function NodePalette() {
                             </div>
 
                             {railCategories.map(category => {
-                                const nodes = nodesByCategory[category]
+                                const query = searchQuery.toLowerCase().trim()
+                                const nodes = query
+                                    ? nodesByCategory[category].filter(n => n.name.toLowerCase().includes(query) || n.id.toLowerCase().includes(query))
+                                    : nodesByCategory[category]
                                 if (nodes.length === 0) return null
 
                                 return (

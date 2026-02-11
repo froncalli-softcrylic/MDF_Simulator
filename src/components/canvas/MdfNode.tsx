@@ -47,26 +47,28 @@ const iconMap: Record<string, React.ElementType> = {
 
 // Category Colors (Left Border & Icon)
 const categoryColors: Partial<Record<NodeCategory, { border: string; icon: string; bg: string }>> = {
-    sources: { border: 'border-l-cyan-500', icon: 'text-cyan-600', bg: 'bg-cyan-50/50' },
-    collection: { border: 'border-l-purple-500', icon: 'text-purple-600', bg: 'bg-purple-50/50' },
-    ingestion: { border: 'border-l-violet-500', icon: 'text-violet-600', bg: 'bg-violet-50/50' },
-    storage_raw: { border: 'border-l-slate-400', icon: 'text-slate-600', bg: 'bg-slate-50/50' },
-    storage_warehouse: { border: 'border-l-blue-600', icon: 'text-blue-700', bg: 'bg-blue-50/50' },
-    transform: { border: 'border-l-indigo-500', icon: 'text-indigo-600', bg: 'bg-indigo-50/50' },
-    analytics: { border: 'border-l-pink-500', icon: 'text-pink-600', bg: 'bg-pink-50/50' },
-    activation: { border: 'border-l-orange-500', icon: 'text-orange-600', bg: 'bg-orange-50/50' },
-    destination: { border: 'border-l-teal-500', icon: 'text-teal-600', bg: 'bg-teal-50/50' },
-    // Hub
-    mdf: { border: 'border-l-amber-500', icon: 'text-amber-700', bg: 'bg-amber-50/50' },
+    sources: { border: 'border-l-cyan-500', icon: 'text-cyan-600', bg: 'bg-white dark:bg-slate-950' },
+    collection: { border: 'border-l-fuchsia-500', icon: 'text-fuchsia-600', bg: 'bg-white dark:bg-slate-950' }, // Distinct from Violet
+    ingestion: { border: 'border-l-violet-500', icon: 'text-violet-600', bg: 'bg-white dark:bg-slate-950' },
+    storage_raw: { border: 'border-l-slate-400', icon: 'text-slate-600', bg: 'bg-white dark:bg-slate-950' },
+    storage_warehouse: { border: 'border-l-blue-600', icon: 'text-blue-700', bg: 'bg-white dark:bg-slate-950' },
+    transform: { border: 'border-l-indigo-500', icon: 'text-indigo-600', bg: 'bg-white dark:bg-slate-950' },
+    // MDF Hub (Amber - Centerpiece)
+    mdf: { border: 'border-l-amber-500', icon: 'text-amber-700', bg: 'bg-white dark:bg-slate-950' },
     // Rails
-    governance: { border: 'border-l-red-500', icon: 'text-red-700', bg: 'bg-red-50/50' },
-    identity: { border: 'border-l-emerald-500', icon: 'text-emerald-700', bg: 'bg-emerald-50/50' },
-    clean_room: { border: 'border-l-slate-500', icon: 'text-slate-700', bg: 'bg-slate-100/50' },
-    realtime_serving: { border: 'border-l-lime-500', icon: 'text-lime-700', bg: 'bg-lime-50/50' }
+    governance: { border: 'border-l-red-500', icon: 'text-red-700', bg: 'bg-white dark:bg-slate-950' },
+    identity: { border: 'border-l-emerald-500', icon: 'text-emerald-700', bg: 'bg-white dark:bg-slate-950' },
+
+    // Downstream
+    analytics: { border: 'border-l-pink-500', icon: 'text-pink-600', bg: 'bg-white dark:bg-slate-950' },
+    activation: { border: 'border-l-green-500', icon: 'text-green-600', bg: 'bg-white dark:bg-slate-950' }, // Changed from Orange to Green (Action)
+    clean_room: { border: 'border-l-slate-500', icon: 'text-slate-700', bg: 'bg-white dark:bg-slate-950' },
+    realtime_serving: { border: 'border-l-lime-500', icon: 'text-lime-700', bg: 'bg-white dark:bg-slate-950' },
+    destination: { border: 'border-l-teal-500', icon: 'text-teal-600', bg: 'bg-white dark:bg-slate-950' }
 }
 
 // Default fallback
-const defaultColor = { border: 'border-l-slate-400', icon: 'text-slate-600', bg: 'bg-white' }
+const defaultColor = { border: 'border-l-slate-400', icon: 'text-slate-600', bg: 'bg-white dark:bg-slate-950' }
 
 function isNodeHighlightedForOverlay(catalogId: string, overlay: ValueOverlay): boolean {
     if (!overlay) return true

@@ -15,10 +15,10 @@ import { sanitizeEdges } from '@/lib/smart-connect-engine'
 
 const elk = new ELK()
 
-// Node dimensions (match actual rendered size including padding and badges)
-// Node dimensions (match actual rendered size including padding and badges)
 const NODE_WIDTH = 260 // Updated for larger typography
 const NODE_HEIGHT = 160 // Estimated height with larger fonts
+const HUB_WIDTH = 400
+const HUB_HEIGHT = 280
 
 // Spacing constants — generous for readable flowcharts
 const NODE_NODE_SPACING = 140          // Vertical spacing between nodes in same column
@@ -57,23 +57,35 @@ const STAGE_ORDER: PipelineStage[] = [
 
 // Stage to partition index (integers for ELK layered partitioning)
 // Stage to partition index (Hub-Centric Layout)
+// Stage to partition index (Strict Integers for ELK layered partitioning)
+// Forces L->R linear flow: Source(0) -> Collection(1) -> Ingestion(2) -> Raw(3) -> Warehouse(4) -> Transform(5) -> MDF(6) -> Analytics(7) -> Activation(8) -> Dest(9)
 const STAGE_PARTITION: Record<PipelineStage, number> = {
     sources: 0,
     collection: 1,
-    ingestion: 1,
-    storage_raw: 99,       // Handled by Infra Pinning (Bottom)
-    storage_warehouse: 99, // Handled by Infra Pinning (Bottom)
-    transform: 1,
-    mdf_hygiene: 2,        // Internal to Hub
-    mdf: 2,                // HUB CENTER
-    mdf_measurement: 2,    // Internal to Hub
-    identity: 2,           // Internal to Hub
-    governance: 99,        // Handled by Governance Pinning (Top)
-    analytics: 3,
-    activation: 3,
-    clean_room: 3,
-    realtime_serving: 3,
-    destination: 4
+    ingestion: 2,
+    storage_raw: 3,
+    storage_warehouse: 4,
+    transform: 5,
+
+    // MDF HUB (Simulated Center)
+    mdf_hygiene: 6,
+    mdf: 6,
+    mdf_measurement: 6,
+    identity: 6,
+
+    // Downstream
+    analytics: 7,
+    clean_room: 7,
+
+    // Action Layer
+    activation: 8,
+    realtime_serving: 8,
+
+    // Final Destination
+    destination: 9,
+
+    // Pinned separately
+    governance: 99
 }
 
 // Human-readable stage labels (exported for StageLabels component)
@@ -226,7 +238,7 @@ async function runElkWithStageConstraints(
             'elk.direction': 'RIGHT',
             'elk.spacing.nodeNode': String(NODE_NODE_SPACING),
             'elk.layered.spacing.nodeNodeBetweenLayers': String(LAYER_SPACING),
-            'elk.layered.spacing.edgeNodeBetweenLayers': '120', // Increased to reduce overlaps
+            'elk.layered.spacing.edgeNodeBetweenLayers': '180', // Increased for cleaner routing
             'elk.padding': `[top=${TOP_PADDING},left=${LEFT_PADDING},bottom=${BOTTOM_PADDING},right=${RIGHT_PADDING}]`,
             'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF', // Better for straight lines
             'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
@@ -235,7 +247,9 @@ async function runElkWithStageConstraints(
             // Encourage straight long edges
             'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
             // Better edge routing for curves
-            'elk.edgeRouting': 'SPLINES'
+            'elk.edgeRouting': 'SPLINES',
+            'elk.layered.crossingMinimization.forceNodeModelOrder': 'true', // KEY: Respect partition order strictly
+            'elk.layered.nodePlacement.bk.edgeStraightening': 'IMPROVE_STRAIGHTNESS'
         },
         children: elkNodes.map(node => {
             const assignment = assignmentMap.get(node.id)
@@ -243,10 +257,12 @@ async function runElkWithStageConstraints(
                 ? STAGE_PARTITION[assignment.stage]
                 : 5 // Default to transform
 
+            const isHub = assignment?.isIdentityHub || false
+
             return {
                 id: node.id,
-                width: NODE_WIDTH,
-                height: NODE_HEIGHT,
+                width: isHub ? HUB_WIDTH : NODE_WIDTH,
+                height: isHub ? HUB_HEIGHT : NODE_HEIGHT,
                 layoutOptions: {
                     'elk.partitioning.partition': String(partition)
                 }
@@ -353,13 +369,17 @@ function pinInfrastructureBand(
 // STEP 4: CENTER IDENTITY HUB
 // ============================================
 
-function pinIdentityHub(
+function pinMdfCenter(
     nodes: Node[],
     assignments: StageAssignment[],
     positionMap: Map<string, { x: number; y: number }>
 ): void {
-    const hubAssignments = assignments.filter(a => a.isIdentityHub && !a.isGovernance)
-    if (hubAssignments.length === 0) return
+    // Capture ALL MDF-related nodes for centering
+    const mdfAssignments = assignments.filter(a =>
+        (a.stage === 'mdf' || a.stage === 'identity' || a.isIdentityHub) &&
+        !a.isGovernance
+    )
+    if (mdfAssignments.length === 0) return
 
     // Find the vertical center of the main pipeline (excluding governance)
     let minY = Infinity, maxY = -Infinity
@@ -378,7 +398,7 @@ function pinIdentityHub(
 
     // Calculate current hub center
     let hubMinY = Infinity, hubMaxY = -Infinity
-    hubAssignments.forEach(a => {
+    mdfAssignments.forEach(a => {
         const pos = positionMap.get(a.nodeId)
         if (pos) {
             if (pos.y < hubMinY) hubMinY = pos.y
@@ -398,7 +418,7 @@ function pinIdentityHub(
 
     // Otherwise, gently shift them to center
     const offsetY = graphCenterY - hubCenterY
-    hubAssignments.forEach(a => {
+    mdfAssignments.forEach(a => {
         const currentPos = positionMap.get(a.nodeId)
         if (currentPos) {
             positionMap.set(a.nodeId, {
@@ -438,8 +458,11 @@ export function computeStageColumns(
         const a = assignmentMap.get(node.id)
         if (!a || a.isGovernance) continue
         const stage = a.stage
+
         if (!stagePositions.has(stage)) stagePositions.set(stage, [])
+        // Account for node width when finding bounds
         stagePositions.get(stage)!.push(node.position.x)
+        stagePositions.get(stage)!.push(node.position.x + (a.isIdentityHub ? HUB_WIDTH : NODE_WIDTH))
     }
 
     const columns: StageColumn[] = []
@@ -456,8 +479,8 @@ export function computeStageColumns(
             stage,
             label: STAGE_LABELS[stage],
             x: minX - 30,
-            width: Math.max(maxX - minX + NODE_WIDTH + 60, NODE_WIDTH + 60),
-            nodeCount: positions.length
+            width: maxX - minX + 60,
+            nodeCount: positions.length / 2 // Each node pushed 2 positions
         })
     }
 
@@ -545,8 +568,11 @@ export async function semanticAutoLayout(
     // Step 3b: Pin infrastructure at BOTTOM
     pinInfrastructureBand(safeNodes, assignments, positionMap)
 
-    // Step 4: Center identity hub vertically
-    pinIdentityHub(safeNodes, assignments, positionMap)
+    // Step 4: Center MDF Hub vertically
+    pinMdfCenter(safeNodes, assignments, positionMap)
+
+    // Step 5: Enforce Vertical Non-Overlap (The "Ladder" Fix)
+    enforceVerticalNonOverlap(safeNodes, assignments, positionMap)
 
     // Apply positions to nodes
     const layoutedNodes = safeNodes.map(node => {
@@ -561,6 +587,60 @@ export async function semanticAutoLayout(
     })
 
     return layoutedNodes
+}
+
+// ============================================
+// STEP 5: ENFORCE VERTICAL NON-OVERLAP
+// ============================================
+
+function enforceVerticalNonOverlap(
+    nodes: Node[],
+    assignments: StageAssignment[],
+    positionMap: Map<string, { x: number; y: number }>
+): void {
+    // Group nodes by approximate X column (or Stage) to identify stacks
+    // We use the integer partition as the key
+    const columns = new Map<number, string[]>() // partition -> nodeIds[]
+
+    for (const node of nodes) {
+        const assignment = assignments.find(a => a.nodeId === node.id)
+        if (!assignment || assignment.isGovernance || assignment.isInfrastructure || assignment.isIdentityHub) continue
+
+        const partition = STAGE_PARTITION[assignment.stage] || 5
+        if (!columns.has(partition)) columns.set(partition, [])
+        columns.get(partition)!.push(node.id)
+    }
+
+    // Process each column
+    for (const [_, nodeIds] of columns) {
+        if (nodeIds.length <= 1) continue
+
+        // 1. Sort by current Y position (or ID if identical) to respect ELK's relative ordering if it exists
+        nodeIds.sort((aId, bId) => {
+            const posA = positionMap.get(aId)
+            const posB = positionMap.get(bId)
+            if (!posA || !posB) return 0
+            if (Math.abs(posA.y - posB.y) < 5) return aId.localeCompare(bId) // Tie-break
+            return posA.y - posB.y
+        })
+
+        // 2. Stack them with enforced spacing
+        // Find the top-most Y as the starting point
+        let currentY = positionMap.get(nodeIds[0])?.y || TOP_PADDING
+
+        // Ensure strictly increasing Y
+        for (let i = 0; i < nodeIds.length; i++) {
+            const nodeId = nodeIds[i]
+            const pos = positionMap.get(nodeId)
+
+            if (pos) {
+                // Determine height (Hub is taller, but this lopp excludes Hub usually)
+                // We use standard height + spacing
+                positionMap.set(nodeId, { x: pos.x, y: currentY })
+                currentY += NODE_HEIGHT + NODE_NODE_SPACING
+            }
+        }
+    }
 }
 
 /**

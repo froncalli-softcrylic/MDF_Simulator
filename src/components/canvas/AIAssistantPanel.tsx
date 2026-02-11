@@ -1,13 +1,11 @@
 'use client'
 
-// AI Assistant Panel - LLM-powered MDF flow generation assistant
+// AI Assistant Panel - Conversational MDF advisor (Chat-only, no consultant wizard)
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useCanvasStore } from '@/store/canvas-store'
 import { useUIStore } from '@/store/ui-store'
-import { useProfileStore } from '@/store/profile-store'
 import { getNodeById } from '@/data/node-catalog'
-import { getProfileConfig } from '@/data/demo-profiles'
 import { generateId } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -19,10 +17,7 @@ import {
     User,
     Loader2,
     Check,
-    Plus,
-    Sparkles,
-    Shield,
-    ClipboardList
+    Plus
 } from 'lucide-react'
 
 interface Message {
@@ -47,7 +42,7 @@ export default function AIAssistantPanel({
     const [messages, setMessages] = useState<Message[]>([
         {
             role: 'assistant',
-            content: "Hi! I'm your MDF Assistant. Tell me about your data pipeline needs and I'll suggest the right components. For example:\n\n• \"I need to sync HubSpot data to Snowflake\"\n• \"Help me set up a B2B marketing stack\"\n• \"What nodes do I need for identity resolution?\""
+            content: "Hi! I'm your MDF Data Strategy Advisor. I'm here to help you build the right data pipeline for your business.\n\nTo get started, tell me a little about your situation:\n\n• What tools or data sources are you currently using? (e.g. Salesforce, HubSpot, Google Analytics)\n• What are your biggest pain points with your current setup?\n• What are you ultimately trying to achieve?\n\nThe more context you share, the better I can help!"
         }
     ])
     const [input, setInput] = useState('')
@@ -55,38 +50,10 @@ export default function AIAssistantPanel({
     const [appliedSuggestions, setAppliedSuggestions] = useState<Set<number>>(new Set())
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
+    const applySuggestionsRef = useRef<(messageIndex: number, suggestions: Message['suggestions']) => void>(() => { })
 
     const { nodes, edges, addNode, setEdges } = useCanvasStore()
     const { validationResults } = useUIStore()
-    const { activeProfile } = useProfileStore()
-
-    // Onboarding state
-    const [showOnboarding, setShowOnboarding] = useState(true)
-    const [onboardingData, setOnboardingData] = useState({
-        currentStack: '',
-        painPoints: '',
-        goals: ''
-    })
-
-    const handleOnboardingSubmit = useCallback(() => {
-        const { currentStack, painPoints, goals } = onboardingData
-        if (!currentStack.trim() && !painPoints.trim() && !goals.trim()) return
-
-        const prompt = [
-            'Based on my context, propose 2-3 pipeline architecture variants:',
-            currentStack.trim() && `**Current Stack**: ${currentStack.trim()}`,
-            painPoints.trim() && `**Pain Points**: ${painPoints.trim()}`,
-            goals.trim() && `**Goals**: ${goals.trim()}`,
-            '',
-            'For each variant: list the nodes (by catalog ID), explain tradeoffs, and recommend which is best for my situation. Return JSON with nodes and edges arrays I can apply.'
-        ].filter(Boolean).join('\n')
-
-        setShowOnboarding(false)
-        setInput(prompt)
-        setTimeout(() => {
-            inputRef.current?.focus()
-        }, 50)
-    }, [onboardingData])
 
     // Drag functionality
     const [position, setPosition] = useState({ x: 0, y: 0 })
@@ -150,8 +117,6 @@ export default function AIAssistantPanel({
         setIsLoading(true)
 
         try {
-            const profileConfig = getProfileConfig(activeProfile)
-
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -164,14 +129,7 @@ export default function AIAssistantPanel({
                     validationResults: validationResults ? {
                         errors: validationResults.errors.map((e: any) => e.message),
                         warnings: validationResults.warnings.map((w: any) => w.message)
-                    } : null,
-                    profileContext: {
-                        id: profileConfig.id,
-                        name: profileConfig.name,
-                        description: profileConfig.description,
-                        identityStrategy: profileConfig.identityStrategy,
-                        governanceRailNodes: profileConfig.governanceRailNodes
-                    }
+                    } : null
                 })
             })
 
@@ -181,11 +139,21 @@ export default function AIAssistantPanel({
 
             const data = await response.json()
 
+            const newMessageIndex = messages.length + 1 // +1 for user message already added
+
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 content: data.message,
                 suggestions: data.suggestions
             }])
+
+            // AUTO-APPLY: If the response includes suggestions, add them immediately
+            if (data.suggestions?.nodes?.length > 0) {
+                // Small delay to ensure the message state is committed
+                setTimeout(() => {
+                    applySuggestionsRef.current(newMessageIndex, data.suggestions)
+                }, 300)
+            }
         } catch (error) {
             setMessages(prev => [...prev, {
                 role: 'assistant',
@@ -194,7 +162,7 @@ export default function AIAssistantPanel({
         } finally {
             setIsLoading(false)
         }
-    }, [input, isLoading, messages, nodes, edges, validationResults, activeProfile])
+    }, [input, isLoading, messages, nodes, edges, validationResults])
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -203,29 +171,11 @@ export default function AIAssistantPanel({
         }
     }, [sendMessage])
 
-    const handleQuickAction = (action: 'review' | 'fix' | 'identity') => {
-        let text = ''
-        switch (action) {
-            case 'review':
-                text = "Review my current architecture against the active profile. Identify gaps and suggest improvements."
-                break
-            case 'fix':
-                text = "Explain the current validation errors and provide a JSON fix plan."
-                break
-            case 'identity':
-                text = "What is the best Identity Resolution strategy for this stack?"
-                break
-        }
-        setInput(text)
-        // Focus input
-        setTimeout(() => inputRef.current?.focus(), 10)
-    }
-
-    const applySuggestions = useCallback((messageIndex: number, suggestions: Message['suggestions']) => {
+    const applySuggestions = useCallback(async (messageIndex: number, suggestions: Message['suggestions']) => {
         if (!suggestions) return
 
-        // Add nodes
-        if (suggestions.nodes) {
+        // Add nodes with staggered positions
+        if (suggestions.nodes && suggestions.nodes.length > 0) {
             suggestions.nodes.forEach((node, i) => {
                 const catalogNode = getNodeById(node.catalogId)
                 if (catalogNode) {
@@ -233,55 +183,74 @@ export default function AIAssistantPanel({
                         node.catalogId,
                         node.name || catalogNode.name,
                         catalogNode.category,
-                        { x: 100 + i * 200, y: 200 }
+                        { x: 200 + i * 250, y: 150 + (i % 3) * 150 }
                     )
                 }
             })
         }
 
-        // Add edges (after a small delay to ensure nodes exist)
+        // Add edges after nodes are in the store
         if (suggestions.edges && suggestions.edges.length > 0) {
-            setTimeout(() => {
-                const currentNodes = useCanvasStore.getState().nodes
-                const currentEdges = useCanvasStore.getState().edges
+            // Small delay to ensure nodes are committed to store
+            await new Promise(resolve => setTimeout(resolve, 150))
 
-                const newEdges = suggestions.edges!
-                    .filter(e => {
-                        const sourceExists = currentNodes.some(n => n.data?.catalogId === e.source || n.id === e.source)
-                        const targetExists = currentNodes.some(n => n.data?.catalogId === e.target || n.id === e.target)
-                        return sourceExists && targetExists
-                    })
-                    .map(e => ({
-                        id: `edge-${generateId()}`,
-                        source: currentNodes.find(n => n.data?.catalogId === e.source)?.id || e.source,
-                        target: currentNodes.find(n => n.data?.catalogId === e.target)?.id || e.target,
-                        type: 'smoothstep'
-                    }))
+            const currentNodes = useCanvasStore.getState().nodes
+            const currentEdges = useCanvasStore.getState().edges
 
-                if (newEdges.length > 0) {
-                    setEdges([...currentEdges, ...newEdges])
-                }
-            }, 100)
+            const newEdges = suggestions.edges
+                .filter(e => {
+                    const sourceExists = currentNodes.some(n => (n.data as any)?.catalogId === e.source || n.id === e.source)
+                    const targetExists = currentNodes.some(n => (n.data as any)?.catalogId === e.target || n.id === e.target)
+                    return sourceExists && targetExists
+                })
+                .map(e => ({
+                    id: `edge-${generateId()}`,
+                    source: currentNodes.find(n => (n.data as any)?.catalogId === e.source)?.id || e.source,
+                    target: currentNodes.find(n => (n.data as any)?.catalogId === e.target)?.id || e.target,
+                    type: 'smoothstep'
+                }))
+
+            if (newEdges.length > 0) {
+                setEdges([...currentEdges, ...newEdges])
+            }
+        }
+
+        // Trigger auto-layout after everything is added
+        try {
+            await new Promise(resolve => setTimeout(resolve, 200))
+            const { semanticAutoLayout } = await import('@/lib/semantic-layout-engine')
+            const { nodes: allNodes, edges: allEdges, setNodes } = useCanvasStore.getState()
+            const layoutedNodes = await semanticAutoLayout(allNodes, allEdges)
+            setNodes(layoutedNodes)
+        } catch (e) {
+            // Layout is optional, don't block the apply
         }
 
         setAppliedSuggestions(prev => new Set([...prev, messageIndex]))
     }, [addNode, setEdges])
+
+    // Keep ref in sync so sendMessage can call latest applySuggestions
+    useEffect(() => {
+        applySuggestionsRef.current = applySuggestions
+    }, [applySuggestions])
 
     return (
         <div
             className={cn(
                 'absolute top-4 right-4 z-40',
                 'bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-200',
-                'w-[400px] h-[500px] flex flex-col overflow-hidden',
+                'w-[min(450px,calc(100vw-2rem))] h-[min(600px,calc(100vh-6rem))] flex flex-col overflow-hidden',
                 position.x === 0 && position.y === 0 && 'animate-in slide-in-from-right-4 fade-in duration-300',
                 isDragging && 'cursor-grabbing',
                 className
             )}
             style={{
-                transform: `translate(${position.x}px, ${position.y}px)`
+                transform: `translate(${position.x}px, ${position.y}px)`,
+                maxWidth: 'calc(100vw - 2rem)',
+                maxHeight: 'calc(100vh - 6rem)'
             }}
         >
-            {/* Header - Drag Handle */}
+            {/* Header */}
             <div
                 onMouseDown={handleMouseDown}
                 className={cn(
@@ -293,20 +262,15 @@ export default function AIAssistantPanel({
             >
                 <div className="flex items-center gap-2">
                     <GripHorizontal className="w-4 h-4 text-slate-400" />
-                    <Bot className="w-5 h-5 text-purple-500" />
-                    <span className="font-medium text-slate-800">
-                        MDF Assistant
-                    </span>
-                    <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
-                        AI
-                    </span>
+                    <Bot className="w-5 h-5 text-purple-600" />
+                    <span className="font-semibold text-slate-800">MDF Advisor</span>
                 </div>
                 <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
                     <X className="w-4 h-4" />
                 </button>
             </div>
 
-            {/* Messages */}
+            {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map((message, index) => (
                     <div key={index} className={cn(
@@ -319,20 +283,13 @@ export default function AIAssistantPanel({
                                 ? "bg-purple-100 text-purple-600"
                                 : "bg-blue-100 text-blue-600"
                         )}>
-                            {message.role === 'assistant' ? (
-                                <Bot className="w-4 h-4" />
-                            ) : (
-                                <User className="w-4 h-4" />
-                            )}
+                            {message.role === 'assistant' ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
                         </div>
                         <div className={cn(
                             "flex-1 rounded-lg px-3 py-2 text-sm",
-                            message.role === 'assistant'
-                                ? "bg-slate-50 text-slate-700"
-                                : "bg-blue-500 text-white"
+                            message.role === 'assistant' ? "bg-slate-50 text-slate-700" : "bg-blue-500 text-white"
                         )}>
                             <div className="whitespace-pre-wrap">{message.content}</div>
-
                             {/* Suggestions Apply Button */}
                             {message.suggestions && (message.suggestions.nodes?.length || 0) > 0 && (
                                 <div className="mt-3 pt-3 border-t border-slate-200">
@@ -348,7 +305,7 @@ export default function AIAssistantPanel({
                                             className="w-full bg-purple-500 hover:bg-purple-600"
                                         >
                                             <Plus className="w-4 h-4 mr-2" />
-                                            Add {message.suggestions.nodes?.length} node(s) to canvas
+                                            Add {message.suggestions.nodes?.length} component(s) to workspace
                                         </Button>
                                     )}
                                 </div>
@@ -356,7 +313,6 @@ export default function AIAssistantPanel({
                         </div>
                     </div>
                 ))}
-
                 {isLoading && (
                     <div className="flex gap-3">
                         <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
@@ -368,73 +324,11 @@ export default function AIAssistantPanel({
                         </div>
                     </div>
                 )}
-
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Onboarding Form */}
-            {showOnboarding && messages.length <= 1 && (
-                <div className="border-t border-slate-100 bg-gradient-to-b from-purple-50/50 to-white p-3 space-y-2">
-                    <div className="flex items-center gap-1.5 mb-1">
-                        <ClipboardList className="w-3.5 h-3.5 text-purple-500" />
-                        <span className="text-xs font-semibold text-purple-700">Quick Onboarding</span>
-                        <button onClick={() => setShowOnboarding(false)} className="ml-auto text-xs text-slate-400 hover:text-slate-600">Skip</button>
-                    </div>
-                    <input
-                        type="text"
-                        value={onboardingData.currentStack}
-                        onChange={(e) => setOnboardingData(prev => ({ ...prev, currentStack: e.target.value }))}
-                        placeholder="Current stack (e.g., Salesforce, HubSpot, Snowflake...)"
-                        className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-400"
-                    />
-                    <input
-                        type="text"
-                        value={onboardingData.painPoints}
-                        onChange={(e) => setOnboardingData(prev => ({ ...prev, painPoints: e.target.value }))}
-                        placeholder="Pain points (e.g., no unified identity, manual data syncs...)"
-                        className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-400"
-                    />
-                    <input
-                        type="text"
-                        value={onboardingData.goals}
-                        onChange={(e) => setOnboardingData(prev => ({ ...prev, goals: e.target.value }))}
-                        placeholder="Goals (e.g., ABM activation, reduce time-to-insight...)"
-                        className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-400"
-                    />
-                    <Button
-                        size="sm"
-                        className="w-full h-7 text-xs bg-purple-500 hover:bg-purple-600"
-                        onClick={handleOnboardingSubmit}
-                        disabled={!onboardingData.currentStack.trim() && !onboardingData.painPoints.trim() && !onboardingData.goals.trim()}
-                    >
-                        <Sparkles className="w-3 h-3 mr-1" />
-                        Generate Pipeline Suggestions
-                    </Button>
-                </div>
-            )}
-
-            {/* Quick Actions */}
-            <div className="px-4 py-2 border-t border-slate-100 bg-slate-50/50 flex gap-2 overflow-x-auto no-scrollbar">
-                <Button variant="outline" size="sm" className="h-7 text-xs whitespace-nowrap bg-white" onClick={() => handleQuickAction('review')}>
-                    <Sparkles className="w-3 h-3 mr-1 text-purple-500" /> Full Review
-                </Button>
-                {validationResults && validationResults.errors.length > 0 && (
-                    <Button variant="outline" size="sm" className="h-7 text-xs whitespace-nowrap bg-white border-red-200 text-red-700 hover:bg-red-50" onClick={() => handleQuickAction('fix')}>
-                        <Shield className="w-3 h-3 mr-1" /> Fix Errors
-                    </Button>
-                )}
-                <Button variant="outline" size="sm" className="h-7 text-xs whitespace-nowrap bg-white" onClick={() => handleQuickAction('identity')}>
-                    <User className="w-3 h-3 mr-1 text-blue-500" /> Identity Strategy
-                </Button>
-                {!showOnboarding && (
-                    <Button variant="outline" size="sm" className="h-7 text-xs whitespace-nowrap bg-white" onClick={() => setShowOnboarding(true)}>
-                        <ClipboardList className="w-3 h-3 mr-1 text-purple-500" /> Onboarding
-                    </Button>
-                )}
-            </div>
-
-            {/* Input */}
-            <div className="p-4 pt-2 bg-slate-50">
+            {/* Chat Input */}
+            <div className="p-4 pt-2 bg-slate-50 border-t border-slate-100">
                 <div className="flex gap-2">
                     <input
                         ref={inputRef}
@@ -442,7 +336,7 @@ export default function AIAssistantPanel({
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Describe your data pipeline needs..."
+                        placeholder="Tell me about your data challenges..."
                         className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         disabled={isLoading}
                     />

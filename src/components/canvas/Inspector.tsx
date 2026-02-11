@@ -85,13 +85,13 @@ export default function Inspector() {
                     {/* Header */}
                     <div className="flex items-center justify-between p-3 md:p-4 border-b">
                         <div className="min-w-0 flex-1">
-                            <h2 className="font-bold text-lg truncate">{catalogNode.name}</h2>
+                            <h2 className="font-bold text-xl truncate">{catalogNode.name}</h2>
                             <div className="flex items-center gap-2 mt-1.5">
                                 <Badge variant="secondary" className="text-xs">
                                     {catalogNode.category}
                                 </Badge>
                                 {catalogNode.nodeRole && (
-                                    <Badge variant="outline" className="text-xs border-slate-300 text-slate-500">
+                                    <Badge variant="outline" className="text-sm border-slate-300 text-slate-500">
                                         {catalogNode.nodeRole.replace('_', ' ')}
                                     </Badge>
                                 )}
@@ -110,7 +110,7 @@ export default function Inspector() {
                                 <div className="space-y-2">
                                     <button
                                         onClick={() => toggleSection('strategic')}
-                                        className="w-full flex items-center justify-between text-sm font-semibold text-primary hover:opacity-80 transition-opacity"
+                                        className="w-full flex items-center justify-between text-base font-semibold text-primary hover:opacity-80 transition-opacity"
                                     >
                                         <div className="flex items-center gap-2">
                                             <TrendingUp className="w-4 h-4" />
@@ -121,17 +121,17 @@ export default function Inspector() {
 
                                     {expandedSections.strategic && (
                                         <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 shadow-sm animate-in fade-in slide-in-from-top-1 duration-200">
-                                            <p className="text-xs font-medium leading-relaxed mb-3 text-slate-700 dark:text-slate-300">
+                                            <p className="text-sm font-medium leading-relaxed mb-3 text-slate-700 dark:text-slate-300">
                                                 {catalogNode.businessValue.proposition}
                                             </p>
                                             <div className="flex flex-wrap gap-2">
                                                 <Badge variant="outline" className={cn(
-                                                    "text-[10px] h-5 border shadow-none",
+                                                    "text-xs h-6 border shadow-none",
                                                     catalogNode.businessValue.roi === 'high' ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-50 text-slate-600"
                                                 )} title="Estimated return on investment for this component">
                                                     ROI: {catalogNode.businessValue.roi.toUpperCase()}
                                                 </Badge>
-                                                <Badge variant="outline" className="text-[10px] h-5 bg-purple-50 text-purple-700 border-purple-200 shadow-none" title="Overall business impact level">
+                                                <Badge variant="outline" className="text-xs h-6 bg-purple-50 text-purple-700 border-purple-200 shadow-none" title="Overall business impact level">
                                                     Impact: {catalogNode.businessValue.impact}
                                                 </Badge>
                                             </div>
@@ -145,7 +145,7 @@ export default function Inspector() {
                             <div className="space-y-2">
                                 <button
                                     onClick={() => toggleSection('technical')}
-                                    className="w-full flex items-center justify-between text-sm font-semibold text-primary hover:opacity-80 transition-opacity"
+                                    className="w-full flex items-center justify-between text-base font-semibold text-primary hover:opacity-80 transition-opacity"
                                 >
                                     <div className="flex items-center gap-2">
                                         <Activity className="w-4 h-4" />
@@ -158,12 +158,12 @@ export default function Inspector() {
                                     <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 shadow-sm space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
                                         {/* Latency */}
                                         <div className="space-y-1.5">
-                                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                                 <Zap className="w-3.5 h-3.5" /> Latency Support
                                             </div>
                                             <div className="flex gap-1.5">
                                                 {(catalogNode.supportedLatency || ['batch']).map(l => (
-                                                    <Badge key={l} variant="secondary" className="text-[10px] h-5 px-2 capitalize">
+                                                    <Badge key={l} variant="secondary" className="text-xs h-6 px-2.5 capitalize">
                                                         {l}
                                                     </Badge>
                                                 ))}
@@ -172,7 +172,7 @@ export default function Inspector() {
 
                                         {/* Identifiers */}
                                         <div className="space-y-1.5">
-                                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                                 <Fingerprint className="w-3.5 h-3.5" /> Identifiers
                                             </div>
                                             <div className="flex flex-wrap gap-1.5">
@@ -184,7 +184,7 @@ export default function Inspector() {
 
                                                     return ids.length > 0 ? (
                                                         ids.map(id => (
-                                                            <Badge key={id} variant="outline" className="text-[10px] h-5 px-2 bg-white">
+                                                            <Badge key={id} variant="outline" className="text-xs h-6 px-2.5 bg-white">
                                                                 {id.replace('_', ' ')}
                                                             </Badge>
                                                         ))
@@ -198,12 +198,12 @@ export default function Inspector() {
                                         {/* NEW: Identity Keys */}
                                         {catalogNode.joinKeys && catalogNode.joinKeys.length > 0 && (
                                             <div className="space-y-1.5">
-                                                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                                     <Key className="w-3.5 h-3.5" /> Identity Keys
                                                 </div>
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {catalogNode.joinKeys.map(key => (
-                                                        <Badge key={key} variant="outline" className="text-[10px] h-5 px-2 bg-slate-100 text-slate-700 border-slate-200">
+                                                        <Badge key={key} variant="outline" className="text-xs h-6 px-2.5 bg-slate-100 text-slate-700 border-slate-200">
                                                             {key}
                                                         </Badge>
                                                     ))}
@@ -214,12 +214,12 @@ export default function Inspector() {
                                         {/* NEW: Data Concepts */}
                                         {catalogNode.dataConcepts && catalogNode.dataConcepts.length > 0 && (
                                             <div className="space-y-1.5">
-                                                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                                     <Layers className="w-3.5 h-3.5" /> Data Concepts
                                                 </div>
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {catalogNode.dataConcepts.map(c => (
-                                                        <Badge key={c} variant="outline" className="text-[10px] h-5 px-2 bg-indigo-50 text-indigo-700 border-indigo-200 capitalize">
+                                                        <Badge key={c} variant="outline" className="text-xs h-6 px-2.5 bg-indigo-50 text-indigo-700 border-indigo-200 capitalize">
                                                             {c.replace(/_/g, ' ')}
                                                         </Badge>
                                                     ))}
@@ -230,12 +230,12 @@ export default function Inspector() {
                                         {/* NEW: Hygiene Rules */}
                                         {catalogNode.hygieneRules && catalogNode.hygieneRules.length > 0 && (
                                             <div className="space-y-1.5">
-                                                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                                     <Sparkles className="w-3.5 h-3.5" /> Hygiene Rules
                                                 </div>
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {catalogNode.hygieneRules.map(r => (
-                                                        <Badge key={r} variant="outline" className="text-[10px] h-5 px-2 bg-purple-50 text-purple-700 border-purple-200">
+                                                        <Badge key={r} variant="outline" className="text-xs h-6 px-2.5 bg-purple-50 text-purple-700 border-purple-200">
                                                             {r}
                                                         </Badge>
                                                     ))}
@@ -261,7 +261,7 @@ export default function Inspector() {
                                         {/* Identity Strategy */}
                                         {catalogNode.identityStrategyOptions && (
                                             <div className="space-y-1.5">
-                                                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                                     <Users className="w-3.5 h-3.5" /> Identity Strategy
                                                 </div>
                                                 <div className="flex flex-wrap gap-1.5">
@@ -277,7 +277,7 @@ export default function Inspector() {
                                         {/* Profile Data Classes */}
                                         {catalogNode.profileDataClasses && (
                                             <div className="space-y-1.5">
-                                                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                                     <HardDrive className="w-3.5 h-3.5" /> Profile Data
                                                 </div>
                                                 <div className="flex flex-wrap gap-1.5">
@@ -293,7 +293,7 @@ export default function Inspector() {
                                         {/* Measurement Outputs */}
                                         {catalogNode.measurementOutputs && (
                                             <div className="space-y-1.5">
-                                                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                                     <BarChart2 className="w-3.5 h-3.5" /> Measurement
                                                 </div>
                                                 <div className="flex flex-wrap gap-1.5">
@@ -312,8 +312,8 @@ export default function Inspector() {
 
                             {/* Description */}
                             <div>
-                                <h3 className="text-sm font-medium mb-2 text-muted-foreground">What it is</h3>
-                                <p className="text-sm leading-relaxed">{catalogNode.description}</p>
+                                <h3 className="text-base font-semibold mb-2 text-muted-foreground">What it is</h3>
+                                <p className="text-base leading-relaxed">{catalogNode.description}</p>
                             </div>
 
                             {/* When to use */}
@@ -321,8 +321,8 @@ export default function Inspector() {
                                 <>
                                     <Separator />
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2 text-muted-foreground">When to use</h3>
-                                        <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-2 rounded-md border border-emerald-100 dark:border-emerald-800 leading-relaxed">
+                                        <h3 className="text-base font-semibold mb-2 text-muted-foreground">When to use</h3>
+                                        <p className="text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-2.5 rounded-md border border-emerald-100 dark:border-emerald-800 leading-relaxed">
                                             {catalogNode.whenToUse}
                                         </p>
                                     </div>
@@ -331,12 +331,12 @@ export default function Inspector() {
 
                             <Separator />
                             <div>
-                                <h3 className="text-sm font-medium mb-2 text-muted-foreground">Why it matters</h3>
-                                <ul className="space-y-2">
+                                <h3 className="text-base font-semibold mb-2 text-muted-foreground">Why it matters</h3>
+                                <ul className="space-y-3">
                                     {(catalogNode.whyItMatters || []).map((point, i) => (
-                                        <li key={i} className="flex items-start gap-2 text-xs">
-                                            <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                                            <span className="leading-snug">{point}</span>
+                                        <li key={i} className="flex items-start gap-2 text-sm">
+                                            <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+                                            <span className="leading-relaxed">{point}</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -346,8 +346,8 @@ export default function Inspector() {
 
                             {/* Enables */}
                             <div>
-                                <h3 className="text-sm font-medium mb-2 text-muted-foreground">Enables</h3>
-                                <div className="flex flex-wrap gap-2">
+                                <h3 className="text-base font-semibold mb-2 text-muted-foreground">Enables</h3>
+                                <div className="flex flex-wrap gap-2.5">
                                     {(catalogNode.enables || []).map(tag => {
                                         const config = (enablesConfig as Record<string, { icon: React.ElementType; color: string; bg: string }>)[tag]
                                         const IconComp = config?.icon ?? Zap
@@ -355,12 +355,12 @@ export default function Inspector() {
                                             <div
                                                 key={tag}
                                                 className={cn(
-                                                    'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium',
+                                                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold',
                                                     config?.bg || 'bg-secondary',
                                                     config?.color || 'text-foreground'
                                                 )}
                                             >
-                                                {React.createElement(IconComp, { className: 'w-3 h-3' })}
+                                                {React.createElement(IconComp, { className: 'w-4 h-4' })}
                                                 {tag}
                                             </div>
                                         )
@@ -376,12 +376,12 @@ export default function Inspector() {
                                         <h3 className="text-sm font-medium mb-2 text-muted-foreground">I/O Ports</h3>
                                         {catalogNode.inputs.length > 0 && (
                                             <div className="mb-3">
-                                                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Inputs</div>
-                                                <div className="space-y-1.5">
+                                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Inputs</div>
+                                                <div className="space-y-2">
                                                     {catalogNode.inputs.map(port => (
-                                                        <div key={port.id} className="flex items-center justify-between text-xs">
+                                                        <div key={port.id} className="flex items-center justify-between text-sm">
                                                             <span className="text-slate-600 dark:text-slate-300 truncate">{port.name}</span>
-                                                            <Badge variant="outline" className="text-[10px] h-5 px-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800">
+                                                            <Badge variant="outline" className="text-xs h-6 px-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800">
                                                                 {port.type.replace(/_/g, ' ')}
                                                             </Badge>
                                                         </div>
@@ -391,12 +391,12 @@ export default function Inspector() {
                                         )}
                                         {catalogNode.outputs.length > 0 && (
                                             <div>
-                                                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Outputs</div>
-                                                <div className="space-y-1.5">
+                                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Outputs</div>
+                                                <div className="space-y-2">
                                                     {catalogNode.outputs.map(port => (
-                                                        <div key={port.id} className="flex items-center justify-between text-xs">
+                                                        <div key={port.id} className="flex items-center justify-between text-sm">
                                                             <span className="text-slate-600 dark:text-slate-300 truncate">{port.name}</span>
-                                                            <Badge variant="outline" className="text-[10px] h-5 px-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
+                                                            <Badge variant="outline" className="text-xs h-6 px-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
                                                                 {port.type.replace(/_/g, ' ')}
                                                             </Badge>
                                                         </div>
@@ -425,12 +425,12 @@ export default function Inspector() {
                                     {expandedSections.sampleData && (
                                         <div className="p-4 bg-white dark:bg-slate-950/30 border-t border-slate-100 dark:border-slate-800 animate-slide-in-from-top-2">
                                             <div className="space-y-3">
-                                                <div className="text-xs text-slate-500 dark:text-slate-400 italic">
+                                                <div className="text-sm text-slate-500 dark:text-slate-400 italic">
                                                     Showing {catalogNode.sampleData.length} example records for {catalogNode.name}:
                                                 </div>
                                                 <div className="space-y-2">
                                                     {catalogNode.sampleData.map((record, idx) => (
-                                                        <div key={idx} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-3 shadow-sm text-xs font-mono overflow-x-auto">
+                                                        <div key={idx} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-3 shadow-sm text-sm font-mono overflow-x-auto">
                                                             <div className="flex flex-col gap-1">
                                                                 {Object.entries(record).map(([key, value]) => (
                                                                     <div key={key} className="flex gap-2">
@@ -475,16 +475,16 @@ export default function Inspector() {
                                     <>
                                         <Separator />
                                         <div>
-                                            <h3 className="text-sm font-medium mb-2 text-muted-foreground">Lineage</h3>
+                                            <h3 className="text-base font-semibold mb-2 text-muted-foreground">Lineage</h3>
                                             {upstreamNodes.length > 0 && (
                                                 <div className="mb-3">
-                                                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Upstream ({upstreamNodes.length})</div>
+                                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Upstream ({upstreamNodes.length})</div>
                                                     <div className="space-y-1.5">
                                                         {upstreamNodes.map(n => {
                                                             const cId = (n.data as any)?.catalogId
                                                             const cNode = cId ? getNodeById(cId) : null
                                                             return (
-                                                                <div key={n.id} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                                                                <div key={n.id} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                                                                     <ArrowLeft className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                                                                     <span className="truncate">{cNode?.name || (n.data as any)?.label || n.id}</span>
                                                                 </div>
@@ -495,13 +495,13 @@ export default function Inspector() {
                                             )}
                                             {downstreamNodes.length > 0 && (
                                                 <div>
-                                                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Downstream ({downstreamNodes.length})</div>
+                                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Downstream ({downstreamNodes.length})</div>
                                                     <div className="space-y-1.5">
                                                         {downstreamNodes.map(n => {
                                                             const cId = (n.data as any)?.catalogId
                                                             const cNode = cId ? getNodeById(cId) : null
                                                             return (
-                                                                <div key={n.id} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                                                                <div key={n.id} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                                                                     <ArrowRight className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                                                                     <span className="truncate">{cNode?.name || (n.data as any)?.label || n.id}</span>
                                                                 </div>
@@ -520,12 +520,12 @@ export default function Inspector() {
                                 <>
                                     <Separator />
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2 text-muted-foreground">Prerequisites</h3>
+                                        <h3 className="text-base font-semibold mb-2 text-muted-foreground">Prerequisites</h3>
                                         <div className="space-y-2">
                                             {prerequisites.met.map(prereqId => {
                                                 const prereqNode = getNodeById(prereqId)
                                                 return (
-                                                    <div key={prereqId} className="flex items-center gap-2 text-xs">
+                                                    <div key={prereqId} className="flex items-center gap-2 text-sm">
                                                         <CheckCircle className="w-4 h-4 text-green-500" />
                                                         <span className="truncate flex-1">{prereqNode?.name || prereqId}</span>
                                                         <Badge variant="outline" className="text-[10px] h-5 flex-shrink-0">Met</Badge>
@@ -535,7 +535,7 @@ export default function Inspector() {
                                             {prerequisites.missing.map(prereqId => {
                                                 const prereqNode = getNodeById(prereqId)
                                                 return (
-                                                    <div key={prereqId} className="flex items-center gap-2 text-xs">
+                                                    <div key={prereqId} className="flex items-center gap-2 text-sm">
                                                         <XCircle className="w-4 h-4 text-destructive" />
                                                         <span className="text-muted-foreground truncate flex-1">{prereqNode?.name || prereqId}</span>
                                                         <Badge variant="destructive" className="text-[10px] h-5 flex-shrink-0">Missing</Badge>
@@ -552,17 +552,17 @@ export default function Inspector() {
                                 <>
                                     <Separator />
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2 text-muted-foreground">Recommended Next</h3>
+                                        <h3 className="text-base font-semibold mb-2 text-muted-foreground">Recommended Next</h3>
                                         <div className="space-y-1.5">
                                             {recommendedNodes.slice(0, 3).map(node => (
                                                 <Button
                                                     key={node.id}
                                                     variant="outline"
                                                     size="sm"
-                                                    className="w-full justify-start gap-2 text-xs h-8"
+                                                    className="w-full justify-start gap-2 text-sm h-10"
                                                     onClick={() => handleAddRecommended(node.id, node.name, node.category)}
                                                 >
-                                                    <Plus className="w-3.5 h-3.5" />
+                                                    <Plus className="w-4 h-4" />
                                                     <span className="truncate">{node.name}</span>
                                                 </Button>
                                             ))}
@@ -576,15 +576,15 @@ export default function Inspector() {
                                 <>
                                     <Separator />
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2 text-muted-foreground">Case Studies</h3>
+                                        <h3 className="text-base font-semibold mb-2 text-muted-foreground">Case Studies</h3>
                                         <div className="space-y-3">
                                             {(catalogNode.proofPoints || []).slice(0, 2).map((proof: any) => (
                                                 <Card key={proof.id} className="bg-muted/50">
                                                     <CardHeader className="pb-1.5 pt-3 px-3">
-                                                        <CardTitle className="text-xs font-semibold">{proof.title}</CardTitle>
+                                                        <CardTitle className="text-sm font-bold">{proof.title}</CardTitle>
                                                     </CardHeader>
                                                     <CardContent className="px-3 pb-3">
-                                                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{proof.description}</p>
+                                                        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{proof.description}</p>
                                                     </CardContent>
                                                 </Card>
                                             ))}

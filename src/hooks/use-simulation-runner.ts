@@ -63,7 +63,6 @@ function getPayloadForCategory(category: string, nodeLabel: string): any {
                 }
             }
         case 'transform':
-        case 'mdf':
         case 'identity':
             return {
                 diff: {
@@ -71,6 +70,45 @@ function getPayloadForCategory(category: string, nodeLabel: string): any {
                     lastName: { original: MESSY_PROFILE.lastName, new: CLEAN_PROFILE.lastName },
                     email: { original: MESSY_PROFILE.email, new: CLEAN_PROFILE.email },
                     phone: { original: MESSY_PROFILE.phone, new: CLEAN_PROFILE.phone }
+                }
+            }
+        case 'mdf':
+            return {
+                mdf_pipeline: {
+                    step1_ingest: {
+                        label: 'Data Ingestion',
+                        records_received: '4,200',
+                        sources: ['CRM', 'Marketo', 'Web Events', 'Billing'],
+                        latency: 'Batch + Real-time'
+                    },
+                    step2_hygiene: {
+                        label: 'Data Hygiene',
+                        phone: { before: '1234567890', after: '(123) 456-7890', rule: 'E.164 Format' },
+                        name: { before: 'john DOE', after: 'John Doe', rule: 'Title Case' },
+                        email: { before: 'JOHN.DOE@GMAIL.com', after: 'john.doe@gmail.com', rule: 'Lowercase' },
+                        nulls_handled: 12,
+                        duplicates_removed: 38,
+                        pass_rate: '94%'
+                    },
+                    step3_identity: {
+                        label: 'Identity Resolution',
+                        keys_matched: ['email', 'phone', 'crm_id'],
+                        records_linked: '1,840',
+                        identity_clusters: '1,200',
+                        strategy: 'Deterministic (Email + Phone)'
+                    },
+                    step4_unified_profile: {
+                        label: 'Unified Profile',
+                        golden_records: '1,200',
+                        data_classes: ['Behavioral', 'Transactional', 'Marketing', 'Consent'],
+                        completeness: '94%'
+                    },
+                    step5_measurement: {
+                        label: 'Measurement',
+                        attribution_model: 'Multi-Touch',
+                        active_segments: 12,
+                        activation_ready: true
+                    }
                 }
             }
         case 'analytics':

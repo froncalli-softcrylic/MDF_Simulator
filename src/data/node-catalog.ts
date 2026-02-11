@@ -110,6 +110,67 @@ export const nodeCatalog: CatalogNode[] = [
     // SOURCES - B2B SaaS Data Origins
     // ==========================================================
 
+    // Legacy / Anti-Patterns (For Consultant Mode Swaps)
+    {
+        id: 'manual_csv',
+        name: 'Manual CSV Uploads',
+        category: 'sources',
+        nodeRole: 'source',
+        stage: 'sources',
+        icon: 'file-text',
+        vendorProfileAvailability: [],
+        description: 'Manual data exports and uploads (High effort, low reliability).',
+        whenToUse: 'Never recommended for production pipelines.',
+        whyItMatters: [
+            'Prone to human error',
+            'No real-time data',
+            'Security risk'
+        ],
+        inputs: [],
+        outputs: [{ id: 'records_out', name: 'Raw Records', type: 'raw_records' }],
+        prerequisites: [],
+        enables: [],
+        recommendedNext: ['fivetran'],
+        b2bSpecific: true,
+        complexity: 1,
+        costEstimate: 'low',
+        supportedLatency: ['batch'],
+        businessValue: {
+            proposition: 'Manual process that bottlenecks data availability.',
+            impact: 'efficiency',
+            roi: 'low'
+        }
+    },
+    {
+        id: 'legacy_script',
+        name: 'Legacy Tracking Script',
+        category: 'collection',
+        nodeRole: 'collector',
+        stage: 'collection',
+        icon: 'code',
+        vendorProfileAvailability: [],
+        description: 'Hardcoded, untyped tracking scripts scattered across codebase.',
+        whenToUse: 'Legacy systems only.',
+        whyItMatters: [
+            'Hard to maintain',
+            'Inconsistent data schemas',
+            'Developer bottleneck'
+        ],
+        inputs: [],
+        outputs: [{ id: 'events_out', name: 'Raw Events', type: 'raw_events' }],
+        prerequisites: [],
+        enables: [],
+        recommendedNext: ['segment', 'rudderstack'],
+        complexity: 3,
+        costEstimate: 'medium',
+        supportedLatency: ['realtime'],
+        businessValue: {
+            proposition: 'Tech debt that slows down marketing agility.',
+            impact: 'risk',
+            roi: 'low'
+        }
+    },
+
     // Product & Behavioral
     {
         id: 'product_events',
@@ -699,7 +760,7 @@ export const nodeCatalog: CatalogNode[] = [
 
     {
         id: 'mdf_hub',
-        name: 'Unified Profile (MDF Hub)',
+        name: 'MDF Hub (Unified Profile)',
         category: 'mdf',
         nodeRole: 'mdf_hub',
         stage: 'mdf',
@@ -708,12 +769,15 @@ export const nodeCatalog: CatalogNode[] = [
         cardinality: 'single',
         icon: 'cpu',
         vendorProfileAvailability: ALL_PROFILES,
-        description: 'ALL-IN-ONE Central Hub: Hygiene, Identity, Profile, & Measurement.',
-        whenToUse: 'Required. The "Brain" of the architecture that unifies all customer data.',
+        description: 'The central hub that ingests customer data from many systems and turns it into clean, unified, activation-ready customer profiles. Performs Data Hygiene, Identity Resolution, Deduplication, Unified Profile construction, and Measurement enablement.',
+        whenToUse: 'Required. The "Brain" of every MDF architecture — without it, data stays siloed and inconsistent.',
         whyItMatters: [
-            'Unified capabilities: Hygiene, Identity, Profile, Measurement',
-            'Resolves identities across sources (Email, Phone, CRM ID)',
-            'Creates the "Golden Record" for activation'
+            'Ingests data from CRM, marketing platforms, web/app behavior, paid media, and transactions via batch & real-time pipelines',
+            'Cleans & standardizes data (normalize phone/email formats, fix casing, validate required fields, handle nulls, apply consistent schemas)',
+            'Resolves identity by linking records that refer to the same person using join keys like email, phone, CRM ID, and device IDs',
+            'Removes duplicates and merges records into a single "Golden Record" per customer — the Unified Profile',
+            'Enables reliable measurement and attribution because identities and events are standardized across all channels',
+            'Feeds downstream activation platforms (CDPs, journey orchestrators, ad platforms) with clean, identity-resolved audiences'
         ],
         inputs: [
             { id: 'records_in', name: 'Ingested Records', type: 'raw_records', position: 'left' },
@@ -731,28 +795,58 @@ export const nodeCatalog: CatalogNode[] = [
         b2bSpecific: true,
         preferredStackNode: true,
         // Consultant Metadata
-        complexity: 7,
-        costEstimate: 'medium',
+        complexity: 9,
+        costEstimate: 'high',
         supportedLatency: ['batch', 'realtime'],
         businessValue: {
-            proposition: 'The "Brain" of the architecture: Clean, Unite, and Prepare data.',
+            proposition: 'The "Brain" of the architecture: Ingest → Clean → Resolve → Unify → Measure → Activate.',
             impact: 'efficiency',
             roi: 'high'
         },
-        // MDF v3 Metadata
-        identityStrategyOptions: ['Deterministic (Email/Phone)', 'Account-Based (Domain)', 'Probabilistic'],
-        hygieneRules: ['E.164 Phone Format', 'Email Lowercase', 'Address Standardization', 'Title Casing'],
-        profileDataClasses: ['Identity Graph', 'Behavioral Events', 'Transactions', 'Consent Status'],
-        measurementOutputs: ['Multi-Touch Attribution', 'Lead Scoring', 'Churn Propensity'],
-        joinKeys: ['email', 'phone', 'crm_id', 'user_id', 'device_id'],
+        // MDF v3 Metadata — Deep Logic
+        identityStrategyOptions: [
+            'Deterministic (Email/Phone)',
+            'Account-Based (Domain Matching)',
+            'Household/Account Grouping',
+            'Device Graph (Cross-Device)',
+            'Probabilistic (ML-Assisted)'
+        ],
+        hygieneRules: [
+            'E.164 Phone Format',
+            'Email Lowercase & Validation',
+            'Address Standardization (USPS/Loqate)',
+            'Title Casing (Names)',
+            'Null/Empty Field Handling',
+            'Schema Enforcement & Type Validation',
+            'Duplicate Detection & Merge'
+        ],
+        profileDataClasses: [
+            'Identity Graph (Cross-Channel Keys)',
+            'Behavioral Events (Web, App, Product)',
+            'Transactional Data (Purchases, Subscriptions)',
+            'Marketing Interactions (Campaigns, Emails, Ads)',
+            'Consent & Preference Status'
+        ],
+        measurementOutputs: [
+            'Multi-Touch Attribution',
+            'Customer Journey Analytics',
+            'Lead/Account Scoring',
+            'Churn Propensity Models',
+            'ROI by Channel Attribution',
+            'Segment Performance Reporting'
+        ],
+        joinKeys: ['email', 'phone', 'crm_id', 'user_id', 'device_id', 'account_id', 'household_id'],
         metrics: [
-            { label: 'Match Rate', value: '72%', trend: 'up' },
-            { label: 'Profiles', value: '160', trend: 'up' }
+            { label: 'Match Rate', value: '87%', trend: 'up' },
+            { label: 'Golden Records', value: '1.2K', trend: 'up' },
+            { label: 'Dedup Rate', value: '38%', trend: 'up' },
+            { label: 'Hygiene Pass', value: '94%', trend: 'up' }
         ],
         sampleData: [
-            { profile_id: 'UP-8812', email: 'john.d@tech.com', phone: '+1555...', crm_id: 'LD-1001', segments: ['High Value', 'Churn Risk'], last_seen: '2m ago' },
-            { profile_id: 'UP-8813', email: 'sarah.s@acme.io', phone: '+1415...', crm_id: 'LD-1002', segments: ['Power User'], last_seen: '1h ago' },
-            { profile_id: 'UP-8814', email: 'mike@start.co', phone: 'null', crm_id: 'LD-1003', segments: ['New Sign-up'], last_seen: '1d ago' }
+            { stage: 'Raw Input', name: 'john DOE', email: 'JOHN.DOE@GMAIL.com', phone: '1234567890', source: 'CRM', status: '❌ Messy' },
+            { stage: 'Post-Hygiene', name: 'John Doe', email: 'john.doe@gmail.com', phone: '(123) 456-7890', source: 'CRM', status: '✅ Clean' },
+            { stage: 'Post-Identity', name: 'John Doe', email: 'john.doe@gmail.com', phone: '(123) 456-7890', matched_keys: 'email+phone+crm_id', identity_cluster: 'IC-4401', status: '🔗 Resolved' },
+            { stage: 'Golden Record', profile_id: 'UP-8812', name: 'John Doe', email: 'john.doe@gmail.com', phone: '(123) 456-7890', segments: ['High Value', 'Enterprise'], ltv: '$142K', status: '⭐ Unified' }
         ]
     },
     {
@@ -1159,30 +1253,6 @@ export const nodeCatalog: CatalogNode[] = [
     // ACTIVATION
     // ==========================================================
 
-    {
-        id: 'hightouch',
-        name: 'Hightouch',
-        category: 'activation',
-        nodeRole: 'activation_connector',
-        stage: 'activation',
-        icon: 'upload-cloud',
-        vendorProfileAvailability: ALL_PROFILES,
-        description: 'Reverse ETL for operational analytics.',
-        whenToUse: 'When you need to sync warehouse-built audiences and entities to CRM, ads, and marketing tools.',
-        whyItMatters: ['Sync warehouse to SaaS', 'Audience orchestration'],
-        inputs: [
-            { id: 'acc_in', name: 'Account Audiences', type: 'audiences_accounts' },
-            { id: 'ppl_in', name: 'People Audiences', type: 'audiences_people' }
-        ],
-        outputs: [
-            { id: 'acc_out', name: 'Account Audiences', type: 'audiences_accounts' },
-            { id: 'ppl_out', name: 'People Audiences', type: 'audiences_people' }
-        ],
-        prerequisites: [],
-        enables: ['activation'],
-        recommendedNext: ['salesforce_crm_dest', 'linkedin_ads'],
-        valueText: 'Reverse ETL'
-    },
 
     // ==========================================================
     // DESTINATIONS
@@ -1379,33 +1449,7 @@ export const nodeCatalog: CatalogNode[] = [
     // GOVERNANCE RAIL (Top Lane - Cross-Cutting)
     // ==========================================================
 
-    {
-        id: 'consent_manager',
-        name: 'Consent Manager',
-        category: 'governance',
-        icon: 'check-square',
-        vendorProfileAvailability: ALL_PROFILES,
-        description: 'GDPR/CCPA consent collection and storage.',
-        whyItMatters: [
-            'Legal compliance',
-            'Real-time consent checks',
-            'Audit trail'
-        ],
-        inputs: [],
-        outputs: [{ id: 'policies_out', name: 'Consent Policies', type: 'governance_policies' }],
-        prerequisites: [],
-        enables: ['governance'],
-        recommendedNext: ['segment', 'hightouch'],
-        isRailNode: true,
-        nodeRole: 'governance',
-        attachableStages: ['collection', 'ingestion', 'storage_raw', 'storage_warehouse', 'transform', 'activation'],
-        preferredStackNode: true,
-        businessValue: {
-            proposition: 'Ensure compliance and build trust with explicit user consent.',
-            impact: 'risk',
-            roi: 'high'
-        }
-    },
+
     {
         id: 'access_control',
         name: 'Access Control',
@@ -1483,27 +1527,7 @@ export const nodeCatalog: CatalogNode[] = [
         recommendedNext: ['access_control'],
         isRailNode: true
     },
-    {
-        id: 'data_quality',
-        name: 'Data Quality',
-        category: 'governance',
-        icon: 'check-circle',
-        vendorProfileAvailability: ALL_PROFILES,
-        description: 'Automated data validation and anomaly detection.',
-        whyItMatters: [
-            'Catch issues early',
-            'Build trust in data',
-            'SLA monitoring'
-        ],
-        inputs: [{ id: 'records_in', name: 'Data to Validate', type: 'raw_records' }],
-        outputs: [{ id: 'metrics_out', name: 'Quality Metrics', type: 'metrics' }],
-        prerequisites: [],
-        enables: ['governance', 'hygiene'],
-        recommendedNext: ['dbt_core', 'looker'],
-        isRailNode: true,
-        nodeRole: 'governance',
-        attachableStages: ['ingestion', 'storage_raw', 'storage_warehouse', 'transform']
-    },
+
 
     // ==========================================================
     // ANALYTICS & MEASUREMENT
@@ -2425,15 +2449,46 @@ export const nodeCatalog: CatalogNode[] = [
     },
 
     // ==========================================================
-    // GCP NODES
+    // ANALYTICS & BI
     // ==========================================================
+
+    // Legacy Analytics
+    {
+        id: 'universal_analytics',
+        name: 'Universal Analytics (UA)',
+        category: 'analytics',
+        nodeRole: 'analytics',
+        stage: 'analytics',
+        icon: 'bar-chart',
+        vendorProfileAvailability: [],
+        description: 'Legacy web analytics (Sunsetted).',
+        whenToUse: 'Legacy systems only.',
+        whyItMatters: [
+            'No longer supported',
+            'Data loss risk',
+            'Privacy compliance gaps'
+        ],
+        inputs: [{ id: 'entities_in', name: 'Web Data', type: 'raw_events' }],
+        outputs: [],
+        prerequisites: [],
+        enables: [],
+        recommendedNext: ['google_analytics_4', 'amplitude'],
+        complexity: 4,
+        costEstimate: 'low',
+        supportedLatency: ['batch'],
+        businessValue: {
+            proposition: 'Obsolete analytics platform with compliance risks.',
+            impact: 'risk',
+            roi: 'low'
+        }
+    },
+
     {
         id: 'google_analytics_4',
         name: 'Google Analytics 4',
-        category: 'collection',
-        nodeRole: 'collector',
-        stage: 'collection',
-        uniquenessKey: 'collector:ga4',
+        category: 'analytics',
+        nodeRole: 'analytics',
+        stage: 'analytics',
         icon: 'bar-chart-2',
         vendorProfileAvailability: ['generic'],
         description: 'Event-based analytics with BigQuery export.',
