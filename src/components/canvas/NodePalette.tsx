@@ -243,7 +243,6 @@ export default function NodePalette() {
                                 const meta = categoryMeta[category]
                                 const Icon = categoryIcons[category]
                                 const categoryColor = categoryColors[category]
-
                                 return (
                                     <div key={category} className="space-y-3">
                                         <div className="flex items-center gap-2 px-2">

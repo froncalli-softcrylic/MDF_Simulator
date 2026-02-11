@@ -39,7 +39,6 @@ import SimulationStepper from '@/components/canvas/SimulationStepper'
 // ... existing imports
 
 
-import ValidationPanel from '@/components/canvas/ValidationPanel'
 import StatusLegend from '@/components/canvas/StatusLegend'
 import SmartConnectPanel from '@/components/canvas/SmartConnectPanel'
 import AIAssistantPanel from '@/components/canvas/AIAssistantPanel'
@@ -47,6 +46,7 @@ import LeadCaptureModal from '@/components/modals/LeadCaptureModal'
 import ReplaceModal from '@/components/modals/ReplaceModal'
 import GuidedTour from '@/components/tour/GuidedTour'
 import { SimulationOverlay } from '@/components/canvas/SimulationOverlay'
+import SimulationResults from '@/components/simulation/SimulationResults'
 import StageLabels from '@/components/canvas/StageLabels'
 import type { SuggestedEdge } from '@/types'
 import { generateId, cn } from '@/lib/utils'
@@ -480,10 +480,9 @@ function SimulatorCanvas() {
                 <SimulationStepper />
                 <NodePalette />
                 <Inspector />
-                <ValidationPanel />
-                <ValidationPanel />
                 <GuidedTour />
                 <SimulationOverlay />
+                <SimulationResults />
 
                 {/* Status Legend - show when nodes have status */}
                 {nodes.some(n => n.data?.status && n.data.status !== 'optional') && (

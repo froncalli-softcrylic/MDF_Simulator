@@ -6,13 +6,31 @@ import type { ValueOverlay, ValidationOutput, SuggestedFixes, DuplicateConflict 
 
 
 
-export type SimulationStep = 'idle' | 'extraction' | 'start_flow' | 'transformation' | 'activation' | 'complete';
+export type SimulationStep = 'idle' | 'stepping' | 'transitioning' | 'complete' | 'results' | 'error';
+
+export interface SimulationPathStep {
+    nodeId: string;
+    label: string;
+    category: string;
+    description: string;
+}
 
 export interface SimulationState {
     status: SimulationStep;
     activeNodeId: string | null;
     message: string | null;
     dataPayload: any;
+    // Dynamic path
+    pathSteps: SimulationPathStep[];
+    currentStepIndex: number;
+    // Results data
+    resultsData: {
+        totalNodes: number;
+        sourceNames: string[];
+        destinationNames: string[];
+        categories: string[];
+        finalPayload: any;
+    } | null;
 }
 
 interface UIStore {
@@ -161,7 +179,10 @@ export const useUIStore = create<UIStore>((set, get) => ({
         status: 'idle',
         activeNodeId: null,
         message: null,
-        dataPayload: null
+        dataPayload: null,
+        pathSteps: [],
+        currentStepIndex: -1,
+        resultsData: null
     },
     setSimulationState: (newState) => set((state) => ({
         simulationState: { ...state.simulationState, ...newState }
