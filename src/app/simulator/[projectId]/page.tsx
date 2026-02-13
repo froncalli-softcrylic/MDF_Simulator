@@ -48,6 +48,8 @@ import ReplaceModal from '@/components/modals/ReplaceModal'
 import GuidedTour from '@/components/tour/GuidedTour'
 import { SimulationOverlay } from '@/components/canvas/SimulationOverlay'
 import SimulationResults from '@/components/simulation/SimulationResults'
+import { SimulationMetricsBar } from '@/components/simulation/SimulationMetricsBar'
+import AnimatedParticles from '@/components/canvas/AnimatedParticles'
 import StageLabels from '@/components/canvas/StageLabels'
 import type { SuggestedEdge } from '@/types'
 import { generateId, cn } from '@/lib/utils'
@@ -71,6 +73,7 @@ const proOptions = {
 }
 
 import SimulatorCinematicLoader from '@/components/ui/SimulatorCinematicLoader'
+import WizardSummaryModal from '@/components/modals/WizardSummaryModal'
 import { AnimatePresence } from 'framer-motion'
 
 function SimulatorCanvas() {
@@ -81,12 +84,22 @@ function SimulatorCanvas() {
     const fromWizard = searchParams.get('fromWizard') === 'true'
     const canvasRef = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [showWizardSummary, setShowWizardSummary] = useState(false)
 
     // Simulating initial construction time
     useEffect(() => {
         const timer = setTimeout(() => setIsLoading(false), 3500)
         return () => clearTimeout(timer)
     }, [])
+
+    // Show wizard summary if coming from wizard
+    useEffect(() => {
+        if (fromWizard && !isLoading) {
+            // Small delay to let the initial animation settle
+            const timer = setTimeout(() => setShowWizardSummary(true), 1000)
+            return () => clearTimeout(timer)
+        }
+    }, [fromWizard, isLoading])
 
     const { fitView, screenToFlowPosition } = useReactFlow()
     const {
@@ -122,53 +135,41 @@ function SimulatorCanvas() {
     // Track if we've initialized
     const hasInitialized = useRef(false)
 
-    // Handle Simulation Mode - Animate edges
+    // Color-code edges by source node category — always applied, not just during simulation.
+    // Animation (flowing dots) only activates when simulation is running.
+    const edgeColorRef = useRef<string>('') // Guard to prevent infinite setEdges loops
     useEffect(() => {
         const currentEdges = useCanvasStore.getState().edges
         if (currentEdges.length === 0) return
 
-        const shouldBeAnimated = isSimulationRunning
-        // Note: We don't want to re-run this effect constantly if edges change, ONLY if simulation state toggles.
-        // However, if we add new nodes while simulation is running, they should get animated.
+        const { nodes: currentNodes } = useCanvasStore.getState()
+        const { CATEGORY_EDGE_COLORS, DEFAULT_EDGE_COLOR } = require('@/lib/diagram-generator')
 
-        const { nodes } = useCanvasStore.getState()
-
-        setEdges(currentEdges.map(e => {
-            // Determine default color based on source category
-            let defaultColor = '#b0b8c8'
-            if (!shouldBeAnimated) {
-                const sourceNode = nodes.find(n => n.id === e.source)
-                // We need to resolve the category. The node data might have it.
-                // Or look up in catalog if needed, but node.data.category should be there.
-                const category = (sourceNode?.data as any)?.category || 'sources'
-
-                // We need to import these constants. 
-                // Since I can't easily add imports in this partial replace without breaking the file structure,
-                // I will hardcode the lookup access for now or assume imports are added. 
-                // Wait, I can't assume imports. I'll dynamically import or just replicate the map here for safety?
-                // Better: I added the import in the previous step (Wait, no I didn't add the import line in the file header yet).
-                // I will use a helper function that I'll declare inside or just use the raw values if I can't import.
-
-                // Actually, I will use a dynamic import approach for the constants if needed, OR 
-                // I will handle the import in a separate tool call. 
-                // For now, let's assume I will add the import at the top of the file in a separate call.
-                // Using a placeholder variable for now to act as if it's available.
-                const { CATEGORY_EDGE_COLORS, DEFAULT_EDGE_COLOR } = require('@/lib/diagram-generator')
-                defaultColor = CATEGORY_EDGE_COLORS[category] || DEFAULT_EDGE_COLOR
-            }
+        const newEdges = currentEdges.map(e => {
+            // Resolve category color from the source node
+            const sourceNode = currentNodes.find(n => n.id === e.source)
+            const category = (sourceNode?.data as any)?.category || 'sources'
+            const categoryColor = CATEGORY_EDGE_COLORS[category] || DEFAULT_EDGE_COLOR
 
             return {
                 ...e,
-                animated: shouldBeAnimated,
+                animated: isSimulationRunning,
                 style: {
                     ...e.style,
-                    stroke: shouldBeAnimated ? '#10b981' : defaultColor,
-                    strokeWidth: shouldBeAnimated ? 3 : 2.5,
-                    opacity: shouldBeAnimated ? 1 : 1
+                    stroke: isSimulationRunning ? '#10b981' : categoryColor,
+                    strokeWidth: isSimulationRunning ? 3 : 2.5,
+                    opacity: 1
                 }
             }
-        }))
-    }, [isSimulationRunning, setEdges]) // Removed 'edges' to prevent loop, relying on explicit toggle or store state access
+        })
+
+        // Fingerprint check: only update store if edge styles actually changed (prevents infinite loop)
+        const fingerprint = newEdges.map(e => `${e.id}:${e.style?.stroke}:${e.animated}`).join('|')
+        if (fingerprint !== edgeColorRef.current) {
+            edgeColorRef.current = fingerprint
+            setEdges(newEdges)
+        }
+    }, [isSimulationRunning, edges, setEdges])
 
     // Initialize project - generate diagram from wizard data
     useEffect(() => {
@@ -196,6 +197,20 @@ function SimulatorCanvas() {
                 } catch (error) {
                     logger.error('Failed to load project:', error)
                 }
+            } else {
+                // FORCE EMPTY CANVAS FOR NEW PROJECTS
+                logger.debug('🆕 Scaffolding new empty project')
+
+                // Clear any lingering wizard data or profile state
+                setWizardData(null) // Assuming we can pass null or empty object, if not we need to check store type
+                // Actually setWizardData expects WizardData, let's check store type later or just ignore wizard logic below
+
+                // We do NOT load any default graph.
+                useCanvasStore.getState().setNodes([])
+                useCanvasStore.getState().setEdges([])
+
+                hasInitialized.current = true
+                return
             }
             // 2. Check if duplicated from a share link
             const fromShare = searchParams.get('from')
@@ -446,6 +461,41 @@ function SimulatorCanvas() {
         setSelectedNodeId(null)
     }, [setSelectedNodeId])
 
+    // Wizard Summary Handlers
+    const handleApplyWizard = useCallback(async () => {
+        const { nodes, edges } = useCanvasStore.getState()
+
+        // Reveal all hidden nodes
+        const updatedNodes = nodes.map(n => ({
+            ...n,
+            hidden: false
+        }))
+
+        setNodes(updatedNodes)
+
+        // Retrigger layout to organize the newly revealed nodes
+        const { semanticAutoLayout } = await import('@/lib/semantic-layout-engine')
+        const layoutedNodes = await semanticAutoLayout(updatedNodes, edges)
+        setNodes(layoutedNodes)
+        setTimeout(() => fitView({ padding: 0.35, duration: 800 }), 100)
+
+        setShowWizardSummary(false)
+    }, [setNodes, fitView])
+
+    const handleSkipWizard = useCallback(() => {
+        const { nodes } = useCanvasStore.getState()
+
+        // Remove hidden nodes permanently
+        const keptNodes = nodes.filter(n => !n.hidden)
+        setNodes(keptNodes)
+
+        // No need to relayout if we just removed hidden nodes (layout shouldn't have changed for visible ones if they were hidden)
+        // BUT better to be safe and ensure clean layout
+        // actually, hidden nodes didn't affect layout, so removing them is fine.
+
+        setShowWizardSummary(false)
+    }, [setNodes])
+
     // MiniMap node color function - memoized
     const getNodeColor = useCallback((n: Node) => {
         const data = n.data as { category?: string } | undefined
@@ -521,7 +571,7 @@ function SimulatorCanvas() {
                     maxZoom={2}
                     className="bg-background"
                     // Performance optimizations
-                    nodesDraggable={false} // LOCKED LAYOUT
+                    nodesDraggable={true} // ENABLE DRAG AND DROP
                     nodesConnectable={true}
                     elementsSelectable={true}
                     panOnDrag={true}
@@ -562,6 +612,7 @@ function SimulatorCanvas() {
 
                 {/* Panels */}
                 <Toolbar />
+                <AnimatedParticles />
                 <SimulationStepper />
                 <NodePalette />
                 <Inspector />
@@ -577,6 +628,9 @@ function SimulatorCanvas() {
                     )} />
                 )}
             </div>
+
+            {/* Simulation Metrics — outside canvas so fixed positioning centers on viewport */}
+            <SimulationMetricsBar />
 
             {/* Modals */}
             <LeadCaptureModal />
@@ -632,6 +686,14 @@ function SimulatorCanvas() {
             {showAIAssistant && (
                 <AIAssistantPanel onClose={() => setShowAIAssistant(false)} />
             )}
+
+            {/* Wizard Summary Modal */}
+            <WizardSummaryModal
+                isOpen={showWizardSummary}
+                onOpenChange={setShowWizardSummary}
+                onApply={handleApplyWizard}
+                onSkip={handleSkipWizard}
+            />
         </div>
     )
 }

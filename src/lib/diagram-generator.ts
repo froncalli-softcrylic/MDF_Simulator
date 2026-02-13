@@ -226,12 +226,26 @@ export function analyzeGaps(wizardData: WizardData, profile: DemoProfile): GapAn
         isNodeVisibleInProfile(nodeId, profile)
     )
 
+    // Add required/recommended nodes to the visual graph (for the "solution" view)
+    // We will HIDE them initially in the UI, but they need to be in the graph data.
+    const solutionNodes = [...filteredNodes]
+    requiredFromGoals.forEach(n => {
+        if (!solutionNodes.includes(n) && isNodeVisibleInProfile(n, profile)) {
+            solutionNodes.push(n)
+        }
+    })
+    recommendedFromPainPoints.forEach(n => {
+        if (!solutionNodes.includes(n) && isNodeVisibleInProfile(n, profile)) {
+            solutionNodes.push(n)
+        }
+    })
+
     return {
         existingNodes,
         recommendedNodes: recommendedFromPainPoints.filter(n => !existingNodes.includes(n)),
         requiredNodes: requiredFromGoals,
         gapNodes,
-        allNodes: filteredNodes // purely existing nodes now
+        allNodes: solutionNodes
     }
 }
 
@@ -276,15 +290,17 @@ export function generateDiagramFromWizard(
     const positions = calculateNodePositions(nodesToInclude, profile)
 
     // Create nodes
-    const nodes: GraphData['nodes'] = nodesToInclude.map(catalogId => {
+    const nodes = nodesToInclude.map(catalogId => {
         const catalogNode = getNodeById(catalogId)
         const status = getNodeStatus(catalogId, analysis)
         const pos = positions[catalogId] || { x: START_X, y: START_Y }
+        const isHidden = !analysis.existingNodes.includes(catalogId)
 
         return {
             id: nodeMap[catalogId],
             type: 'mdfNode',
             position: pos,
+            hidden: isHidden, // HIDDEN INITIALLY if not existing
             data: {
                 catalogId,
                 label: catalogNode?.name || catalogId,
@@ -435,11 +451,123 @@ export interface EdgeCaseTemplate {
     name: string
     description: string
     useCase: string
+    category: 'starter' | 'architecture' | 'use_case'
     nodes: string[]
     edges: Array<{ source: string; target: string }>
 }
 
 export const edgeCaseTemplates: EdgeCaseTemplate[] = [
+    // -------------------------------------------
+    // STARTERS — Simple entry points
+    // -------------------------------------------
+    {
+        id: 'basic_elt',
+        name: 'Basic ELT Pipeline',
+        description: 'Simple extract-load-transform pipeline. The starting point for any data team.',
+        useCase: 'Teams just getting started with structured data from CRM and billing.',
+        category: 'starter',
+        nodes: [
+            'salesforce_crm', 'billing_system',
+            'fivetran',
+            'snowflake',
+            'dbt_core',
+            'looker'
+        ],
+        edges: [
+            { source: 'salesforce_crm', target: 'fivetran' },
+            { source: 'billing_system', target: 'fivetran' },
+            { source: 'fivetran', target: 'snowflake' },
+            { source: 'snowflake', target: 'dbt_core' },
+            { source: 'dbt_core', target: 'looker' }
+        ]
+    },
+    {
+        id: 'mdf_foundation',
+        name: 'MDF Foundation',
+        description: 'Full Marketing Data Foundation with identity resolution and unified customer profiles.',
+        useCase: 'Teams that need a unified view of customers across multiple data sources.',
+        category: 'starter',
+        nodes: [
+            'product_events', 'salesforce_crm', 'billing_system',
+            'segment',
+            'fivetran',
+            's3_raw',
+            'snowflake',
+            'dbt_core',
+            'mdf_hub',
+            'consent_manager',
+            'looker',
+            'hightouch',
+            'salesforce_crm_dest', 'linkedin_ads', 'slack_alerts'
+        ],
+        edges: [
+            { source: 'product_events', target: 'segment' },
+            { source: 'salesforce_crm', target: 'fivetran' },
+            { source: 'billing_system', target: 'fivetran' },
+            { source: 'segment', target: 's3_raw' },
+            { source: 's3_raw', target: 'snowflake' },
+            { source: 'fivetran', target: 'snowflake' },
+            { source: 'snowflake', target: 'dbt_core' },
+            { source: 'dbt_core', target: 'mdf_hub' },
+            { source: 'mdf_hub', target: 'hightouch' },
+            { source: 'mdf_hub', target: 'looker' },
+            { source: 'hightouch', target: 'salesforce_crm_dest' },
+            { source: 'hightouch', target: 'linkedin_ads' },
+            { source: 'hightouch', target: 'slack_alerts' },
+            { source: 'consent_manager', target: 'mdf_hub' }
+        ]
+    },
+    {
+        id: 'enterprise_mdf',
+        name: 'Enterprise MDF',
+        description: 'Advanced foundation with governance rails, clean rooms, ML models, and multi-channel activation.',
+        useCase: 'Enterprise teams with compliance requirements, ML workloads, and complex activation needs.',
+        category: 'starter',
+        nodes: [
+            'product_events', 'web_app_events', 'salesforce_crm', 'billing_system', 'support_tickets',
+            'segment', 'rudderstack',
+            'fivetran',
+            's3_raw', 'iceberg',
+            'snowflake',
+            'dbt_core',
+            'mdf_hub',
+            'consent_manager', 'pii_detection', 'data_quality',
+            'churn_model',
+            'looker', 'tableau',
+            'hightouch',
+            'braze', 'salesforce_crm_dest', 'linkedin_ads', 'slack_alerts', 'outreach'
+        ],
+        edges: [
+            { source: 'product_events', target: 'segment' },
+            { source: 'web_app_events', target: 'rudderstack' },
+            { source: 'salesforce_crm', target: 'fivetran' },
+            { source: 'billing_system', target: 'fivetran' },
+            { source: 'support_tickets', target: 'fivetran' },
+            { source: 'segment', target: 's3_raw' },
+            { source: 'rudderstack', target: 's3_raw' },
+            { source: 'fivetran', target: 's3_raw' },
+            { source: 's3_raw', target: 'iceberg' },
+            { source: 'iceberg', target: 'snowflake' },
+            { source: 'snowflake', target: 'dbt_core' },
+            { source: 'dbt_core', target: 'mdf_hub' },
+            { source: 'mdf_hub', target: 'hightouch' },
+            { source: 'mdf_hub', target: 'looker' },
+            { source: 'mdf_hub', target: 'tableau' },
+            { source: 'mdf_hub', target: 'churn_model' },
+            { source: 'churn_model', target: 'slack_alerts' },
+            { source: 'hightouch', target: 'braze' },
+            { source: 'hightouch', target: 'salesforce_crm_dest' },
+            { source: 'hightouch', target: 'linkedin_ads' },
+            { source: 'hightouch', target: 'outreach' },
+            { source: 'consent_manager', target: 'mdf_hub' },
+            { source: 'pii_detection', target: 's3_raw' },
+            { source: 'data_quality', target: 'dbt_core' }
+        ]
+    },
+
+    // -------------------------------------------
+    // ARCHITECTURES — Data infrastructure patterns
+    // -------------------------------------------
     // -------------------------------------------
     // Warehouse-First Architecture
     // -------------------------------------------
@@ -448,6 +576,7 @@ export const edgeCaseTemplates: EdgeCaseTemplate[] = [
         name: 'Warehouse-First',
         description: 'Skip the data lake — load directly into Snowflake for faster Time-to-Value.',
         useCase: 'Teams that prioritize speed and have structured data sources (CRM, Billing, SaaS tools).',
+        category: 'architecture',
         nodes: [
             'salesforce_crm', 'hubspot_crm', 'billing_system',
             'fivetran',
@@ -487,6 +616,7 @@ export const edgeCaseTemplates: EdgeCaseTemplate[] = [
         name: 'Lake-First (Medallion)',
         description: 'Immutable raw data lake with Apache Iceberg before warehouse loading.',
         useCase: 'Enterprises with compliance requirements, ML workloads, or need for replayability.',
+        category: 'architecture',
         nodes: [
             'product_events', 'salesforce_crm', 'billing_system', 'web_app_events',
             'segment',
@@ -534,6 +664,7 @@ export const edgeCaseTemplates: EdgeCaseTemplate[] = [
         name: 'Real-Time Streaming',
         description: 'Event-driven architecture for real-time personalization and alerts.',
         useCase: 'PLG companies with product-led growth, in-app messaging, or real-time triggers.',
+        category: 'architecture',
         nodes: [
             'product_events', 'web_app_events',
             'segment', 'rudderstack',
@@ -576,6 +707,7 @@ export const edgeCaseTemplates: EdgeCaseTemplate[] = [
         name: 'Opportunity Influence & Attribution',
         description: 'Full B2B attribution model with opportunity touchpoint analysis.',
         useCase: 'Revenue teams measuring marketing influence on closed/won deals.',
+        category: 'use_case',
         nodes: [
             'salesforce_crm', 'marketo', 'web_app_events',
             'fivetran', 'segment',
@@ -618,6 +750,7 @@ export const edgeCaseTemplates: EdgeCaseTemplate[] = [
         name: 'ABM & Intent Signals',
         description: 'Account-based marketing with third-party intent data enrichment.',
         useCase: 'B2B marketing teams running targeted ABM campaigns.',
+        category: 'use_case',
         nodes: [
             'salesforce_crm', 'billing_system',
             'fivetran',

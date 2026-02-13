@@ -7,6 +7,7 @@ import React from 'react'
 
 import { useMemo, useState } from 'react'
 import { getNodeById, getRecommendedNodes } from '@/data/node-catalog'
+import { NODE_LOGOS } from '@/data/node-logos'
 import { useUIStore } from '@/store/ui-store'
 import { useCanvasStore } from '@/store/canvas-store'
 import { checkNodePrerequisites } from '@/lib/validation-engine'
@@ -84,17 +85,28 @@ export default function Inspector() {
                 <>
                     {/* Header */}
                     <div className="flex items-center justify-between p-3 md:p-4 border-b">
-                        <div className="min-w-0 flex-1">
-                            <h2 className="font-bold text-xl truncate">{catalogNode.name}</h2>
-                            <div className="flex items-center gap-2 mt-1.5">
-                                <Badge variant="secondary" className="text-xs">
-                                    {catalogNode.category}
-                                </Badge>
-                                {catalogNode.nodeRole && (
-                                    <Badge variant="outline" className="text-sm border-slate-300 text-slate-500">
-                                        {catalogNode.nodeRole.replace('_', ' ')}
+                        <div className="min-w-0 flex-1 flex items-center gap-3">
+                            {NODE_LOGOS[catalogNode.id] ? (
+                                <div className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-center p-1.5 shrink-0 shadow-sm">
+                                    <img src={NODE_LOGOS[catalogNode.id]} alt={catalogNode.name} className="w-full h-full object-contain" />
+                                </div>
+                            ) : (
+                                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                    {React.createElement(Zap, { className: 'w-6 h-6 text-primary' })}
+                                </div>
+                            )}
+                            <div className="min-w-0">
+                                <h2 className="font-bold text-lg leading-tight truncate">{catalogNode.name}</h2>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                    <Badge variant="secondary" className="text-xs">
+                                        {catalogNode.category}
                                     </Badge>
-                                )}
+                                    {catalogNode.nodeRole && (
+                                        <Badge variant="outline" className="text-sm border-slate-300 text-slate-500">
+                                            {catalogNode.nodeRole.replace('_', ' ')}
+                                        </Badge>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <Button variant="ghost" size="icon" onClick={handleClose} className="h-8 w-8 flex-shrink-0 ml-2">

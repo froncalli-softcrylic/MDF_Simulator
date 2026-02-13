@@ -26,22 +26,22 @@ export type PipelineCategory =
 // Combined category type
 export type NodeCategory = PipelineCategory;
 
-// Category ordering for layout (column positions)
+// Category ordering for layout (column positions — matches STAGE_PARTITION in layout engine)
 export const CATEGORY_ORDER: Record<PipelineCategory, number> = {
     sources: 0,
     collection: 1,
-    ingestion: 1,
-    storage_raw: 1,
-    storage_warehouse: 1,
-    transform: 1,
-    mdf: 2,              // Central Hub
-    identity: 2,         // Merged into Hub conceptually, but keep col 2 if separate
-    governance: 2,       // Rail
-    analytics: 3,
-    activation: 3,
-    clean_room: 3,
-    realtime_serving: 3,
-    destination: 4
+    ingestion: 2,
+    storage_raw: 3,
+    storage_warehouse: 4,
+    transform: 5,
+    mdf: 7,              // Central Hub
+    identity: 7,         // Co-located with Hub
+    governance: 99,      // Rail (pinned separately)
+    analytics: 9,
+    activation: 11,
+    clean_room: 10,
+    realtime_serving: 11,
+    destination: 12
 };
 
 // ============================================
@@ -85,41 +85,73 @@ export const ALLOWED_CATEGORY_EDGES: Array<{
     target: NodeCategory;
     allowedPortTypes: PortType[];
 }> = [
-        // Pipeline flow
+        // ── Sources ──
         { source: 'sources', target: 'collection', allowedPortTypes: ['raw_events', 'raw_records'] },
         { source: 'sources', target: 'ingestion', allowedPortTypes: ['raw_events', 'raw_records'] },
-        { source: 'collection', target: 'ingestion', allowedPortTypes: ['raw_events', 'raw_records'] },
-        { source: 'ingestion', target: 'storage_raw', allowedPortTypes: ['raw_events', 'raw_records'] },
-        { source: 'storage_raw', target: 'storage_warehouse', allowedPortTypes: ['raw_records'] },
-        { source: 'ingestion', target: 'storage_warehouse', allowedPortTypes: ['raw_records'] }, // Warehouse-first
+        { source: 'sources', target: 'storage_warehouse', allowedPortTypes: ['raw_records'] },  // Direct-load pattern
+
+        // ── Collection ──
+        { source: 'collection', target: 'ingestion', allowedPortTypes: ['raw_events', 'stream_events'] },
+        { source: 'collection', target: 'storage_raw', allowedPortTypes: ['raw_events', 'stream_events'] },
+
+        // ── Ingestion ──
+        { source: 'ingestion', target: 'storage_raw', allowedPortTypes: ['raw_events', 'raw_records', 'dataset_raw'] },
+        { source: 'ingestion', target: 'storage_warehouse', allowedPortTypes: ['raw_records', 'dataset_raw'] },
+
+        // ── Storage ──
+        { source: 'storage_raw', target: 'storage_warehouse', allowedPortTypes: ['raw_records', 'dataset_raw'] },
         { source: 'storage_warehouse', target: 'transform', allowedPortTypes: ['raw_records', 'curated_entities'] },
 
-        // Transform to outputs (parallel)
+        // ── Transform to outputs ──
+        { source: 'transform', target: 'mdf', allowedPortTypes: ['curated_entities', 'identity_keys'] },
+        { source: 'transform', target: 'identity', allowedPortTypes: ['identity_keys', 'curated_entities'] },
         { source: 'transform', target: 'analytics', allowedPortTypes: ['curated_entities', 'metrics'] },
         { source: 'transform', target: 'activation', allowedPortTypes: ['curated_entities', 'audiences_accounts', 'audiences_people'] },
-        { source: 'transform', target: 'identity', allowedPortTypes: ['identity_keys', 'curated_entities'] },
 
-        // Identity hub flows
+        // ── MDF Hub flows ──
+        { source: 'mdf', target: 'identity', allowedPortTypes: ['identity_keys', 'curated_entities'] },
+        { source: 'mdf', target: 'analytics', allowedPortTypes: ['curated_entities', 'metrics', 'audiences_accounts'] },
+        { source: 'mdf', target: 'activation', allowedPortTypes: ['audiences_accounts', 'audiences_people', 'activation_payload'] },
+        { source: 'mdf', target: 'clean_room', allowedPortTypes: ['audiences_accounts', 'audiences_people'] },
+        { source: 'mdf', target: 'realtime_serving', allowedPortTypes: ['curated_entities', 'identity_keys'] },
+
+        // ── Identity ──
+        { source: 'identity', target: 'mdf', allowedPortTypes: ['identity_resolution', 'graph_edges'] },
         { source: 'identity', target: 'analytics', allowedPortTypes: ['graph_edges', 'curated_entities'] },
         { source: 'identity', target: 'activation', allowedPortTypes: ['audiences_accounts', 'audiences_people', 'graph_edges'] },
 
-        // Activation to destinations
-        { source: 'activation', target: 'destination', allowedPortTypes: ['audiences_accounts', 'audiences_people'] },
+        // ── Activation → Destinations ──
+        { source: 'activation', target: 'destination', allowedPortTypes: ['audiences_accounts', 'audiences_people', 'activation_payload'] },
 
-        // Governance rail (can attach to any)
+        // ── Clean room & realtime ──
+        { source: 'clean_room', target: 'analytics', allowedPortTypes: ['metrics', 'analysis_result'] },
+        { source: 'realtime_serving', target: 'destination', allowedPortTypes: ['curated_entities', 'activation_payload'] },
+
+        // ── Governance rail (attaches to any processing stage) ──
         { source: 'governance', target: 'collection', allowedPortTypes: ['governance_policies'] },
         { source: 'governance', target: 'ingestion', allowedPortTypes: ['governance_policies'] },
         { source: 'governance', target: 'storage_raw', allowedPortTypes: ['governance_policies'] },
         { source: 'governance', target: 'storage_warehouse', allowedPortTypes: ['governance_policies'] },
         { source: 'governance', target: 'transform', allowedPortTypes: ['governance_policies'] },
         { source: 'governance', target: 'activation', allowedPortTypes: ['governance_policies'] },
+        { source: 'governance', target: 'mdf', allowedPortTypes: ['governance_policies'] },
     ];
 
-// Nonsense prevention rules
+// Nonsense prevention rules — hard blocks
 export const INVALID_EDGE_RULES = [
-    { message: 'Destinations cannot accept raw events', targetCategory: 'destination' as NodeCategory, forbiddenPortTypes: ['raw_events', 'raw_records'] as PortType[] },
-    { message: 'Analytics cannot output to destinations directly', sourceCategory: 'analytics' as NodeCategory, targetCategory: 'destination' as NodeCategory },
-    { message: 'Sources cannot receive inputs', targetCategory: 'sources' as NodeCategory },
+    // Terminal sinks / sources
+    { message: 'Sources are data origins and cannot receive inputs', targetCategory: 'sources' as NodeCategory },
+    { message: 'Destinations are terminal sinks and cannot send data', sourceCategory: 'destination' as NodeCategory },
+
+    // Raw-to-destination
+    { message: 'Destinations cannot accept raw events — add Transform/Activation first', targetCategory: 'destination' as NodeCategory, forbiddenPortTypes: ['raw_events', 'raw_records'] as PortType[] },
+
+    // Invalid shortcuts
+    { message: 'Sources cannot connect directly to destinations — data must be processed', sourceCategory: 'sources' as NodeCategory, targetCategory: 'destination' as NodeCategory },
+    { message: 'Sources cannot connect directly to analytics — add Collection/Storage/Transform first', sourceCategory: 'sources' as NodeCategory, targetCategory: 'analytics' as NodeCategory },
+    { message: 'Sources cannot connect directly to activation — data must be processed', sourceCategory: 'sources' as NodeCategory, targetCategory: 'activation' as NodeCategory },
+    { message: 'Analytics produces insights, not activation payloads — use Activation connectors', sourceCategory: 'analytics' as NodeCategory, targetCategory: 'destination' as NodeCategory },
+    { message: 'Collection cannot send raw events directly to destinations', sourceCategory: 'collection' as NodeCategory, targetCategory: 'destination' as NodeCategory },
 ];
 
 // ============================================
@@ -252,6 +284,7 @@ export interface CatalogNode {
     name: string;
     category: NodeCategory;
     icon: string;
+    logo?: string; // Brand logo URL
     vendorProfileAvailability: DemoProfile[];
     description: string;
     whyItMatters: string[];

@@ -11,15 +11,13 @@ import { nodeCatalog } from './node-catalog'
 export const profileOptions: Array<{ id: DemoProfile; name: string; description: string; category?: string }> = [
     {
         id: 'adobe_summit',
-        name: 'Adobe Summit Template',
-        description: 'MDF Hub Centric: Marketo -> Hub -> AEP -> Activation',
-        category: 'Featured'
+        name: 'Adobe Summit',
+        description: 'MDF Hub Centric: Marketo -> Hub -> AEP -> Activation'
     },
     {
         id: 'generic',
         name: 'Generic B2B Stack',
-        description: 'MDF Hub Centric: Snowflake -> Hub -> Hightouch',
-        category: 'Featured'
+        description: 'MDF Hub Centric: Snowflake -> Hub -> Hightouch'
     }
 ]
 
@@ -34,7 +32,7 @@ export const demoProfiles: Record<DemoProfile, DemoProfileConfig> = {
     // ===================================
     adobe_summit: {
         id: 'adobe_summit',
-        name: 'Adobe Summit Template',
+        name: 'Adobe Summit',
         description: 'Canonical Adobe flow with MDF Hub as the central engine.',
         brandColor: '#FA0F00',
         identityStrategy: 'MDF Hub + AEP Identity Service',

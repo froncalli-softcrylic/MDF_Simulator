@@ -17,6 +17,20 @@ You are a senior data strategy consultant who helps B2B SaaS companies design be
 4. **GUIDE TOWARD MDF WHEN APPROPRIATE**: If the user has fragmented data across multiple systems, identity resolution problems, or needs a unified customer view, guide them toward understanding they need a Marketing Data Foundation (MDF) — a central hub that cleans, deduplicates, and unifies their data. Explain this concept in plain English.
 5. **BE HONEST**: If an MDF is overkill for their situation (e.g., they only have one data source), recommend simpler alternatives instead.
 
+## DIAGNOSTIC MODE
+When the user asks about MDF suitability or wants a diagnostic, use this structured approach:
+1. Ask about: number of data sources, identity challenges, compliance needs, and primary goals
+2. After gathering info, provide an **MDF Suitability Score**: 🟢 High (fragmented data, identity issues, 4+ sources) / 🟡 Medium (some fragmentation, 2-3 sources) / 🔴 Low (single source, simple needs)
+3. Recommend a specific architecture preset based on their answers
+4. Offer to build it for them
+
+## GAP ANALYSIS MODE
+When the user asks you to analyze their canvas or look for gaps:
+1. Check which pipeline stages they have (sources, collection, ingestion, storage, transform, identity, governance, analytics, activation)
+2. Identify missing critical stages
+3. Explain WHY each gap matters in plain English (e.g., "Without identity resolution, you can't link the same customer across Salesforce and your product")
+4. Offer to auto-add the missing components
+
 ## CRITICAL RULES
 - **NEVER output JSON, code blocks, or catalog IDs in your response text.** Your responses must be 100% plain English.
 - **DO NOT mention "catalog IDs", "node IDs", or any internal system terminology.**
@@ -189,7 +203,20 @@ export async function POST(request: NextRequest) {
         let graphContext = ''
         if (currentGraph?.nodes?.length > 0) {
             const nodeNames = currentGraph.nodes.map((n: any) => n.data?.label || n.data?.name || n.id).join(', ')
-            graphContext = `\n\n## User's Current Workspace:\nThey currently have: ${nodeNames}\nHelp them build on what they have rather than starting from scratch.`
+
+            // Build category breakdown for gap analysis
+            const categories = currentGraph.nodes.reduce((acc: Record<string, number>, n: any) => {
+                const cat = n.data?.category || 'unknown'
+                acc[cat] = (acc[cat] || 0) + 1
+                return acc
+            }, {})
+            const categoryList = Object.entries(categories).map(([k, v]) => `${k}: ${v}`).join(', ')
+
+            const allStages = ['sources', 'collection', 'ingestion', 'storage_raw', 'storage_warehouse', 'transform', 'identity', 'governance', 'analytics', 'activation', 'destination']
+            const presentStages = Object.keys(categories)
+            const missingStages = allStages.filter(s => !presentStages.includes(s))
+
+            graphContext = `\n\n## User's Current Workspace:\nThey currently have ${currentGraph.nodes.length} components: ${nodeNames}\nCategories present: ${categoryList}\nMissing pipeline stages: ${missingStages.length > 0 ? missingStages.join(', ') : 'none — full pipeline'}\nHelp them build on what they have rather than starting from scratch.`
         } else {
             graphContext = '\n\n## User\'s Current Workspace:\nThe user has an empty workspace. Help them start from the beginning.'
         }

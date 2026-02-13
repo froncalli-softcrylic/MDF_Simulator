@@ -143,6 +143,39 @@ function getStageForCategory(category: string): 'extraction' | 'transformation' 
     return 'activation'
 }
 
+// Progressive metrics that accumulate as data flows through the pipeline
+function getMetricsForCategory(category: string): {
+    recordsProcessed: number;
+    profilesUnified: number;
+    matchRate: string;
+    dupesRemoved: number;
+    segmentsActive: number;
+} {
+    switch (category) {
+        case 'sources':
+            return { recordsProcessed: 4200, profilesUnified: 0, matchRate: '0%', dupesRemoved: 0, segmentsActive: 0 }
+        case 'collection':
+        case 'ingestion':
+            return { recordsProcessed: 4200, profilesUnified: 0, matchRate: '0%', dupesRemoved: 0, segmentsActive: 0 }
+        case 'storage_raw':
+        case 'storage_warehouse':
+            return { recordsProcessed: 4200, profilesUnified: 0, matchRate: '32%', dupesRemoved: 0, segmentsActive: 0 }
+        case 'transform':
+            return { recordsProcessed: 4200, profilesUnified: 0, matchRate: '64%', dupesRemoved: 38, segmentsActive: 0 }
+        case 'mdf':
+            return { recordsProcessed: 4200, profilesUnified: 1200, matchRate: '94%', dupesRemoved: 38, segmentsActive: 0 }
+        case 'identity':
+            return { recordsProcessed: 4200, profilesUnified: 1840, matchRate: '94%', dupesRemoved: 38, segmentsActive: 0 }
+        case 'analytics':
+            return { recordsProcessed: 4200, profilesUnified: 1840, matchRate: '94%', dupesRemoved: 38, segmentsActive: 12 }
+        case 'activation':
+        case 'destination':
+            return { recordsProcessed: 4200, profilesUnified: 1840, matchRate: '94%', dupesRemoved: 38, segmentsActive: 12 }
+        default:
+            return { recordsProcessed: 0, profilesUnified: 0, matchRate: '0%', dupesRemoved: 0, segmentsActive: 0 }
+    }
+}
+
 export function useSimulationRunner() {
     const { setSimulationState, setSimulationRunning } = useUIStore()
     const timeoutsRef = useRef<NodeJS.Timeout[]>([])
@@ -220,6 +253,7 @@ export function useSimulationRunner() {
                 (path[0].data as any).category as string,
                 (path[0].data.label as string) || 'Node'
             ),
+            simulationMetrics: getMetricsForCategory((path[0].data as any).category as string),
             resultsData: null
         })
 
@@ -250,7 +284,8 @@ export function useSimulationRunner() {
                     status: 'stepping',
                     activeNodeId: node.id,
                     currentStepIndex: stepIndex,
-                    dataPayload: getPayloadForCategory(cat, (node.data.label as string) || 'Node')
+                    dataPayload: getPayloadForCategory(cat, (node.data.label as string) || 'Node'),
+                    simulationMetrics: getMetricsForCategory(cat)
                 })
             }, delay)
             timeoutsRef.current.push(stepTimeout)

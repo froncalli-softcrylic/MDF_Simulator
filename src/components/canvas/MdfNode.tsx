@@ -7,6 +7,7 @@ import React, { memo, useMemo } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import type { MdfNodeData, NodeCategory, ValueOverlay, NodeStatus } from '@/types'
 import { getNodeById, categoryMeta } from '@/data/node-catalog'
+import { NODE_LOGOS } from '@/data/node-logos'
 import {
     Tooltip,
     TooltipContent,
@@ -147,8 +148,16 @@ function MdfNodeComponent({ id, data, selected, dragging }: MdfNodeProps) {
                             >
                                 {/* Hub Header */}
                                 <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-b border-amber-100 dark:border-amber-900/50">
-                                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-white dark:bg-slate-800 shadow-sm text-amber-600">
-                                        <IconComponent className="w-6 h-6" />
+                                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-white dark:bg-slate-800 shadow-sm text-amber-600 overflow-hidden">
+                                        {NODE_LOGOS[data.catalogId] ? (
+                                            <img
+                                                src={NODE_LOGOS[data.catalogId]}
+                                                alt={data.label}
+                                                className="w-7 h-7 object-contain"
+                                            />
+                                        ) : (
+                                            <IconComponent className="w-6 h-6" />
+                                        )}
                                     </div>
                                     <div className="flex flex-col min-w-0 flex-1">
                                         <span className="text-lg font-bold text-slate-900 dark:text-slate-100 truncate">
@@ -337,10 +346,18 @@ function MdfNodeComponent({ id, data, selected, dragging }: MdfNodeProps) {
                             <div className="flex items-center gap-3 p-3 border-b border-slate-100 dark:border-slate-800">
                                 {/* Icon */}
                                 <div className={cn(
-                                    'flex items-center justify-center w-8 h-8 rounded-md shrink-0',
+                                    'flex items-center justify-center w-8 h-8 rounded-md shrink-0 overflow-hidden',
                                     colors.bg
                                 )}>
-                                    <IconComponent className={cn('w-4 h-4', colors.icon)} />
+                                    {NODE_LOGOS[data.catalogId] ? (
+                                        <img
+                                            src={NODE_LOGOS[data.catalogId]}
+                                            alt={data.label}
+                                            className="w-5 h-5 object-contain"
+                                        />
+                                    ) : (
+                                        <IconComponent className={cn('w-4 h-4', colors.icon)} />
+                                    )}
                                 </div>
 
                                 {/* Title & Category */}
@@ -366,7 +383,32 @@ function MdfNodeComponent({ id, data, selected, dragging }: MdfNodeProps) {
 
                             {/* Body / Metrics Section */}
                             <div className="p-3 bg-slate-50/50 dark:bg-slate-900/50 min-h-[50px]">
-                                {metrics.length > 0 ? (
+                                {/* Live stats during simulation */}
+                                {simulationState.status !== 'idle' && simulationState.activeNodeId === id ? (
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">Processing...</span>
+                                        </div>
+                                        <div className="text-[11px] text-slate-600 dark:text-slate-300 font-mono">
+                                            {data.category === 'sources' && '4,200 events captured'}
+                                            {(data.category === 'collection' || data.category === 'ingestion') && '4,200 events ingested'}
+                                            {(data.category === 'storage_raw' || data.category === 'storage_warehouse') && '4,200 rows stored'}
+                                            {data.category === 'transform' && '38 dupes removed · 94% pass'}
+                                            {data.category === 'mdf' && '1,200 golden records created'}
+                                            {data.category === 'identity' && '1,840 records linked'}
+                                            {(data.category === 'analytics' || data.category === 'activation' || data.category === 'destination') && '3,200 profiles synced'}
+                                            {!['sources', 'collection', 'ingestion', 'storage_raw', 'storage_warehouse', 'transform', 'mdf', 'identity', 'analytics', 'activation', 'destination'].includes(data.category) && 'Processing data...'}
+                                        </div>
+                                    </div>
+                                ) : simulationState.status !== 'idle' && simulationState.pathSteps.findIndex(s => s.nodeId === id) >= 0 && simulationState.pathSteps.findIndex(s => s.nodeId === id) < simulationState.currentStepIndex ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3.5 h-3.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                                            <span className="text-[8px] text-emerald-600 dark:text-emerald-400">✓</span>
+                                        </div>
+                                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Completed</span>
+                                    </div>
+                                ) : metrics.length > 0 ? (
                                     <div className="grid grid-cols-2 gap-2">
                                         {metrics.map((m, idx) => (
                                             <div key={idx} className="flex flex-col">
@@ -386,13 +428,25 @@ function MdfNodeComponent({ id, data, selected, dragging }: MdfNodeProps) {
                                 )}
                             </div>
 
-                            {/* Footer / Status Text (Optional) */}
+                            {/* Footer / Status */}
                             <div className="px-3 py-1.5 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs text-slate-400">
-                                <span className="flex items-center gap-1">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                    Active
-                                </span>
-                                <span>1m ago</span>
+                                {simulationState.status !== 'idle' && simulationState.activeNodeId === id ? (
+                                    <>
+                                        <span className="flex items-center gap-1 text-emerald-500">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                            Live
+                                        </span>
+                                        <span className="text-emerald-400 font-mono text-[10px]">Streaming</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="flex items-center gap-1">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                            Active
+                                        </span>
+                                        <span>Ready</span>
+                                    </>
+                                )}
                             </div>
                         </div>
 

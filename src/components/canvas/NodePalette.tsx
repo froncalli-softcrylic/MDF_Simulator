@@ -5,6 +5,7 @@
 
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { nodeCatalog, categoryMeta } from '@/data/node-catalog'
+import { NODE_LOGOS } from '@/data/node-logos'
 import { isNodeVisibleInProfile, isNodeEmphasizedInProfile } from '@/data/demo-profiles'
 import { useProfileStore } from '@/store/profile-store'
 import { useCanvasStore } from '@/store/canvas-store'
@@ -16,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import {
-    ChevronLeft, ChevronRight, GripVertical,
+    ChevronLeft, ChevronRight, ChevronDown, ChevronsUpDown, GripVertical,
     Database, Zap, Layers, GitMerge, Shield, BarChart2, Send,
     Radio, HardDrive, Server, Code, ExternalLink, Eye, Info,
     Lock as LockIcon, Search, XCircle
@@ -71,9 +72,11 @@ interface DraggableNodeProps {
     category: NodeCategory
     isEmphasized: boolean
     onAdd: () => void
+    logo?: string
+    icon: string
 }
 
-function DraggableNode({ catalogId, name, category, isEmphasized, onAdd }: DraggableNodeProps) {
+function DraggableNode({ catalogId, name, category, isEmphasized, onAdd, logo, icon }: DraggableNodeProps) {
     const nodeRef = useRef<HTMLDivElement>(null)
     const categoryColor = categoryColors[category] || '#64748b'
 
@@ -116,10 +119,14 @@ function DraggableNode({ catalogId, name, category, isEmphasized, onAdd }: Dragg
             title={`Drag to canvas or double-click to add`}
         >
             <div className={cn(
-                "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors overflow-hidden border border-slate-100 dark:border-slate-800",
                 "bg-slate-50 dark:bg-slate-900 group-hover:bg-primary/10"
-            )} style={{ color: categoryColor }}>
-                <GripVertical className="w-5 h-5 opacity-50 group-hover:opacity-100" />
+            )}>
+                {logo ? (
+                    <img src={logo} alt={name} className="w-6 h-6 object-contain" />
+                ) : (
+                    <GripVertical className="w-5 h-5 opacity-50 group-hover:opacity-100" style={{ color: categoryColor }} />
+                )}
             </div>
 
             <div className="flex flex-col min-w-0 flex-1">
@@ -130,6 +137,7 @@ function DraggableNode({ catalogId, name, category, isEmphasized, onAdd }: Dragg
                     <span className="text-xs text-cyan-600 font-medium">Recommended</span>
                 )}
             </div>
+            {!logo && <GripVertical className="w-4 h-4 opacity-20 group-hover:opacity-100 ml-auto" style={{ color: categoryColor }} />}
         </div>
     )
 }
@@ -139,6 +147,19 @@ export default function NodePalette() {
     const { addNode } = useCanvasStore()
     const { isPaletteOpen, setIsPaletteOpen } = useUIStore()
     const [searchQuery, setSearchQuery] = useState('')
+    const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set())
+
+    const toggleCategory = useCallback((category: string) => {
+        setCollapsedCategories(prev => {
+            const next = new Set(prev)
+            if (next.has(category)) {
+                next.delete(category)
+            } else {
+                next.add(category)
+            }
+            return next
+        })
+    }, [])
     const searchInputRef = useRef<HTMLInputElement>(null)
 
     // Group and filter nodes by category (profile-aware)
@@ -188,7 +209,6 @@ export default function NodePalette() {
 
     return (
         <>
-            {/* Collapsed toggle */}
             <div
                 className={cn(
                     'absolute left-0 top-20 z-30 transition-all duration-300 ease-out',
@@ -235,8 +255,8 @@ export default function NodePalette() {
                     </div>
 
                     {/* Search Bar */}
-                    <div className="px-3 pt-3 pb-1">
-                        <div className="relative">
+                    <div className="px-3 pt-3 pb-1 flex items-center gap-2">
+                        <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                             <input
                                 ref={searchInputRef}
@@ -255,6 +275,17 @@ export default function NodePalette() {
                                 </button>
                             )}
                         </div>
+                        <button
+                            onClick={() => {
+                                const allCats = [...pipelineCategories, ...railCategories]
+                                const allCollapsed = allCats.every(c => collapsedCategories.has(c))
+                                setCollapsedCategories(allCollapsed ? new Set() : new Set(allCats))
+                            }}
+                            title={[...pipelineCategories, ...railCategories].every(c => collapsedCategories.has(c)) ? 'Expand all' : 'Collapse all'}
+                            className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                        >
+                            <ChevronsUpDown className="w-4 h-4" />
+                        </button>
                     </div>
 
                     {/* Node list */}
@@ -271,30 +302,43 @@ export default function NodePalette() {
                                 const meta = categoryMeta[category]
                                 const Icon = categoryIcons[category]
                                 const categoryColor = categoryColors[category]
+                                const isCollapsed = collapsedCategories.has(category) && !query
                                 return (
-                                    <div key={category} className="space-y-3">
-                                        <div className="flex items-center gap-2 px-2">
+                                    <div key={category} className="space-y-1">
+                                        <button
+                                            onClick={() => toggleCategory(category)}
+                                            className="flex items-center gap-2 px-2 py-1.5 w-full rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors group cursor-pointer"
+                                        >
                                             <div
-                                                className="w-1.5 h-5 rounded-full"
+                                                className="w-1.5 h-5 rounded-full flex-shrink-0"
                                                 style={{ backgroundColor: categoryColor }}
                                             />
-                                            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex-1 text-left">
                                                 {meta?.label || category}
                                             </h3>
-                                        </div>
+                                            <span className="text-[10px] font-medium text-slate-400 mr-1">{nodes.length}</span>
+                                            <ChevronDown className={cn(
+                                                "w-3.5 h-3.5 text-slate-400 transition-transform duration-200",
+                                                isCollapsed && "-rotate-90"
+                                            )} />
+                                        </button>
 
-                                        <div className="grid gap-2.5">
-                                            {nodes.map(node => (
-                                                <DraggableNode
-                                                    key={node.id}
-                                                    catalogId={node.id}
-                                                    name={node.name}
-                                                    category={node.category}
-                                                    isEmphasized={isNodeEmphasizedInProfile(node.id, activeProfile)}
-                                                    onAdd={() => handleAddNode(node.id)}
-                                                />
-                                            ))}
-                                        </div>
+                                        {!isCollapsed && (
+                                            <div className="grid gap-2.5 pt-1">
+                                                {nodes.map(node => (
+                                                    <DraggableNode
+                                                        key={node.id}
+                                                        catalogId={node.id}
+                                                        name={node.name}
+                                                        category={node.category}
+                                                        logo={NODE_LOGOS[node.id]}
+                                                        icon={node.icon}
+                                                        isEmphasized={isNodeEmphasizedInProfile(node.id, activeProfile)}
+                                                        onAdd={() => handleAddNode(node.id)}
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 )
                             })}
@@ -318,20 +362,45 @@ export default function NodePalette() {
                                     : nodesByCategory[category]
                                 if (nodes.length === 0) return null
 
+                                const meta = categoryMeta[category]
+                                const categoryColor = categoryColors[category]
+                                const isCollapsed = collapsedCategories.has(category) && !query
                                 return (
-                                    <div key={category} className="space-y-3">
-                                        <div className="grid gap-2.5">
-                                            {nodes.map(node => (
-                                                <DraggableNode
-                                                    key={node.id}
-                                                    catalogId={node.id}
-                                                    name={node.name}
-                                                    category={node.category}
-                                                    isEmphasized={isNodeEmphasizedInProfile(node.id, activeProfile)}
-                                                    onAdd={() => handleAddNode(node.id)}
-                                                />
-                                            ))}
-                                        </div>
+                                    <div key={category} className="space-y-1">
+                                        <button
+                                            onClick={() => toggleCategory(category)}
+                                            className="flex items-center gap-2 px-2 py-1.5 w-full rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors group cursor-pointer"
+                                        >
+                                            <div
+                                                className="w-1.5 h-5 rounded-full flex-shrink-0"
+                                                style={{ backgroundColor: categoryColor }}
+                                            />
+                                            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex-1 text-left">
+                                                {meta?.label || category}
+                                            </h3>
+                                            <span className="text-[10px] font-medium text-slate-400 mr-1">{nodes.length}</span>
+                                            <ChevronDown className={cn(
+                                                "w-3.5 h-3.5 text-slate-400 transition-transform duration-200",
+                                                isCollapsed && "-rotate-90"
+                                            )} />
+                                        </button>
+
+                                        {!isCollapsed && (
+                                            <div className="grid gap-2.5 pt-1">
+                                                {nodes.map(node => (
+                                                    <DraggableNode
+                                                        key={node.id}
+                                                        catalogId={node.id}
+                                                        name={node.name}
+                                                        category={node.category}
+                                                        logo={NODE_LOGOS[node.id]}
+                                                        icon={node.icon}
+                                                        isEmphasized={isNodeEmphasizedInProfile(node.id, activeProfile)}
+                                                        onAdd={() => handleAddNode(node.id)}
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 )
                             })}

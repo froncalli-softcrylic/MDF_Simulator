@@ -10,6 +10,7 @@ import type {
     CatalogNode
 } from '@/types'
 import { STAGE_TO_COLUMN } from '@/types'
+import { PORT_COMPATIBILITY, DESTINATION_ALLOWED_INPUTS, isPortCompatible } from '@/lib/connection-rules'
 import { getNodeById, nodeCatalog } from '@/data/node-catalog'
 import { generateId } from '@/lib/utils'
 import type { Node as RFNode, Edge as RFEdge } from '@xyflow/react'
@@ -99,35 +100,8 @@ const STAGE_ORDER: PipelineStage[] = [
 
 const STAGE_COLUMNS = STAGE_TO_COLUMN
 
-// Port compatibility matrix
-const PORT_COMPATIBILITY: Record<PortType, PortType[]> = {
-    raw_events: ['raw_events', 'raw_records', 'stream_events'],
-    raw_records: ['raw_records', 'raw_events', 'dataset_raw'],
-
-    identity_keys: ['identity_keys', 'raw_records', 'identity_resolution'],
-    curated_entities: ['curated_entities', 'audiences_accounts', 'audiences_people', 'raw_records', 'crm_data'],
-    graph_edges: ['graph_edges', 'identity_keys'],
-
-    metrics: ['metrics', 'curated_entities', 'analysis_result'],
-    audiences_accounts: ['audiences_accounts', 'curated_entities'],
-    audiences_people: ['audiences_people', 'curated_entities'],
-
-    governance_policies: ['governance_policies'],
-    audit_events: ['audit_events', 'governance_policies'],
-
-    // New Schema Types
-    dataset_raw: ['dataset_raw', 'raw_records'],
-    crm_data: ['crm_data', 'raw_records', 'curated_entities'],
-    activation_payload: ['activation_payload', 'audiences_people', 'audiences_accounts'],
-    analysis_result: ['analysis_result', 'metrics'],
-    identity_resolution: ['identity_resolution', 'identity_keys'],
-    stream_events: ['stream_events', 'raw_events']
-}
-
-// Destination input restrictions
-const DESTINATION_ALLOWED_INPUTS: PortType[] = [
-    'audiences_accounts', 'audiences_people', 'curated_entities', 'activation_payload'
-]
+// Port compatibility matrix imported from @/lib/connection-rules
+// (PORT_COMPATIBILITY, DESTINATION_ALLOWED_INPUTS, isPortCompatible)
 
 // Role to expected upstream/downstream
 const UPSTREAM_ROLE_MAP: Partial<Record<NodeRole, NodeRole>> = {
@@ -484,12 +458,7 @@ function findCompatiblePorts(
     return null
 }
 
-function isPortCompatible(outputType: PortType, inputType: PortType): boolean {
-    if (outputType === inputType) return true
-
-    const compatible = PORT_COMPATIBILITY[outputType] || []
-    return compatible.includes(inputType)
-}
+// isPortCompatible imported from @/lib/connection-rules
 
 function calculateConfidence(
     source: CatalogNode,

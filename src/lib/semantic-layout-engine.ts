@@ -22,7 +22,7 @@ const HUB_HEIGHT = 280
 
 // Spacing constants — generous for readable flowcharts
 const NODE_NODE_SPACING = 140          // Vertical spacing between nodes in same column
-const LAYER_SPACING = 400              // Horizontal spacing between pipeline stages
+const LAYER_SPACING = 300              // Horizontal spacing between pipeline stages
 const EDGE_NODE_SPACING = 80           // Edge-to-node breathing room
 const LEFT_PADDING = 150               // Left padding (sidebar handled by fitView now)
 const TOP_PADDING = 150                // Top padding for stage labels
@@ -55,10 +55,8 @@ const STAGE_ORDER: PipelineStage[] = [
     'destination'
 ]
 
-// Stage to partition index (integers for ELK layered partitioning)
-// Stage to partition index (Hub-Centric Layout)
-// Stage to partition index (Strict Integers for ELK layered partitioning)
-// Forces L->R linear flow: Source(0) -> Collection(1) -> Ingestion(2) -> Raw(3) -> Warehouse(4) -> Transform(5) -> MDF(6) -> Analytics(7) -> Activation(8) -> Dest(9)
+// Stage to partition index — each stage gets its own distinct column
+// so the layout matches the connection-rules L→R data flow.
 const STAGE_PARTITION: Record<PipelineStage, number> = {
     sources: 0,
     collection: 1,
@@ -67,24 +65,24 @@ const STAGE_PARTITION: Record<PipelineStage, number> = {
     storage_warehouse: 4,
     transform: 5,
 
-    // MDF HUB (Simulated Center)
+    // MDF HUB zone
     mdf_hygiene: 6,
-    mdf: 6,
-    mdf_measurement: 6,
-    identity: 6,
+    mdf: 7,
+    identity: 7,
+    mdf_measurement: 8,
 
     // Downstream
-    analytics: 7,
-    clean_room: 7,
+    analytics: 9,
+    clean_room: 10,
 
     // Action Layer
-    activation: 8,
-    realtime_serving: 8,
+    activation: 11,
+    realtime_serving: 11,
 
     // Final Destination
-    destination: 9,
+    destination: 12,
 
-    // Pinned separately
+    // Pinned separately (governance rail)
     governance: 99
 }
 
@@ -168,8 +166,8 @@ function normalizeStagesAndRoles(nodes: Node[]): StageAssignment[] {
             data.isRailNode === true ||
             catalogNode?.isRailNode === true
 
-        // Detect Bottom Band Infrastructure
-        const isInfrastructure = category === 'storage_raw' || category === 'storage_warehouse'
+        // Infrastructure flag removed — storage nodes now stay inline in L→R flow
+        const isInfrastructure = false
 
         const isIdentityHub = category === 'identity' ||
             catalogNode?.isHub === true ||
@@ -204,9 +202,9 @@ async function runElkWithStageConstraints(
         assignmentMap.set(a.nodeId, a)
     }
 
-    // Separate special nodes (Gov + Infra)
+    // Separate special nodes (governance only — infrastructure stays inline)
     const specialIds = new Set(
-        assignments.filter(a => a.isGovernance || a.isInfrastructure).map(a => a.nodeId)
+        assignments.filter(a => a.isGovernance).map(a => a.nodeId)
     )
 
     // Filter nodes for ELK (exclude special nodes)
@@ -329,41 +327,6 @@ function pinGovernanceRail(
     })
 }
 
-// ============================================
-// STEP 3b: PIN INFRASTRUCTURE BAND AT BOTTOM
-// ============================================
-
-function pinInfrastructureBand(
-    nodes: Node[],
-    assignments: StageAssignment[],
-    positionMap: Map<string, { x: number; y: number }>
-): void {
-    const infraAssignments = assignments.filter(a => a.isInfrastructure)
-    if (infraAssignments.length === 0) return
-
-    // Find bounds
-    let minX = Infinity, maxX = -Infinity, maxY = -Infinity
-    for (const [, pos] of positionMap) {
-        if (pos.x < minX) minX = pos.x
-        if (pos.x > maxX) maxX = pos.x
-        if (pos.y + NODE_HEIGHT > maxY) maxY = pos.y + NODE_HEIGHT
-    }
-    if (minX === Infinity) { minX = LEFT_PADDING; maxX = MIN_CANVAS_WIDTH; maxY = 500 }
-
-    // Center Infra below main graph
-    const count = infraAssignments.length
-    const gap = 300
-    const totalWidth = (count - 1) * gap
-    const startX = minX + (maxX - minX - totalWidth) / 2
-    const infraY = maxY + 250 // Increased padding to prevent edge overlap with bottom nodes
-
-    infraAssignments.forEach((a, idx) => {
-        positionMap.set(a.nodeId, {
-            x: startX + idx * gap,
-            y: infraY
-        })
-    })
-}
 
 // ============================================
 // STEP 4: CENTER IDENTITY HUB
@@ -565,8 +528,6 @@ export async function semanticAutoLayout(
     // Step 3: Pin governance rail at TOP
     pinGovernanceRail(safeNodes, assignments, positionMap)
 
-    // Step 3b: Pin infrastructure at BOTTOM
-    pinInfrastructureBand(safeNodes, assignments, positionMap)
 
     // Step 4: Center MDF Hub vertically
     pinMdfCenter(safeNodes, assignments, positionMap)

@@ -87,7 +87,7 @@ export default function LandingPage() {
 
             {/* 3D Background Experience */}
             <div className="absolute inset-0 z-0 opacity-80 pointer-events-none">
-                <LandingHero3D />
+                <LandingHero3D startAnimation={!showLoader} />
             </div>
 
             {/* Main Content Content Wrapper */}
@@ -144,10 +144,10 @@ export default function LandingPage() {
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8 animate-scale-in [animation-delay:300ms]">
-                            <Link href="/wizard">
+                            <Link href="/simulator/new">
                                 <Button size="lg" className="h-16 px-8 text-lg gap-3 rounded-2xl shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/40 hover:-translate-y-1 transition-all duration-300">
                                     <Sparkles className="w-6 h-6 animate-pulse" />
-                                    Start with Wizard
+                                    Start Simulator
                                     <ArrowRight className="w-5 h-5 opacity-50" />
                                 </Button>
                             </Link>
@@ -202,7 +202,7 @@ export default function LandingPage() {
                             <p className="text-xl text-slate-300 max-w-2xl mx-auto">
                                 Our team of data engineers and strategists can help you implement a production-ready Marketing Data Foundation.
                             </p>
-                            <Link href="https://softcrylic.com" target="_blank" rel="noopener noreferrer">
+                            <Link href="https://softcrylic.com" target="_blank" rel="noopener noreferrer" className="block mt-10">
                                 <Button variant="secondary" size="lg" className="h-14 px-8 text-lg rounded-xl font-bold hover:scale-105 transition-transform">
                                     Book a Consultation
                                 </Button>

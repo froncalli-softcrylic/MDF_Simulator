@@ -3,6 +3,7 @@
 
 import type { MdfNodeData, ValidationOutput, ValidationResult, WizardData, PortType, NodeCategory } from '@/types'
 import { ALLOWED_CATEGORY_EDGES, INVALID_EDGE_RULES } from '@/types'
+import { findMatchingException } from '@/lib/connection-rules'
 import { getNodeById } from '@/data/node-catalog'
 import { ProfileDefinition } from '@/data/profile-definitions'
 
@@ -176,6 +177,22 @@ export function validateEdgeConnection(
         // Check if it's a governance connection (allows looser rules)
         if (sourceCategory === 'governance') {
             return { isValid: true, warningMessage: 'Governance connection (outside standard flow)' }
+        }
+
+        // Check named exceptions (server-side conversion, offline import, etc.)
+        const sourcePort = sourceHandle
+            ? sourceCatalog.outputs?.find(p => p.id === sourceHandle)
+            : sourceCatalog.outputs?.[0]
+        const exception = findMatchingException(
+            sourceCategory,
+            targetCategory,
+            sourcePort?.type as PortType | undefined
+        )
+        if (exception) {
+            return {
+                isValid: true,
+                warningMessage: exception.warningMessage || `Exception: ${exception.condition}`
+            }
         }
 
         // Special case: Allow direct source to storage for simpler diagrams
@@ -1059,6 +1076,134 @@ function checkEnrichmentNotHub(ctx: ValidationContext): ValidationResult[] {
 }
 
 // ============================================
+// SPEC §2: MULTI-SOURCE NEEDS HUB
+// ============================================
+
+// Rule: If 2+ sources exist and any activation/destination is present,
+// require an MDF Hub or identity hub to unify data.
+function checkMultiSourceNeedsHub(ctx: ValidationContext): ValidationResult[] {
+    const results: ValidationResult[] = []
+    const { nodes } = ctx
+
+    const sourceNodes = getNodesByCategory(nodes, 'sources')
+    const activationNodes = getNodesByCategory(nodes, 'activation')
+    const destinationNodes = getNodesByCategory(nodes, 'destination')
+    const hubNodes = nodes.filter(n => {
+        const data = getNodeData(n)
+        if (!data) return false
+        return data.isHub || data.nodeRole === 'mdf_hub' || data.category === 'mdf'
+    })
+    const identityNodes = getNodesByCategory(nodes, 'identity')
+
+    const hasActivation = activationNodes.length > 0 || destinationNodes.length > 0
+    const hasHub = hubNodes.length > 0 || identityNodes.length > 0
+
+    if (sourceNodes.length >= 2 && hasActivation && !hasHub) {
+        results.push({
+            id: 'multi-source-needs-hub',
+            severity: 'warning',
+            message: 'Multiple data sources with activation require a unification layer (MDF Hub or Identity Hub) to merge identities.',
+            nodeIds: sourceNodes.map(n => n.id),
+            ruleViolated: 'multi-source-hub',
+            recommendation: {
+                action: 'Add MDF Hub',
+                nodeToAdd: 'mdf_hub'
+            },
+            fixAction: {
+                type: 'add_node',
+                payload: { catalogId: 'mdf_hub' }
+            }
+        })
+    }
+
+    return results
+}
+
+// ============================================
+// SPEC §2: MISSING TRANSFORM
+// ============================================
+
+// Rule: Warehouse → Activation/Analytics without Transform is a data quality risk.
+function checkMissingTransform(ctx: ValidationContext): ValidationResult[] {
+    const results: ValidationResult[] = []
+    const { nodes, edges } = ctx
+
+    const warehouseNodes = getNodesByCategory(nodes, 'storage_warehouse')
+    const transformNodes = getNodesByCategory(nodes, 'transform')
+    const activationNodes = getNodesByCategory(nodes, 'activation')
+    const analyticsNodes = getNodesByCategory(nodes, 'analytics')
+
+    if (warehouseNodes.length > 0 && transformNodes.length === 0 &&
+        (activationNodes.length > 0 || analyticsNodes.length > 0)) {
+        // Check if warehouse connects directly to activation or analytics
+        const warehouseIds = new Set(warehouseNodes.map(n => n.id))
+        const directEdges = edges.filter(e =>
+            warehouseIds.has(e.source) &&
+            [...activationNodes, ...analyticsNodes].some(n => n.id === e.target)
+        )
+
+        if (directEdges.length > 0) {
+            results.push({
+                id: 'missing-transform-layer',
+                severity: 'warning',
+                message: 'Raw warehouse data flows directly to activation/analytics. Add a Transform layer (dbt) to model and curate data first.',
+                nodeIds: warehouseNodes.map(n => n.id),
+                ruleViolated: 'missing-transform',
+                recommendation: {
+                    action: 'Add dbt Transform',
+                    nodeToAdd: 'dbt_core'
+                },
+                fixAction: {
+                    type: 'add_node',
+                    payload: { catalogId: 'dbt_core' }
+                }
+            })
+        }
+    }
+
+    return results
+}
+
+// ============================================
+// SPEC §4: SINGLETON CONSTRAINTS
+// ============================================
+
+// Rule: Only one warehouse and one identity hub (unless advanced mode)
+function checkSingletonConstraints(ctx: ValidationContext): ValidationResult[] {
+    const results: ValidationResult[] = []
+    const { nodes } = ctx
+
+    const warehouseNodes = getNodesByCategory(nodes, 'storage_warehouse')
+    if (warehouseNodes.length > 1) {
+        results.push({
+            id: 'singleton-warehouse',
+            severity: 'warning',
+            message: `Multiple warehouses (${warehouseNodes.length}) detected. This increases complexity — consider consolidating to one primary warehouse.`,
+            nodeIds: warehouseNodes.map(n => n.id),
+            ruleViolated: 'singleton-constraint'
+        })
+    }
+
+    const identityHubNodes = nodes.filter(n => {
+        const data = getNodeData(n)
+        if (!data) return false
+        const catalog = getNodeById(data.catalogId)
+        return catalog?.isHub || data.category === 'identity'
+    })
+    if (identityHubNodes.length > 1) {
+        results.push({
+            id: 'singleton-identity-hub',
+            severity: 'warning',
+            message: `Multiple identity hubs (${identityHubNodes.length}) create conflicting resolution strategies. Use a single identity hub.`,
+            nodeIds: identityHubNodes.map(n => n.id),
+            ruleViolated: 'singleton-constraint'
+        })
+    }
+
+    return results
+}
+
+// ============================================
 // MAIN VALIDATION FUNCTION
 // ============================================
 
@@ -1073,6 +1218,7 @@ export function validateGraph(
     const ctx: ValidationContext = { nodes, edges: safeEdges, wizardData, profileDef }
 
     const allResults: ValidationResult[] = [
+        // Core structural rules
         ...checkActivationConsent(ctx),
         ...checkAccountGraphSources(ctx),
         ...checkGovernance(ctx),
@@ -1084,13 +1230,17 @@ export function validateGraph(
         ...checkIdentityHubConnections(ctx),
         ...checkGovernanceCrossCutting(ctx),
         ...checkCardinalityAndUniqueness(ctx),
-        ...checkHubCentrality(ctx), // Added checkHubCentrality
+        ...checkHubCentrality(ctx),
         ...checkAnalyticsCompliance(ctx),
-        ...checkProfileConformance(ctx), // Added profile checks
+        ...checkProfileConformance(ctx),
         // Spec §4 Rules
         ...checkRawToDestination(ctx),
         ...checkEnrichmentNotHub(ctx),
-        ...checkHygieneBeforeIdentity(ctx)
+        ...checkHygieneBeforeIdentity(ctx),
+        // Connection Contract Rules (new)
+        ...checkMultiSourceNeedsHub(ctx),
+        ...checkMissingTransform(ctx),
+        ...checkSingletonConstraints(ctx),
     ]
 
     const errors = allResults.filter(r => r.severity === 'error')

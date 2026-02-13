@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation'
 import { useReactFlow } from '@xyflow/react'
 import { useCanvasStore } from '@/store/canvas-store'
 import { useUIStore } from '@/store/ui-store'
+import WhatIsMdfModal from '@/components/modals/WhatIsMdfModal'
 import { useProfileStore } from '@/store/profile-store'
 import { semanticAutoLayout } from '@/lib/semantic-layout-engine'
 import { generateFixPlan as generateLegacyFixPlan, sanitizeEdges } from '@/lib/smart-connect-engine'
@@ -82,6 +83,7 @@ export default function Toolbar() {
 
     const [showValidationDialog, setShowValidationDialog] = useState(false)
     const [validationErrors, setValidationErrors] = useState<any[]>([])
+    const [showLearnModal, setShowLearnModal] = useState(false)
 
     const handleRunSimulation = useCallback(async () => {
         if (isSimulationRunning) {
@@ -185,12 +187,6 @@ export default function Toolbar() {
     }, [nodes, edges, activeProfile])
 
     const handleProfileChange = useCallback((value: string) => {
-        // Unsaved changes check (simplified)
-        // In a real app, we'd check a 'dirty' flag in the store
-        if (nodes.length > 5 && !window.confirm('Switching profiles will reset your current diagram. Continue?')) {
-            return
-        }
-
         const profileId = value as DemoProfile
         setActiveProfile(profileId)
 
@@ -404,6 +400,16 @@ export default function Toolbar() {
                         <Button
                             variant="ghost"
                             size="icon"
+                            onClick={() => setShowLearnModal(true)}
+                            title="What is MDF?"
+                            className="h-9 w-9 rounded-xl hover:bg-indigo-50 text-slate-500 hover:text-indigo-600"
+                        >
+                            <FileText className="w-4 h-4" />
+                        </Button>
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={startTour}
                             title="Help Guide"
                             className="h-9 w-9 rounded-xl hover:bg-slate-100 text-slate-500"
@@ -442,32 +448,11 @@ export default function Toolbar() {
                                 <SelectValue placeholder="Profile" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectGroup>
-                                    <SelectLabel>Vendor Suites</SelectLabel>
-                                    {profileOptions.filter(p => p.category === 'Vendor Suite').map(profile => (
-                                        <SelectItem key={profile.id} value={profile.id} className="text-xs pl-6">
-                                            {profile.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                                <SelectSeparator />
-                                <SelectGroup>
-                                    <SelectLabel>Marketing Ecosystems</SelectLabel>
-                                    {profileOptions.filter(p => p.category === 'Marketing Ecosystem').map(profile => (
-                                        <SelectItem key={profile.id} value={profile.id} className="text-xs pl-6">
-                                            {profile.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                                <SelectSeparator />
-                                <SelectGroup>
-                                    <SelectLabel>General / Legacy</SelectLabel>
-                                    {profileOptions.filter(p => !p.category || (p.category !== 'Vendor Suite' && p.category !== 'Marketing Ecosystem')).map(profile => (
-                                        <SelectItem key={profile.id} value={profile.id} className="text-xs pl-6">
-                                            {profile.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
+                                {profileOptions.map(profile => (
+                                    <SelectItem key={profile.id} value={profile.id} className="text-xs">
+                                        {profile.name}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
 
@@ -566,6 +551,9 @@ export default function Toolbar() {
                     </div>
                 </div>
             )}
+
+            {/* Educational Modal */}
+            <WhatIsMdfModal open={showLearnModal} onClose={() => setShowLearnModal(false)} />
         </>
     )
 }

@@ -1,4 +1,4 @@
-// MDF Node Catalog - B2B SaaS Optimized
+﻿// MDF Node Catalog - B2B SaaS Optimized
 // Comprehensive catalog with proper categories, typed ports, and B2B-specific nodes
 
 import { CatalogNode, NodeCategory, DemoProfile, PortType } from '@/types'

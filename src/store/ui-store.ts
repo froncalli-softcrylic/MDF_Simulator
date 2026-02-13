@@ -15,6 +15,14 @@ export interface SimulationPathStep {
     description: string;
 }
 
+export interface SimulationMetrics {
+    recordsProcessed: number;
+    profilesUnified: number;
+    matchRate: string;
+    dupesRemoved: number;
+    segmentsActive: number;
+}
+
 export interface SimulationState {
     status: SimulationStep;
     activeNodeId: string | null;
@@ -23,6 +31,8 @@ export interface SimulationState {
     // Dynamic path
     pathSteps: SimulationPathStep[];
     currentStepIndex: number;
+    // Live metrics
+    simulationMetrics: SimulationMetrics;
     // Results data
     resultsData: {
         totalNodes: number;
@@ -168,7 +178,12 @@ export const useUIStore = create<UIStore>((set, get) => ({
     startTour: () => set({ isTourOpen: true, currentStep: 0, isPaletteOpen: true, isInspectorOpen: true }), // Ensure panels are open for tour
     nextStep: () => set((state) => ({ currentStep: state.currentStep + 1 })),
     prevStep: () => set((state) => ({ currentStep: Math.max(0, state.currentStep - 1) })),
-    endTour: () => set({ isTourOpen: false, currentStep: 0 }),
+    endTour: () => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('mdf_tour_completed', 'true')
+        }
+        set({ isTourOpen: false, currentStep: 0 })
+    },
 
     // Simulation
     // Simulation
@@ -182,6 +197,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
         dataPayload: null,
         pathSteps: [],
         currentStepIndex: -1,
+        simulationMetrics: { recordsProcessed: 0, profilesUnified: 0, matchRate: '0%', dupesRemoved: 0, segmentsActive: 0 },
         resultsData: null
     },
     setSimulationState: (newState) => set((state) => ({

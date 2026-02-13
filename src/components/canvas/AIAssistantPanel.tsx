@@ -17,8 +17,19 @@ import {
     User,
     Loader2,
     Check,
-    Plus
+    Plus,
+    Stethoscope,
+    Search,
+    Layers,
+    BookOpen
 } from 'lucide-react'
+
+const quickPrompts = [
+    { icon: Stethoscope, label: 'Is MDF right for me?', prompt: 'Help me figure out if a Marketing Data Foundation (MDF) is the right approach for my business. Ask me diagnostic questions to determine my suitability.' },
+    { icon: Search, label: 'Analyze my canvas', prompt: 'Analyze the current nodes on my canvas and identify any gaps in my data pipeline. What am I missing? What should I add?' },
+    { icon: Layers, label: 'Recommend architecture', prompt: 'Based on a typical B2B SaaS company, recommend a starting data architecture. What components should I have and how should they connect?' },
+    { icon: BookOpen, label: 'Explain pipeline stages', prompt: 'Walk me through each stage of an MDF pipeline — from data sources to activation. Explain what each stage does and why it matters.' }
+]
 
 interface Message {
     role: 'user' | 'assistant'
@@ -170,6 +181,53 @@ export default function AIAssistantPanel({
             sendMessage()
         }
     }, [sendMessage])
+
+    const sendQuickPrompt = useCallback((prompt: string) => {
+        setInput(prompt)
+        // Small delay so state updates, then send
+        setTimeout(() => {
+            const fakeInput = prompt
+            setInput('')
+            const userMessage: Message = { role: 'user', content: fakeInput }
+            setMessages(prev => [...prev, userMessage])
+            setIsLoading(true)
+
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: [...messages, userMessage].map(m => ({
+                        role: m.role,
+                        content: m.content
+                    })),
+                    currentGraph: { nodes, edges },
+                    validationResults: validationResults ? {
+                        errors: validationResults.errors.map((e: any) => e.message),
+                        warnings: validationResults.warnings.map((w: any) => w.message)
+                    } : null
+                })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    const newMsgIdx = messages.length + 1
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: data.message,
+                        suggestions: data.suggestions
+                    }])
+                    if (data.suggestions?.nodes?.length > 0) {
+                        setTimeout(() => applySuggestionsRef.current(newMsgIdx, data.suggestions), 300)
+                    }
+                })
+                .catch(() => {
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: 'Sorry, I encountered an error. Please check your GROQ_API_KEY configuration.'
+                    }])
+                })
+                .finally(() => setIsLoading(false))
+        }, 50)
+    }, [messages, nodes, edges, validationResults])
 
     const applySuggestions = useCallback(async (messageIndex: number, suggestions: Message['suggestions']) => {
         if (!suggestions) return
@@ -326,6 +384,25 @@ export default function AIAssistantPanel({
                 )}
                 <div ref={messagesEndRef} />
             </div>
+
+            {/* Quick-Start Diagnostic Chips */}
+            {messages.length <= 1 && !isLoading && (
+                <div className="px-4 py-2 border-t border-slate-100 bg-white/50">
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-2">Quick Start</p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                        {quickPrompts.map((qp, i) => (
+                            <button
+                                key={i}
+                                onClick={() => sendQuickPrompt(qp.prompt)}
+                                className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 bg-slate-50 hover:bg-purple-50 hover:text-purple-700 border border-slate-100 hover:border-purple-200 transition-all duration-150 text-left"
+                            >
+                                <qp.icon className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">{qp.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Chat Input */}
             <div className="p-4 pt-2 bg-slate-50 border-t border-slate-100">
