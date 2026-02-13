@@ -4,6 +4,7 @@
 // Updated for B2B SaaS categories with governance and identity rules
 
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { nodeCatalog, categoryMeta } from '@/data/node-catalog'
 import { NODE_LOGOS } from '@/data/node-logos'
 import { isNodeVisibleInProfile, isNodeEmphasizedInProfile } from '@/data/demo-profiles'
@@ -323,22 +324,32 @@ export default function NodePalette() {
                                             )} />
                                         </button>
 
-                                        {!isCollapsed && (
-                                            <div className="grid gap-2.5 pt-1">
-                                                {nodes.map(node => (
-                                                    <DraggableNode
-                                                        key={node.id}
-                                                        catalogId={node.id}
-                                                        name={node.name}
-                                                        category={node.category}
-                                                        logo={NODE_LOGOS[node.id]}
-                                                        icon={node.icon}
-                                                        isEmphasized={isNodeEmphasizedInProfile(node.id, activeProfile)}
-                                                        onAdd={() => handleAddNode(node.id)}
-                                                    />
-                                                ))}
-                                            </div>
-                                        )}
+                                        <AnimatePresence initial={false}>
+                                            {!isCollapsed && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                                                    className="overflow-hidden"
+                                                >
+                                                    <div className="grid gap-2.5 pt-1">
+                                                        {nodes.map(node => (
+                                                            <DraggableNode
+                                                                key={node.id}
+                                                                catalogId={node.id}
+                                                                name={node.name}
+                                                                category={node.category}
+                                                                logo={NODE_LOGOS[node.id]}
+                                                                icon={node.icon}
+                                                                isEmphasized={isNodeEmphasizedInProfile(node.id, activeProfile)}
+                                                                onAdd={() => handleAddNode(node.id)}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 )
                             })}
@@ -385,22 +396,32 @@ export default function NodePalette() {
                                             )} />
                                         </button>
 
-                                        {!isCollapsed && (
-                                            <div className="grid gap-2.5 pt-1">
-                                                {nodes.map(node => (
-                                                    <DraggableNode
-                                                        key={node.id}
-                                                        catalogId={node.id}
-                                                        name={node.name}
-                                                        category={node.category}
-                                                        logo={NODE_LOGOS[node.id]}
-                                                        icon={node.icon}
-                                                        isEmphasized={isNodeEmphasizedInProfile(node.id, activeProfile)}
-                                                        onAdd={() => handleAddNode(node.id)}
-                                                    />
-                                                ))}
-                                            </div>
-                                        )}
+                                        <AnimatePresence initial={false}>
+                                            {!isCollapsed && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                                                    className="overflow-hidden"
+                                                >
+                                                    <div className="grid gap-2.5 pt-1">
+                                                        {nodes.map(node => (
+                                                            <DraggableNode
+                                                                key={node.id}
+                                                                catalogId={node.id}
+                                                                name={node.name}
+                                                                category={node.category}
+                                                                logo={NODE_LOGOS[node.id]}
+                                                                icon={node.icon}
+                                                                isEmphasized={isNodeEmphasizedInProfile(node.id, activeProfile)}
+                                                                onAdd={() => handleAddNode(node.id)}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 )
                             })}
