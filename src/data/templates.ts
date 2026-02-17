@@ -160,6 +160,7 @@ export const templates: Template[] = [
             { catalogId: 'aep_data_lake', position: { x: 500, y: 175 } },
             { catalogId: 'aep_identity_service', position: { x: 700, y: 175 } },
             { catalogId: 'journey_optimizer', position: { x: 900, y: 250 } },
+            { catalogId: 'journey_optimizer_dest', position: { x: 900, y: 250 } },
             { catalogId: 'rtcdp_activation', position: { x: 900, y: 100 } },
             { catalogId: 'email_sms', position: { x: 1100, y: 250 } }
         ],

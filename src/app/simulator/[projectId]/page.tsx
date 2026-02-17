@@ -37,9 +37,6 @@ import Inspector from '@/components/canvas/Inspector'
 import Toolbar from '@/components/canvas/Toolbar'
 import SimulationStepper from '@/components/canvas/SimulationStepper'
 
-// ... existing imports
-
-
 import StatusLegend from '@/components/canvas/StatusLegend'
 import SmartConnectPanel from '@/components/canvas/SmartConnectPanel'
 import AIAssistantPanel from '@/components/canvas/AIAssistantPanel'
@@ -76,6 +73,10 @@ import SimulatorCinematicLoader from '@/components/ui/SimulatorCinematicLoader'
 import WizardSummaryModal from '@/components/modals/WizardSummaryModal'
 import { AnimatePresence } from 'framer-motion'
 
+import { MdfConfigToast } from '@/components/canvas/MdfConfigToast'
+import { MdfNavigation } from '@/components/canvas/MdfNavigation'
+import { generateMdfHubGraph } from '@/lib/diagram-generator'
+
 function SimulatorCanvas() {
     const params = useParams()
     const searchParams = useSearchParams()
@@ -85,6 +86,7 @@ function SimulatorCanvas() {
     const canvasRef = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [showWizardSummary, setShowWizardSummary] = useState(false)
+    const [showMdfToast, setShowMdfToast] = useState(false)
 
     // Simulating initial construction time
     useEffect(() => {
@@ -111,7 +113,10 @@ function SimulatorCanvas() {
         addNode,
         loadGraph,
         setProjectId,
-        setNodes
+        setNodes,
+        viewMode,
+        enterMdfHubMode,
+        exitMdfHubMode
     } = useCanvasStore()
 
     const {
@@ -448,17 +453,28 @@ function SimulatorCanvas() {
     // look up catalog metadata via getNodeById(). This means clicking different
     // instances of the same catalog node references the same catalog entry.
     const onNodeClick = useCallback(
-        (_: React.MouseEvent, node: Node) => {
-            const data = node.data as { catalogId?: string }
+        (event: React.MouseEvent, node: Node) => {
+            const data = node.data as { catalogId?: string; category?: string; isHub?: boolean }
+
+            // Handle selection
             if (data?.catalogId) {
                 setSelectedNodeId(data.catalogId)
             }
+
+            // Handle MDF Hub Drill-Down Trigger
+            // Only show if NOT already in hub mode
+            if (viewMode === 'main' && (data?.category === 'mdf' || data?.isHub)) {
+                setShowMdfToast(true)
+            } else {
+                setShowMdfToast(false)
+            }
         },
-        [setSelectedNodeId]
+        [setSelectedNodeId, viewMode]
     )
 
     const onPaneClick = useCallback(() => {
         setSelectedNodeId(null)
+        setShowMdfToast(false)
     }, [setSelectedNodeId])
 
     // Wizard Summary Handlers
@@ -538,6 +554,25 @@ function SimulatorCanvas() {
         onConnect(params)
     }, [nodes, onConnect])
 
+    const handleEnterMdfHub = useCallback(() => {
+        const hubGraph = generateMdfHubGraph(activeProfile)
+        enterMdfHubMode(hubGraph)
+        setShowMdfToast(false)
+
+        // Auto-layout the hub view
+        setTimeout(async () => {
+            const { semanticAutoLayout } = await import('@/lib/semantic-layout-engine')
+            const layoutedNodes = await semanticAutoLayout(hubGraph.nodes, hubGraph.edges)
+            setNodes(layoutedNodes)
+            fitView({ padding: 0.2, duration: 600 })
+        }, 100)
+    }, [activeProfile, enterMdfHubMode, setNodes, fitView])
+
+    const handleExitMdfHub = useCallback(() => {
+        exitMdfHubMode()
+        setTimeout(() => fitView({ padding: 0.2, duration: 600 }), 100)
+    }, [exitMdfHubMode, fitView])
+
     return (
         <div className="h-screen w-full flex flex-col overflow-hidden">
             <AnimatePresence mode="wait">
@@ -545,6 +580,11 @@ function SimulatorCanvas() {
                     <SimulatorCinematicLoader onComplete={() => setIsLoading(false)} />
                 )}
             </AnimatePresence>
+
+            {/* MDF Hub Navigation (Only in Hub Mode) */}
+            {viewMode === 'mdf-hub' && (
+                <MdfNavigation onBack={handleExitMdfHub} />
+            )}
 
             {/* Canvas */}
             <div ref={canvasRef} className="flex-1 relative">
@@ -607,15 +647,23 @@ function SimulatorCanvas() {
                     )}
                 </ReactFlow>
 
-                {/* Stage column labels — positioned in flow space */}
-                <StageLabels />
+                {/* Show Stage Labels ONLY in Main Mode */}
+                {viewMode === 'main' && <StageLabels />}
 
                 {/* Panels */}
                 <Toolbar />
                 <AnimatedParticles />
                 <SimulationStepper />
-                <NodePalette />
+                {(viewMode === 'main' || viewMode === 'mdf-hub') && <NodePalette />}
                 <Inspector />
+
+                {/* MDF Config Toast */}
+                <MdfConfigToast
+                    visible={showMdfToast}
+                    onConfigure={handleEnterMdfHub}
+                    onDismiss={() => setShowMdfToast(false)}
+                />
+
                 <GuidedTour />
                 <SimulationOverlay />
                 <SimulationResults />

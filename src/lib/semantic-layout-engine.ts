@@ -250,10 +250,18 @@ async function runElkWithStageConstraints(
             'elk.layered.nodePlacement.bk.edgeStraightening': 'IMPROVE_STRAIGHTNESS'
         },
         children: elkNodes.map(node => {
-            const assignment = assignmentMap.get(node.id)
-            const partition = assignment
-                ? STAGE_PARTITION[assignment.stage]
-                : 5 // Default to transform
+            const assignment = assignmentMap.get(node.id) // This is StageAssignment, need node data
+            const originalNode = nodes.find(n => n.id === node.id)
+            const nodeData = originalNode?.data as MdfNodeData | undefined
+
+            // Check for explicit custom column first (from data or derived assignment)
+            const customCol = nodeData?.customColumn
+
+            const partition = (customCol !== undefined)
+                ? customCol
+                : (assignment
+                    ? STAGE_PARTITION[assignment.stage]
+                    : 5) // Default to transform
 
             const isHub = assignment?.isIdentityHub || false
 

@@ -35,7 +35,7 @@ import { cn } from '@/lib/utils'
 import {
     LayoutGrid, Undo2, Redo2, Maximize,
     Download, Share2, Zap, BarChart2, Users, Shield,
-    ChevronDown, ChevronUp, MoreHorizontal, Home, Sparkles, Loader2, Bot, AlertTriangle, HelpCircle, FileText,
+    ChevronDown, ChevronUp, MoreHorizontal, Home, Sparkles, Loader2, Bot, HelpCircle, FileText,
     Play, Square
 } from 'lucide-react'
 import {
@@ -81,8 +81,7 @@ export default function Toolbar() {
     const { fitView } = useReactFlow()
 
 
-    const [showValidationDialog, setShowValidationDialog] = useState(false)
-    const [validationErrors, setValidationErrors] = useState<any[]>([])
+
     const [showLearnModal, setShowLearnModal] = useState(false)
 
     const handleRunSimulation = useCallback(async () => {
@@ -91,25 +90,21 @@ export default function Toolbar() {
             return
         }
 
-        // 1. Run Pipeline Validation
-        const { validatePipelineCompleteness } = await import('@/lib/validation-engine')
-        const errors = validatePipelineCompleteness(nodes)
-
-        if (errors.length > 0) {
-            setValidationErrors(errors)
-            setShowValidationDialog(true)
-            return
+        // 0. Ensure we are not in MDF Hub Mode (Force Exit)
+        const { viewMode, exitMdfHubMode } = useCanvasStore.getState()
+        if (viewMode === 'mdf-hub') {
+            exitMdfHubMode()
         }
 
-        // 2. Start Simulation if Valid
-        runSimulation(nodes, edges)
-    }, [isSimulationRunning, runSimulation, stopSimulation, nodes, edges])
+        // Get fresh state after potential mode switch
+        const { nodes: currentNodes, edges: currentEdges } = useCanvasStore.getState()
+
+        // 1. Run Simulation Immediately (Validation Removed)
+        runSimulation(currentNodes, currentEdges)
+    }, [isSimulationRunning, runSimulation, stopSimulation])
 
 
-    const handleRunAnyway = useCallback(() => {
-        setShowValidationDialog(false)
-        runSimulation(nodes, edges)
-    }, [runSimulation, nodes, edges])
+
 
     const handleAutoLayout = useCallback(async () => {
         if (!nodes || nodes.length === 0) return
@@ -157,11 +152,7 @@ export default function Toolbar() {
         }
     }, [nodes, edges, setNodes, fitView, setAutoLayoutRunning, setSmartConnectFixes, setShowSmartConnectPanel])
 
-    const handleAutoFix = useCallback(async () => {
-        setShowValidationDialog(false)
-        // Trigger auto-layout which includes suggestions
-        handleAutoLayout()
-    }, [handleAutoLayout])
+
 
     const handleExport = useCallback(async () => {
         openLeadModal('export')
@@ -497,60 +488,7 @@ export default function Toolbar() {
             </div>
 
             {/* Pipeline Health Check Dialog */}
-            {showValidationDialog && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 max-w-md w-full m-4 border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-3 bg-red-100 text-red-600 rounded-xl">
-                                <AlertTriangle className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Pipeline Gaps Detected</h2>
-                                <p className="text-sm text-slate-500">The simulation needs a complete pipeline to run effectively.</p>
-                            </div>
-                        </div>
 
-                        <div className="space-y-3 mb-6">
-                            {validationErrors.map((error, i) => (
-                                <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
-                                    <div className="flex gap-2 items-start">
-                                        <div className={cn(
-                                            "w-2 h-2 mt-1.5 rounded-full shrink-0",
-                                            error.severity === 'error' ? "bg-red-500" : "bg-amber-500"
-                                        )} />
-                                        <div>
-                                            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{error.message}</p>
-                                            {error.recommendation && (
-                                                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 flex items-center gap-1">
-                                                    <Sparkles className="w-3 h-3" />
-                                                    Suggestion: {error.recommendation.action}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                            <Button
-                                variant="outline"
-                                onClick={handleRunAnyway}
-                                className="flex-1 opacity-80 hover:opacity-100"
-                            >
-                                Run Anyway
-                            </Button>
-                            <Button
-                                onClick={handleAutoFix}
-                                className="flex-1 gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/20"
-                            >
-                                <LayoutGrid className="w-4 h-4" />
-                                Auto-Fix Layout
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Educational Modal */}
             <WhatIsMdfModal open={showLearnModal} onClose={() => setShowLearnModal(false)} />

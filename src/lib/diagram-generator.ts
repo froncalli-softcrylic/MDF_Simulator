@@ -57,6 +57,9 @@ export const DEFAULT_EDGE_COLOR = '#b0b8c8'
 interface ProfileStack {
     nodes: string[]
     edges: Array<{ source: string; target: string }>
+    // Optional per-node column overrides (nodeId → column index)
+    // When provided, these override the default category-based column assignment
+    columnOverrides?: Record<string, number>
 }
 
 const profileStacks: Partial<Record<DemoProfile, ProfileStack>> = {
@@ -121,6 +124,49 @@ const profileStacks: Partial<Record<DemoProfile, ProfileStack>> = {
             // Governance
             { source: 'consent_manager', target: 'mdf_hub' }
         ]
+    },
+
+    // ==================================================
+    // ADOBE SUMMIT (Sources → MDF Hub → Destinations)
+    // ==================================================
+    // The MDF Hub encapsulates ALL Marketing Data Foundation layers:
+    //   Collection, Ingestion, Raw Storage, Warehouse, Transform,
+    //   Identity Resolution, Analytics, and Activation.
+    // Sources and Destinations sit OUTSIDE the MDF Hub.
+    adobe_summit: {
+        nodes: [
+            // ── DATA SOURCES (Column 0) ──
+            'marketo', 'salesforce_crm', 'web_app_events', 'product_events',
+
+            // ── MDF HUB (Column 1) ──
+            'mdf_hub',
+
+            // ── DESTINATIONS (Column 2) ──
+            'adobe_target', 'journey_optimizer_dest', 'meta_ads'
+        ],
+        edges: [
+            // Sources → MDF Hub
+            { source: 'marketo', target: 'mdf_hub' },
+            { source: 'salesforce_crm', target: 'mdf_hub' },
+            { source: 'web_app_events', target: 'mdf_hub' },
+            { source: 'product_events', target: 'mdf_hub' },
+
+            // MDF Hub → Destinations
+            { source: 'mdf_hub', target: 'adobe_target' },
+            { source: 'mdf_hub', target: 'journey_optimizer_dest' },
+            { source: 'mdf_hub', target: 'meta_ads' }
+        ],
+        // Force 3-column layout: Sources | MDF Hub | Destinations
+        columnOverrides: {
+            'marketo': 0,
+            'salesforce_crm': 0,
+            'web_app_events': 0,
+            'product_events': 0,
+            'mdf_hub': 1,
+            'adobe_target': 2,
+            'journey_optimizer_dest': 2,
+            'meta_ads': 2
+        }
     }
 }
 
@@ -143,7 +189,34 @@ function calculateNodePositions(
 ): Record<string, { x: number; y: number }> {
     const positions: Record<string, { x: number; y: number }> = {}
 
-    // Group nodes by their category
+    // Check for profile-specific column overrides
+    const profileStack = profileStacks[profile]
+    if (profileStack?.columnOverrides) {
+        // Use explicit column overrides — group by assigned column
+        const columnGroups: Record<number, string[]> = {}
+        nodesToInclude.forEach(nodeId => {
+            const col = profileStack.columnOverrides![nodeId] ?? 0
+            if (!columnGroups[col]) columnGroups[col] = []
+            columnGroups[col].push(nodeId)
+        })
+
+        Object.entries(columnGroups).forEach(([colStr, nodes]) => {
+            const col = parseInt(colStr)
+            const x = START_X + col * COLUMN_WIDTH
+
+            // Vertically center nodes in each column
+            const totalHeight = (nodes.length - 1) * ROW_HEIGHT
+            const startY = START_Y + Math.max(0, (3 * ROW_HEIGHT - totalHeight) / 2)
+
+            nodes.forEach((nodeId, idx) => {
+                positions[nodeId] = { x, y: startY + idx * ROW_HEIGHT }
+            })
+        })
+
+        return positions
+    }
+
+    // Default: group nodes by their category
     const categoryGroups: Record<string, string[]> = {}
 
     nodesToInclude.forEach(nodeId => {
@@ -308,7 +381,8 @@ export function generateDiagramFromWizard(
                 status,
                 isRailNode: catalogNode?.isRailNode,
                 railPosition: catalogNode?.category === 'governance' ? 'top' :
-                    catalogNode?.category === 'identity' ? 'center' : undefined
+                    catalogNode?.category === 'identity' ? 'center' : undefined,
+                customColumn: profileStack.columnOverrides?.[catalogId]
             } as MdfNodeData
         }
     })
@@ -370,7 +444,8 @@ export function generateDefaultDiagramForProfile(profile: DemoProfile): GraphDat
                 status: 'optional' as NodeStatus,
                 isRailNode: catalogNode?.isRailNode,
                 railPosition: catalogNode?.category === 'governance' ? 'top' :
-                    catalogNode?.category === 'identity' ? 'center' : undefined
+                    catalogNode?.category === 'identity' ? 'center' : undefined,
+                customColumn: profileStack.columnOverrides?.[catalogId]
             } as MdfNodeData
         }
     })
@@ -844,6 +919,238 @@ export function generateDiagramFromEdgeCaseTemplate(
  */
 export function getEdgeCaseTemplates(): EdgeCaseTemplate[] {
     return edgeCaseTemplates
+}
+
+/**
+ * Generate the internal graph for the MDF Hub Drill-Down
+ */
+// ... (existing imports and constants)
+
+export function generateMdfHubGraph(profile: DemoProfile): GraphData {
+    // --------------------------------------------------------
+    // ADOBE SUMMIT SPECIFIC VIEW
+    // --------------------------------------------------------
+    if (profile === 'adobe_summit') {
+        // Define nodes for the Adobe-specific flow
+        const adobeNodes = [
+            'adobe_web_sdk',           // Collection
+            'aep_sources',             // Ingestion
+            'aep_data_lake',           // Raw Storage
+            'aep_query_service',       // Transform & Modeling (Query Service / Data Distiller)
+            'aep_identity_service',    // Identity Resolution
+            'rtcdp_profile',           // Unified Profile Store
+            'adobe_analytics',         // Analytics
+            'customer_journey_analytics', // Analytics
+            'rtcdp_activation',        // Activation
+            'journey_optimizer'        // Activation
+        ]
+
+        // Filter valid nodes
+        const nodesToInclude = adobeNodes.filter(nodeId => getNodeById(nodeId) !== undefined)
+
+        // Build map
+        const nodeMap: Record<string, string> = {}
+        nodesToInclude.forEach(catalogId => {
+            nodeMap[catalogId] = `node-${generateId()}`
+        })
+
+        // Layout: Left-to-Right Flow
+        // Col 1: Collection
+        // Col 2: Ingestion
+        // Col 3: Storage
+        // Col 4: Modeling (Hub Center)
+        // Col 5: Identity
+        // Col 6: Analytics (Top) & Activation (Bottom) ?? Or strictly L-R
+
+        const positions: Record<string, { x: number; y: number }> = {}
+        const startY = 300
+
+        // 1. Collection
+        if (nodeMap['adobe_web_sdk']) positions['adobe_web_sdk'] = { x: 0, y: startY }
+
+        // 2. Ingestion
+        if (nodeMap['aep_sources']) positions['aep_sources'] = { x: 300, y: startY }
+
+        // 3. Raw Storage
+        if (nodeMap['aep_data_lake']) positions['aep_data_lake'] = { x: 600, y: startY }
+
+        // 4. Modeling (Query Service)
+        if (nodeMap['aep_query_service']) positions['aep_query_service'] = { x: 900, y: startY }
+
+        // 5. Identity & Profile (Stacked)
+        if (nodeMap['aep_identity_service']) positions['aep_identity_service'] = { x: 1200, y: startY - 100 }
+        if (nodeMap['rtcdp_profile']) positions['rtcdp_profile'] = { x: 1200, y: startY + 100 }
+
+        // 6. Analytics (Top Branch)
+        if (nodeMap['adobe_analytics']) positions['adobe_analytics'] = { x: 1500, y: startY - 200 }
+        if (nodeMap['customer_journey_analytics']) positions['customer_journey_analytics'] = { x: 1800, y: startY - 200 }
+
+        // 7. Activation (Bottom Branch)
+        if (nodeMap['rtcdp_activation']) positions['rtcdp_activation'] = { x: 1500, y: startY + 200 }
+        if (nodeMap['journey_optimizer']) positions['journey_optimizer'] = { x: 1800, y: startY + 200 }
+
+
+        const nodes: GraphData['nodes'] = nodesToInclude.map(catalogId => {
+            const catalogNode = getNodeById(catalogId)
+            const pos = positions[catalogId] || { x: 0, y: 0 }
+
+            return {
+                id: nodeMap[catalogId],
+                type: 'mdfNode',
+                position: pos,
+                data: {
+                    catalogId,
+                    label: catalogNode?.name || catalogId,
+                    category: catalogNode?.category || 'mdf',
+                    status: 'existing',
+                    isRailNode: catalogNode?.isRailNode,
+                    railPosition: undefined
+                } as MdfNodeData
+            }
+        })
+
+        const edges: GraphData['edges'] = []
+        const addEdge = (source: string, target: string) => {
+            if (nodeMap[source] && nodeMap[target]) {
+                edges.push({
+                    id: `edge-${generateId()}`,
+                    source: nodeMap[source],
+                    target: nodeMap[target],
+                    style: { stroke: '#b0b8c8', strokeWidth: 2 }
+                })
+            }
+        }
+
+        // Define specific edges
+        addEdge('adobe_web_sdk', 'aep_sources')
+        addEdge('aep_sources', 'aep_data_lake')
+        addEdge('aep_data_lake', 'aep_query_service') // Storage -> Modeling
+
+        // Modeling -> Identity Services
+        addEdge('aep_query_service', 'aep_identity_service')
+        addEdge('aep_identity_service', 'rtcdp_profile') // Identity -> Profile
+
+        // Profile -> Analytics & Activation
+        addEdge('rtcdp_profile', 'adobe_analytics')
+        addEdge('rtcdp_profile', 'customer_journey_analytics')
+        addEdge('rtcdp_profile', 'rtcdp_activation')
+
+        // Activation -> Journey Optimizer
+        addEdge('rtcdp_activation', 'journey_optimizer')
+
+        return { nodes, edges }
+    }
+
+    // --------------------------------------------------------
+    // DEFAULT / GENERIC VIEW
+    // --------------------------------------------------------
+    // Define the nodes that live INSIDE the MDF Hub
+    // These are the "Foundation" components
+    const hubNodes = [
+        // Identity & Profile
+        'identity_resolution',
+        'metrics_layer', // Semantic Layer / Unified Metrics
+
+        // Governance Rails (Top)
+        'consent_manager',
+        'data_quality',
+        'pii_masking',
+
+        // Enrichment / Transform
+        'clearbit', // or generic enrichment
+
+        // Measurement / Analytics (Inside the foundation)
+        'attribution_model',
+        'mmm_model',
+        'churn_model'
+    ]
+
+    // Filter to valid nodes
+    const nodesToInclude = hubNodes.filter(nodeId => getNodeById(nodeId) !== undefined)
+
+    // Build node map
+    const nodeMap: Record<string, string> = {}
+    nodesToInclude.forEach(catalogId => {
+        nodeMap[catalogId] = `node-${generateId()}`
+    })
+
+    // Custom Layout for Hub View - Strict Left-to-Right Pipeline
+    // 1. Ingest/Governance -> 2. Enrichment -> 3. Identity -> 4. Metrics -> 5. Models
+    const positions: Record<string, { x: number; y: number }> = {}
+    const startY = 250 // Center Y
+    const COL_SPACING = 350
+    const ROW_SPACING = 200
+
+    // Col 1: Governance / Gatekeepers
+    if (nodeMap['consent_manager']) positions['consent_manager'] = { x: 0, y: startY - ROW_SPACING }
+    if (nodeMap['data_quality']) positions['data_quality'] = { x: 0, y: startY }
+    if (nodeMap['pii_masking']) positions['pii_masking'] = { x: 0, y: startY + ROW_SPACING }
+
+    // Col 2: Enrichment
+    if (nodeMap['clearbit']) positions['clearbit'] = { x: COL_SPACING, y: startY }
+
+    // Col 3: Identity (The Core)
+    if (nodeMap['identity_resolution']) positions['identity_resolution'] = { x: COL_SPACING * 2, y: startY }
+
+    // Col 4: Metrics / Semantic Layer
+    if (nodeMap['metrics_layer']) positions['metrics_layer'] = { x: COL_SPACING * 3, y: startY }
+
+    // Col 5: Models / Analytics
+    if (nodeMap['attribution_model']) positions['attribution_model'] = { x: COL_SPACING * 4, y: startY - ROW_SPACING }
+    if (nodeMap['mmm_model']) positions['mmm_model'] = { x: COL_SPACING * 4, y: startY }
+    if (nodeMap['churn_model']) positions['churn_model'] = { x: COL_SPACING * 4, y: startY + ROW_SPACING }
+
+    // Create Nodes
+    const nodes: GraphData['nodes'] = nodesToInclude.map(catalogId => {
+        const catalogNode = getNodeById(catalogId)
+        const pos = positions[catalogId] || { x: 0, y: 0 }
+
+        return {
+            id: nodeMap[catalogId],
+            type: 'mdfNode',
+            position: pos,
+            data: {
+                catalogId,
+                label: catalogNode?.name || catalogId,
+                category: catalogNode?.category || 'mdf',
+                status: 'existing',
+                isRailNode: catalogNode?.isRailNode,
+                railPosition: undefined
+            } as MdfNodeData
+        }
+    })
+
+    // Create Edges (Linear Flow)
+    const edges: GraphData['edges'] = []
+
+    const addEdge = (source: string, target: string) => {
+        if (nodeMap[source] && nodeMap[target]) {
+            edges.push({
+                id: `edge-${generateId()}`,
+                source: nodeMap[source],
+                target: nodeMap[target],
+                style: { stroke: '#b0b8c8', strokeWidth: 2 }
+            })
+        }
+    }
+
+    // Governance -> Enrichment/Identity
+    addEdge('consent_manager', 'identity_resolution')
+    addEdge('data_quality', 'clearbit') // Quality check before enrichment
+    addEdge('pii_masking', 'identity_resolution')
+
+    // Enrichment -> Identity
+    addEdge('clearbit', 'identity_resolution')
+
+    // Identity -> Metrics
+    addEdge('identity_resolution', 'metrics_layer')
+
+    // Metrics -> Models
+    addEdge('metrics_layer', 'attribution_model')
+    addEdge('metrics_layer', 'mmm_model')
+    addEdge('metrics_layer', 'churn_model')
+
+    return { nodes, edges }
 }
 
 

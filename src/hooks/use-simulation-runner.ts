@@ -1,7 +1,11 @@
 import { useCallback, useRef } from 'react'
 import { useUIStore, SimulationPathStep } from '@/store/ui-store'
+import { useCanvasStore } from '@/store/canvas-store'
+import { useProfileStore } from '@/store/profile-store'
 import { Edge, Node } from '@xyflow/react'
-import { categoryMeta } from '@/data/node-catalog'
+import { categoryMeta, getNodeById } from '@/data/node-catalog'
+import { generateMdfHubGraph } from '@/lib/diagram-generator'
+import { semanticAutoLayout } from '@/lib/semantic-layout-engine'
 
 // Canonical left-to-right order for the pipeline
 const CATEGORY_ORDER: string[] = [
@@ -28,6 +32,8 @@ const CLEAN_PROFILE = {
 
 // Generate a payload description based on category with a "Hygiene Story"
 function getPayloadForCategory(category: string, nodeLabel: string): any {
+    const label = nodeLabel.toLowerCase()
+
     switch (category) {
         case 'sources':
             return {
@@ -43,7 +49,8 @@ function getPayloadForCategory(category: string, nodeLabel: string): any {
                 input: {
                     ...MESSY_PROFILE,
                     status: 'Captured',
-                    node: nodeLabel
+                    node: nodeLabel,
+                    latency: '240ms'
                 }
             }
         case 'storage_raw':
@@ -51,7 +58,8 @@ function getPayloadForCategory(category: string, nodeLabel: string): any {
                 input: {
                     ...MESSY_PROFILE,
                     storage: 'S3 / Raw',
-                    schema: 'Loose'
+                    schema: 'Loose / JSON',
+                    size: '1.2kb'
                 }
             }
         case 'storage_warehouse':
@@ -59,67 +67,97 @@ function getPayloadForCategory(category: string, nodeLabel: string): any {
                 input: {
                     ...MESSY_PROFILE,
                     storage: 'Snowflake',
-                    schema: 'Structured'
+                    schema: 'Structured / Table',
+                    rows: 1
+                }
+            }
+        case 'governance':
+            return {
+                validation: {
+                    rule: 'E.164 Phone Format',
+                    status: 'Passed',
+                    transform: '1234567890 -> (123) 456-7890',
+                    pii_check: 'Cleared'
                 }
             }
         case 'transform':
-        case 'identity':
-            return {
-                diff: {
-                    firstName: { original: MESSY_PROFILE.firstName, new: CLEAN_PROFILE.firstName },
-                    lastName: { original: MESSY_PROFILE.lastName, new: CLEAN_PROFILE.lastName },
-                    email: { original: MESSY_PROFILE.email, new: CLEAN_PROFILE.email },
-                    phone: { original: MESSY_PROFILE.phone, new: CLEAN_PROFILE.phone }
-                }
-            }
-        case 'mdf':
-            return {
-                mdf_pipeline: {
-                    step1_ingest: {
-                        label: 'Data Ingestion',
-                        records_received: '4,200',
-                        sources: ['CRM', 'Marketo', 'Web Events', 'Billing'],
-                        latency: 'Batch + Real-time'
-                    },
-                    step2_hygiene: {
-                        label: 'Data Hygiene',
-                        phone: { before: '1234567890', after: '(123) 456-7890', rule: 'E.164 Format' },
-                        name: { before: 'john DOE', after: 'John Doe', rule: 'Title Case' },
-                        email: { before: 'JOHN.DOE@GMAIL.com', after: 'john.doe@gmail.com', rule: 'Lowercase' },
-                        nulls_handled: 12,
-                        duplicates_removed: 38,
-                        pass_rate: '94%'
-                    },
-                    step3_identity: {
-                        label: 'Identity Resolution',
-                        keys_matched: ['email', 'phone', 'crm_id'],
-                        records_linked: '1,840',
-                        identity_clusters: '1,200',
-                        strategy: 'Deterministic (Email + Phone)'
-                    },
-                    step4_unified_profile: {
-                        label: 'Unified Profile',
-                        golden_records: '1,200',
-                        data_classes: ['Behavioral', 'Transactional', 'Marketing', 'Consent'],
-                        completeness: '94%'
-                    },
-                    step5_measurement: {
-                        label: 'Measurement',
-                        attribution_model: 'Multi-Touch',
-                        active_segments: 12,
-                        activation_ready: true
+            // Enrichment detection
+            if (label.includes('clearbit') || label.includes('zoominfo') || label.includes('enrichment')) {
+                return {
+                    enrichment: {
+                        source: nodeLabel,
+                        data_added: {
+                            company: 'Acme Corp',
+                            revenue: '$50M - $100M',
+                            industry: 'SaaS',
+                            employees: '250-500'
+                        },
+                        confidence: 'High'
                     }
                 }
             }
+            return {
+                transformation: {
+                    firstName: { original: MESSY_PROFILE.firstName, new: CLEAN_PROFILE.firstName },
+                    lastName: { original: MESSY_PROFILE.lastName, new: CLEAN_PROFILE.lastName },
+                    email: { original: MESSY_PROFILE.email, new: CLEAN_PROFILE.email },
+                    normalization: 'Applied'
+                }
+            }
+        case 'identity':
+            return {
+                resolution: {
+                    keys_matched: ['email', 'phone', 'device_id'],
+                    graph_link: 'Link established to UP-8812',
+                    confidence: 'Determininstic (100%)',
+                    profiles_merged: 2
+                }
+            }
+        case 'mdf':
+            // Fallback for generic MDF node if not drilled down (shouldn't happen often now)
+            return {
+                mdf_summary: {
+                    status: 'Processing Chain',
+                    stages: ['Hygiene', 'Identity', 'Enrichment', 'Modeling'],
+                    health: 'Good'
+                }
+            }
         case 'analytics':
+            if (label.includes('metric') || label.includes('semantic')) {
+                return {
+                    metrics: {
+                        ltv: '$142,000',
+                        churn_risk: 'Medium',
+                        engagement_score: 85,
+                        last_active: '2 hours ago'
+                    }
+                }
+            }
+            if (label.includes('churn')) {
+                return {
+                    prediction: {
+                        model: 'XGBoost Churn v2',
+                        score: '0.12 (Low Risk)',
+                        factors: ['High Engagement', 'Recent Purchase'],
+                        action: 'Add to "Loyal Customers"'
+                    }
+                }
+            }
+            return {
+                analytics: {
+                    report_generated: 'Daily Active Users',
+                    view_count: 1420,
+                    trend: '+5%'
+                }
+            }
         case 'activation':
         case 'destination':
             return {
                 output: {
                     ...CLEAN_PROFILE,
                     node: nodeLabel,
-                    confidence: '99.8%',
-                    segment: 'Premium Customer'
+                    segment: 'High-Value Enterprise',
+                    sync_status: 'Success (200 OK)'
                 }
             }
         default:
@@ -185,7 +223,7 @@ export function useSimulationRunner() {
         timeoutsRef.current = []
     }
 
-    const runSimulation = useCallback((nodes: Node[], edges: Edge[]) => {
+    const runSimulation = useCallback(async (nodes: Node[], edges: Edge[]) => {
         // BFS Pathfinding: Find a path from leftmost category to rightmost
         // Build adjacency from edges
         const adjacency: Map<string, string[]> = new Map()
@@ -227,15 +265,69 @@ export function useSimulationRunner() {
             }
         }
 
-        // Build path steps
-        const pathSteps: SimulationPathStep[] = path.map(n => {
+        // Build path steps with MDF Drill-Down Support
+        const pathSteps: SimulationPathStep[] = []
+        const activeProfile = useProfileStore.getState().activeProfile
+
+        // Pre-generate the hub graph so we have it available
+        let mdfHubGraph = generateMdfHubGraph(activeProfile)
+
+        // ** NEW: Auto-Layout the Hub Graph **
+        try {
+            // Apply semantic layout to the generated graph
+            const layoutedNodes = await semanticAutoLayout(
+                mdfHubGraph.nodes as Node[],
+                mdfHubGraph.edges as Edge[]
+            )
+            // Update the graph with layouted nodes
+            mdfHubGraph = {
+                ...mdfHubGraph,
+                nodes: layoutedNodes as any
+            }
+        } catch (err) {
+            console.error("Failed to auto-layout MDF Hub:", err)
+        }
+
+        path.forEach(n => {
             const cat = (n.data as any).category as string
             const meta = categoryMeta[cat as keyof typeof categoryMeta]
-            return {
+
+            // Standard Node Step
+            const mainStep: SimulationPathStep = {
                 nodeId: n.id,
                 label: (n.data.label as string) || meta?.label || cat,
                 category: cat,
-                description: meta?.description || ''
+                description: meta?.description || '',
+                viewMode: 'main'
+            }
+
+            pathSteps.push(mainStep)
+
+            // If this is the MDF Hub node, drill down!
+            if (cat === 'mdf') {
+                // Identify internal steps based on the generated graph
+                // We'll pick a representative "Golden Path" through the hub
+                // Updated Order: Governance -> Enrichment -> Identity -> Metrics -> Models
+
+                const internalPathIds = activeProfile === 'adobe_summit'
+                    ? ['adobe_web_sdk', 'aep_sources', 'aep_query_service', 'aep_identity_service', 'rtcdp_profile', 'journey_optimizer']
+                    : ['data_quality', 'clearbit', 'identity_resolution', 'metrics_layer', 'churn_model']
+
+                internalPathIds.forEach(catalogId => {
+                    // Find the node in the generated graph
+                    const internalNode = mdfHubGraph.nodes.find(n => (n.data as any).catalogId === catalogId)
+                    if (internalNode) {
+                        const internalCat = (internalNode.data as any).category || 'mdf'
+                        const internalMeta = categoryMeta[internalCat as keyof typeof categoryMeta]
+                        pathSteps.push({
+                            nodeId: internalNode.id,
+                            label: (internalNode.data as any).label,
+                            category: internalCat,
+                            description: internalMeta?.description || 'Internal MDF Component',
+                            viewMode: 'mdf-hub'
+                        })
+                    }
+                })
             }
         })
 
@@ -243,49 +335,55 @@ export function useSimulationRunner() {
         setSimulationRunning(true)
         clearAllTimeouts()
 
-        // Set initial state with path
+        // Set initial state
         setSimulationState({
             status: 'stepping',
-            activeNodeId: path[0].id,
+            activeNodeId: pathSteps[0].nodeId,
             pathSteps,
             currentStepIndex: 0,
-            dataPayload: getPayloadForCategory(
-                (path[0].data as any).category as string,
-                (path[0].data.label as string) || 'Node'
-            ),
-            simulationMetrics: getMetricsForCategory((path[0].data as any).category as string),
+            dataPayload: getPayloadForCategory(pathSteps[0].category, pathSteps[0].label),
+            simulationMetrics: getMetricsForCategory(pathSteps[0].category),
             resultsData: null
         })
 
-        // Schedule remaining steps
-        const STEP_DURATION = 3500 // Time to view each step
-        const TRANSITION_DURATION = 1200 // Time for edge travel animation
+        // Schedule steps
+        const STEP_DURATION = 3500
+        const TRANSITION_DURATION = 1200
 
         let delay = STEP_DURATION
-        for (let i = 1; i < path.length; i++) {
+        for (let i = 1; i < pathSteps.length; i++) {
             const stepIndex = i
-            const node = path[i]
-            const cat = (node.data as any).category as string
+            const currentStep = pathSteps[i]
+            const prevStep = pathSteps[i - 1]
 
-            // Transition phase (edge travel)
+            // Transition logic
             const transitionTimeout = setTimeout(() => {
+                // Check if we need to switch views
+                if (currentStep.viewMode === 'mdf-hub' && prevStep.viewMode === 'main') {
+                    // Enter MDF Hub
+                    useCanvasStore.getState().enterMdfHubMode(mdfHubGraph)
+                } else if (currentStep.viewMode === 'main' && prevStep.viewMode === 'mdf-hub') {
+                    // Exit MDF Hub
+                    useCanvasStore.getState().exitMdfHubMode()
+                }
+
                 setSimulationState({
                     status: 'transitioning',
-                    activeNodeId: null,
+                    activeNodeId: null, // Clear active node during move
                     currentStepIndex: stepIndex - 1
                 })
             }, delay)
             timeoutsRef.current.push(transitionTimeout)
             delay += TRANSITION_DURATION
 
-            // Step phase (arrive at next node)
+            // Step logic (Arrival)
             const stepTimeout = setTimeout(() => {
                 setSimulationState({
                     status: 'stepping',
-                    activeNodeId: node.id,
+                    activeNodeId: currentStep.nodeId,
                     currentStepIndex: stepIndex,
-                    dataPayload: getPayloadForCategory(cat, (node.data.label as string) || 'Node'),
-                    simulationMetrics: getMetricsForCategory(cat)
+                    dataPayload: getPayloadForCategory(currentStep.category, currentStep.label),
+                    simulationMetrics: getMetricsForCategory(currentStep.category)
                 })
             }, delay)
             timeoutsRef.current.push(stepTimeout)
@@ -294,6 +392,11 @@ export function useSimulationRunner() {
 
         // Complete phase
         const completeTimeout = setTimeout(() => {
+            // Ensure we are back in main view (just in case)
+            if (useCanvasStore.getState().viewMode === 'mdf-hub') {
+                useCanvasStore.getState().exitMdfHubMode()
+            }
+
             const sourceNodes = path.filter(n => (n.data as any).category === 'sources')
             const destNodes = path.filter(n => ['activation', 'destination'].includes((n.data as any).category))
             const uniqueCategories = [...new Set(path.map(n => (n.data as any).category as string))]
@@ -301,7 +404,7 @@ export function useSimulationRunner() {
             setSimulationState({
                 status: 'results',
                 activeNodeId: null,
-                currentStepIndex: path.length,
+                currentStepIndex: pathSteps.length,
                 resultsData: {
                     totalNodes: path.length,
                     sourceNames: sourceNodes.map(n => (n.data.label as string) || 'Source'),
@@ -327,6 +430,7 @@ export function useSimulationRunner() {
     const stopSimulation = useCallback(() => {
         clearAllTimeouts()
         setSimulationRunning(false)
+        useCanvasStore.getState().exitMdfHubMode() // Reset view logic
         setSimulationState({
             status: 'idle',
             activeNodeId: null,

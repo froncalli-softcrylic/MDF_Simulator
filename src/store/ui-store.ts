@@ -13,6 +13,7 @@ export interface SimulationPathStep {
     label: string;
     category: string;
     description: string;
+    viewMode?: 'main' | 'mdf-hub'; // Defaults to 'main'
 }
 
 export interface SimulationMetrics {

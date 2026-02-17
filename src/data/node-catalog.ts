@@ -195,7 +195,12 @@ export const nodeCatalog: CatalogNode[] = [
         b2bSpecific: true,
         preferredStackNode: true,
         availableIdentities: ['user_id', 'device_id', 'account_id'],
-        dataClassProduced: 'behavioral'
+        dataClassProduced: 'behavioral',
+        sampleData: [
+            { event_id: 'pe-001', user_id: 'usr_9281', account_id: 'acc_4412', event: 'Feature Used', feature: 'Dashboard Export', timestamp: '2024-03-10T14:22:05Z', session_id: 'sess_abc123', device_id: 'dev_x91' },
+            { event_id: 'pe-002', user_id: 'usr_7744', account_id: 'acc_3301', event: 'Plan Upgraded', from_plan: 'Starter', to_plan: 'Pro', timestamp: '2024-03-10T15:01:30Z', session_id: 'sess_def456', device_id: 'dev_m28' },
+            { event_id: 'pe-003', user_id: 'usr_5120', account_id: 'acc_4412', event: 'Invite Sent', invitee_email: 'peer@company.com', timestamp: '2024-03-11T09:15:00Z', session_id: 'sess_ghi789', device_id: 'dev_x91' }
+        ]
     },
     {
         id: 'web_app_events',
@@ -220,9 +225,9 @@ export const nodeCatalog: CatalogNode[] = [
         availableIdentities: ['cookie', 'device_id'],
         dataClassProduced: 'behavioral',
         sampleData: [
-            { event_id: 'evt_12345', name: 'Page Viewed', url: '/pricing', timestamp: '2024-02-14T10:30:00Z', anonymous_id: 'anon_001' },
-            { event_id: 'evt_12346', name: 'Button Clicked', label: 'Sign Up', timestamp: '2024-02-14T10:31:15Z', anonymous_id: 'anon_001' },
-            { event_id: 'evt_12347', name: 'Form Submitted', form_id: 'demo_req', timestamp: '2024-02-14T10:35:22Z', anonymous_id: 'anon_002' }
+            { event_id: 'evt_12345', name: 'Page Viewed', url: '/pricing', cookie_id: 'ck_8a3f9d2b', ecid: 'ECID-44019283756102', ga_client_id: 'GA1.2.1234567890.1707900600', permanent_id: 'pid_00A91X', timestamp: '2024-02-14T10:30:00Z' },
+            { event_id: 'evt_12346', name: 'Button Clicked', label: 'Sign Up', cookie_id: 'ck_8a3f9d2b', ecid: 'ECID-44019283756102', ga_client_id: 'GA1.2.1234567890.1707900600', permanent_id: 'pid_00A91X', timestamp: '2024-02-14T10:31:15Z' },
+            { event_id: 'evt_12347', name: 'Form Submitted', form_id: 'demo_req', cookie_id: 'ck_2e7c4a81', ecid: 'ECID-88023947110258', ga_client_id: 'GA1.2.9876543210.1707901200', permanent_id: 'pid_00B42Y', timestamp: '2024-02-14T10:35:22Z' }
         ]
     },
 
@@ -271,9 +276,9 @@ export const nodeCatalog: CatalogNode[] = [
         sampleFields: ['Lead Source', 'Annual Revenue', 'Stage', 'Close Date'],
         dataClassProduced: 'transactional',
         sampleData: [
-            { id: 'LD-1001', first_name: 'John', last_name: 'Doe', email: 'john.doe@techcorp.com', company: 'TechCorp', status: 'MQL', annual_rev: '$50M' },
-            { id: 'LD-1002', first_name: 'Sarah', last_name: 'Smith', email: 'sarah.s@acme.io', company: 'Acme Inc', status: 'SQL', annual_rev: '$120M' },
-            { id: 'LD-1003', first_name: 'Mike', last_name: 'Jones', email: 'mike.j@startup.co', company: 'StartupCo', status: 'New', annual_rev: '$5M' }
+            { id: 'LD-1001', first_name: 'John', last_name: 'Doe', email: 'john.doe@techcorp.com', address: '123 Market St, San Francisco, CA 94105', demographic: 'VP Engineering, 35-44, Male', company: 'TechCorp', status: 'MQL', annual_rev: '$50M' },
+            { id: 'LD-1002', first_name: 'Sarah', last_name: 'Smith', email: 'sarah.s@acme.io', address: '456 Innovation Blvd, Austin, TX 78701', demographic: 'CMO, 45-54, Female', company: 'Acme Inc', status: 'SQL', annual_rev: '$120M' },
+            { id: 'LD-1003', first_name: 'Mike', last_name: 'Jones', email: 'mike.j@startup.co', address: '789 Startup Lane, New York, NY 10001', demographic: 'Founder/CEO, 25-34, Male', company: 'StartupCo', status: 'New', annual_rev: '$5M' }
         ]
     },
     {
@@ -326,7 +331,12 @@ export const nodeCatalog: CatalogNode[] = [
         enables: ['measurement', 'account_intelligence'],
         recommendedNext: ['fivetran', 'snowflake'],
         b2bSpecific: true,
-        preferredStackNode: true
+        preferredStackNode: true,
+        sampleData: [
+            { invoice_id: 'INV-20240301', customer_id: 'cust_4412', email: 'billing@techcorp.com', plan: 'Enterprise', mrr: '$4,500', status: 'Paid', period: 'Mar 2024', payment_method: 'ACH' },
+            { invoice_id: 'INV-20240302', customer_id: 'cust_3301', email: 'finance@acme.io', plan: 'Pro', mrr: '$1,200', status: 'Paid', period: 'Mar 2024', payment_method: 'Credit Card' },
+            { invoice_id: 'INV-20240303', customer_id: 'cust_5501', email: 'accounts@startup.co', plan: 'Starter', mrr: '$99', status: 'Past Due', period: 'Mar 2024', payment_method: 'Credit Card' }
+        ]
     },
 
     // Support
@@ -349,7 +359,12 @@ export const nodeCatalog: CatalogNode[] = [
         prerequisites: [],
         enables: ['account_intelligence'],
         recommendedNext: ['fivetran', 'snowflake'],
-        b2bSpecific: true
+        b2bSpecific: true,
+        sampleData: [
+            { ticket_id: 'TKT-8801', subject: 'SSO Login Failing', requester: 'admin@techcorp.com', priority: 'High', status: 'Open', created: '2024-03-10T08:15:00Z', account: 'TechCorp' },
+            { ticket_id: 'TKT-8802', subject: 'Export CSV Not Working', requester: 'sarah.s@acme.io', priority: 'Medium', status: 'Pending', created: '2024-03-10T11:30:00Z', account: 'Acme Inc' },
+            { ticket_id: 'TKT-8803', subject: 'Feature Request: Dark Mode', requester: 'mike.j@startup.co', priority: 'Low', status: 'Solved', created: '2024-03-09T16:45:00Z', account: 'StartupCo' }
+        ]
     },
 
     // Marketing
@@ -376,13 +391,14 @@ export const nodeCatalog: CatalogNode[] = [
         sampleFields: ['Campaign Name', 'Program Status', 'Lead Score'],
         dataClassProduced: 'marketing',
         sampleData: [
-            { lead_id: 'Mkto-5501', score: 85, program: 'Webinar-2024-Q1', behavior_score: 50, demographic_score: 35, email: 'alex.b@enterprise.net' },
-            { lead_id: 'Mkto-5502', score: 42, program: 'Ebook-Download', behavior_score: 20, demographic_score: 22, email: 'chris.p@midmarket.com' }
+            { marketo_id: 'MKTO-5501', lead_id: 'Mkto-5501', email: 'alex.b@enterprise.net', cookie_id: 'mktck_a8f92b01', score: 85, program: 'Webinar-2024-Q1', behavior_score: 50, demographic_score: 35 },
+            { marketo_id: 'MKTO-5502', lead_id: 'Mkto-5502', email: 'chris.p@midmarket.com', cookie_id: 'mktck_7d4e1c93', score: 42, program: 'Ebook-Download', behavior_score: 20, demographic_score: 22 },
+            { marketo_id: 'MKTO-5503', lead_id: 'Mkto-5503', email: 'pat.w@acme.io', cookie_id: 'mktck_3b20df56', score: 71, program: 'Demo-Request-Q1', behavior_score: 45, demographic_score: 26 }
         ]
     },
     {
         id: 'ad_platforms',
-        name: 'Ad Platforms',
+        name: 'Ad Platforms (All)',
         category: 'sources',
         nodeRole: 'source',
         stage: 'sources',
@@ -398,7 +414,60 @@ export const nodeCatalog: CatalogNode[] = [
         outputs: [{ id: 'records_out', name: 'Ad Records', type: 'raw_records' }],
         prerequisites: [],
         enables: ['measurement'],
-        recommendedNext: ['fivetran', 'supermetrics']
+        recommendedNext: ['fivetran', 'supermetrics'],
+        sampleData: [
+            { platform: 'Google Ads', campaign: 'Brand - US', impressions: 142500, clicks: 3420, spend: '$8,550', conversions: 87, cpa: '$98.28', date: '2024-03-10' },
+            { platform: 'LinkedIn Ads', campaign: 'ABM - Enterprise', impressions: 28900, clicks: 580, spend: '$14,500', conversions: 23, cpa: '$630.43', date: '2024-03-10' },
+            { platform: 'Meta Ads', campaign: 'Retargeting - Visitors', impressions: 95200, clicks: 1870, spend: '$3,740', conversions: 42, cpa: '$89.05', date: '2024-03-10' }
+        ]
+    },
+    {
+        id: 'meta_ads_source',
+        name: 'Meta Ads (Source)',
+        category: 'sources',
+        nodeRole: 'source',
+        stage: 'sources',
+        icon: 'facebook',
+        vendorProfileAvailability: ALL_PROFILES,
+        description: 'Facebook and Instagram ad performance data.',
+        whyItMatters: ['Social spend optimization', 'Creative performance', 'Retargeting signals'],
+        inputs: [],
+        outputs: [{ id: 'records_out', name: 'Ad Records', type: 'raw_records' }],
+        prerequisites: [],
+        enables: ['measurement'],
+        recommendedNext: ['fivetran']
+    },
+    {
+        id: 'google_ads_source',
+        name: 'Google Ads (Source)',
+        category: 'sources',
+        nodeRole: 'source',
+        stage: 'sources',
+        icon: 'dollar-sign',
+        vendorProfileAvailability: ALL_PROFILES,
+        description: 'Search and YouTube ad performance data.',
+        whyItMatters: ['Search intent signals', 'Keyword performance', 'ROAS analysis'],
+        inputs: [],
+        outputs: [{ id: 'records_out', name: 'Ad Records', type: 'raw_records' }],
+        prerequisites: [],
+        enables: ['measurement'],
+        recommendedNext: ['fivetran', 'bigquery']
+    },
+    {
+        id: 'journey_optimizer_source',
+        name: 'Journey Optimizer (Source)',
+        category: 'sources',
+        nodeRole: 'source',
+        stage: 'sources',
+        icon: 'navigation',
+        vendorProfileAvailability: ['adobe_summit', 'generic'],
+        description: 'Engagement data and journey feedback loops (Sends/Opens/Clicks).',
+        whyItMatters: ['Campaign feedback', 'Engagement scoring', 'Channel preference'],
+        inputs: [],
+        outputs: [{ id: 'records_out', name: 'Engagement Records', type: 'raw_records' }],
+        prerequisites: [],
+        enables: ['measurement', 'identity'],
+        recommendedNext: ['adobe_analytics', 'customer_journey_analytics']
     },
 
     // ==========================================================
@@ -1102,6 +1171,50 @@ export const nodeCatalog: CatalogNode[] = [
         joinKeys: ['email', 'phone', 'device_id', 'account_id']
     },
     {
+        id: 'neptune_graph',
+        name: 'Amazon Neptune',
+        category: 'identity',
+        nodeRole: 'identity_hub',
+        stage: 'identity',
+        uniquenessKey: 'identity:hub',
+        icon: 'share-2',
+        vendorProfileAvailability: ['generic'],
+        description: 'Managed graph database for identity resolution.',
+        whyItMatters: [
+            'High-performance graph queries',
+            'Billion-node scale',
+            'Gremlin/SPARQL support'
+        ],
+        inputs: [{ id: 'records_in', name: 'Identity Data', type: 'identity_keys' }],
+        outputs: [{ id: 'graph_out', name: 'Identity Graph', type: 'graph_edges' }],
+        prerequisites: ['s3_raw'],
+        enables: ['identity', 'account_intelligence'],
+        recommendedNext: ['snowflake'],
+        isHub: true
+    },
+    {
+        id: 'neo4j',
+        name: 'Neo4j',
+        category: 'identity',
+        nodeRole: 'identity_hub',
+        stage: 'identity',
+        uniquenessKey: 'identity:hub',
+        icon: 'share-2',
+        vendorProfileAvailability: ['generic'],
+        description: 'Original graph database for complex relationships.',
+        whyItMatters: [
+            'Native graph storage',
+            'Cypher query language',
+            'Graph data science library'
+        ],
+        inputs: [{ id: 'records_in', name: 'Identity Data', type: 'identity_keys' }],
+        outputs: [{ id: 'graph_out', name: 'Identity Graph', type: 'graph_edges' }],
+        prerequisites: [],
+        enables: ['identity', 'account_intelligence'],
+        recommendedNext: ['snowflake'],
+        isHub: true
+    },
+    {
         id: 'unified_customer_profile',
         name: 'Unified Profile',
         category: 'identity', // or unified_profile role
@@ -1314,6 +1427,22 @@ export const nodeCatalog: CatalogNode[] = [
         recommendedNext: []
     },
     {
+        id: 'journey_optimizer_dest',
+        name: 'Journey Optimizer (Dest)',
+        category: 'destination',
+        nodeRole: 'destination',
+        stage: 'destination',
+        icon: 'navigation',
+        vendorProfileAvailability: ['adobe_summit', 'generic'],
+        description: 'Send emails, push notifications, and SMS campaigns.',
+        whyItMatters: ['Cross-channel messaging', 'Real-time delivery', 'Personalization'],
+        inputs: [{ id: 'audience_in', name: 'Audiences', type: 'audiences_people' }],
+        outputs: [],
+        prerequisites: ['mdf_hub'],
+        enables: ['marketing'],
+        recommendedNext: []
+    },
+    {
         id: 'meta_ads',
         name: 'Meta Ads',
         category: 'destination',
@@ -1423,27 +1552,7 @@ export const nodeCatalog: CatalogNode[] = [
     // INTENT & ENRICHMENT
     // ==========================================================
 
-    {
-        id: 'clearbit',
-        name: 'Clearbit',
-        category: 'transform',
-        nodeRole: 'enrichment',
-        stage: 'transform',
-        icon: 'info',
-        vendorProfileAvailability: ALL_PROFILES,
-        description: 'Firmographic and technographic enrichment.',
-        whyItMatters: [
-            'Company data enrichment',
-            'Employee count, industry',
-            'Tech stack detection'
-        ],
-        inputs: [{ id: 'identity_in', name: 'Domain/Email', type: 'identity_keys' }],
-        outputs: [{ id: 'entities_out', name: 'Enriched Data', type: 'curated_entities' }],
-        prerequisites: [],
-        enables: ['enrichment', 'account_intelligence'],
-        recommendedNext: ['neptune_graph', 'dbt_core'],
-        b2bSpecific: true
-    },
+
 
     // ==========================================================
     // GOVERNANCE RAIL (Top Lane - Cross-Cutting)
@@ -2013,6 +2122,22 @@ export const nodeCatalog: CatalogNode[] = [
         recommendedNext: ['aep_identity_service']
     },
     {
+        id: 'aep_query_service',
+        name: 'Query Service',
+        category: 'transform',
+        nodeRole: 'transform',
+        stage: 'transform',
+        icon: 'database', // or 'code' / 'terminal'
+        vendorProfileAvailability: ['adobe_summit'],
+        description: 'Serverless SQL interface for analyzing and transforming data in the Data Lake (Data Distiller).',
+        whyItMatters: ['SQL-based analysis', 'Create derived datasets', 'Connect via BI tools'],
+        inputs: [{ id: 'lake_in', name: 'Data Lake', type: 'raw_records' }],
+        outputs: [{ id: 'derived_out', name: 'Derived Datasets', type: 'curated_entities' }],
+        prerequisites: ['aep_data_lake'],
+        enables: ['analytics', 'identity'],
+        recommendedNext: ['aep_identity_service', 'customer_journey_analytics']
+    },
+    {
         id: 'aep_identity_service',
         name: 'AEP Identity Service',
         category: 'identity',
@@ -2069,16 +2194,24 @@ export const nodeCatalog: CatalogNode[] = [
     {
         id: 'journey_optimizer',
         name: 'Adobe Journey Optimizer',
-        category: 'destination',
+        category: 'activation',
+        nodeRole: 'activation_connector',
+        stage: 'activation',
         icon: 'navigation',
-        vendorProfileAvailability: ['adobe_summit'],
-        description: 'Orchestrate personalized journeys across email, push, SMS, and in-app.',
-        whyItMatters: ['Cross-channel orchestration', 'AI-powered optimization', 'Real-time triggers'],
+        vendorProfileAvailability: ['adobe_summit', 'generic'],
+        description: 'Orchestrate personalized journeys across email, push, SMS, and in-app. Also serves as a data source for engagement feedback loops.',
+        whenToUse: 'When you need real-time journey orchestration across multiple channels with engagement data flowing back into the data foundation.',
+        whyItMatters: ['Cross-channel orchestration', 'AI-powered optimization', 'Real-time triggers', 'Engagement data as feedback source'],
         inputs: [{ id: 'audience_in', name: 'Audiences', type: 'audiences_people' }],
-        outputs: [],
-        prerequisites: ['rtcdp_activation'],
-        enables: ['engagement'],
-        recommendedNext: []
+        outputs: [{ id: 'engagement_out', name: 'Engagement Data', type: 'raw_records' }],
+        prerequisites: ['mdf_hub'],
+        enables: ['engagement', 'measurement'],
+        recommendedNext: ['adobe_analytics'],
+        sampleData: [
+            { journey_id: 'JRN-001', journey_name: 'Onboarding Welcome', channel: 'Email', profile_id: 'UP-8812', action: 'Delivered', timestamp: '2024-03-10T09:00:00Z', variant: 'A' },
+            { journey_id: 'JRN-001', journey_name: 'Onboarding Welcome', channel: 'Push', profile_id: 'UP-8812', action: 'Opened', timestamp: '2024-03-10T09:15:42Z', variant: 'A' },
+            { journey_id: 'JRN-002', journey_name: 'Re-Engagement 30d', channel: 'SMS', profile_id: 'UP-3301', action: 'Clicked', timestamp: '2024-03-11T14:22:18Z', variant: 'B' }
+        ]
     },
     {
         id: 'adobe_analytics',
@@ -3023,25 +3156,7 @@ export const nodeCatalog: CatalogNode[] = [
         recommendedNext: ['segment_engage'],
         isHub: true
     },
-    {
-        id: 'segment_profiles',
-        name: 'Segment Profiles',
-        category: 'identity',
-        nodeRole: 'identity_hub',
-        stage: 'identity',
-        uniquenessKey: 'identity:hub',
-        cardinality: 'single',
-        isHub: true,
-        icon: 'user',
-        vendorProfileAvailability: ['generic'],
-        description: 'Unified customer profiles in Segment.',
-        whyItMatters: ['Real-time unification', 'Trait computation', 'Predictive traits'],
-        inputs: [{ id: 'events_in', name: 'Events', type: 'stream_events' }],
-        outputs: [{ id: 'profile_out', name: 'Unified Profiles', type: 'identity_keys' }],
-        prerequisites: ['segment'],
-        enables: ['identity', 'activation'],
-        recommendedNext: ['segment_engage']
-    },
+
     {
         id: 'segment_engage',
         name: 'Segment Engage',

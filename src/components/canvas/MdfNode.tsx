@@ -16,35 +16,11 @@ import {
 } from "@/components/ui/tooltip"
 import { useUIStore } from '@/store/ui-store'
 import { cn } from '@/lib/utils'
+import { iconMap } from '@/lib/icon-map'
 import {
-    Database, Globe, Zap, Layers, GitMerge, Shield, BarChart2, Send,
-    Users, Store, Megaphone, Headphones, RefreshCw, Inbox, GitBranch,
-    Link, Home, CheckSquare, Lock, CheckCircle, TrendingUp, Upload, Mail,
-    Check, AlertTriangle, Plus, Sparkles, Radio, HardDrive, Server, Code,
-    ExternalLink, Eye, Info, Activity, CreditCard, HelpCircle, Key,
-    FileText, AlertCircle, PieChart, Target, Bell, MessageSquare, Search, Fingerprint
+    Database, Sparkles, Fingerprint, Users, BarChart2,
+    CheckCircle, TrendingUp
 } from 'lucide-react'
-
-// Icon mapping (expanded for B2B SaaS)
-const iconMap: Record<string, React.ElementType> = {
-    database: Database, globe: Globe, zap: Zap, layers: Layers,
-    'git-merge': GitMerge, shield: Shield, 'bar-chart-2': BarChart2,
-    send: Send, users: Users, store: Store, megaphone: Megaphone,
-    headphones: Headphones, 'refresh-cw': RefreshCw, inbox: Inbox,
-    'git-branch': GitBranch, link: Link, home: Home,
-    'check-square': CheckSquare, lock: Lock, 'check-circle': CheckCircle,
-    'trending-up': TrendingUp, upload: Upload, mail: Mail,
-    'chart-line': BarChart2, facebook: Send, server: Server,
-    download: Inbox, cog: Layers, 'chart-bar': BarChart2,
-    radio: Radio, 'hard-drive': HardDrive, code: Code,
-    'external-link': ExternalLink, eye: Eye, info: Info,
-    activity: Activity, 'credit-card': CreditCard, 'help-circle': HelpCircle,
-    key: Key, 'file-text': FileText, 'alert-circle': AlertCircle,
-    'pie-chart': PieChart, target: Target, bell: Bell,
-    'message-square': MessageSquare, search: Search, cloud: Globe,
-    'git-fork': GitMerge, 'arrow-right': Send, 'user-plus': Users,
-    'alert-triangle': AlertTriangle, 'cloud-lightning': Zap, linkedin: Link
-}
 
 // Category Colors (Left Border & Icon)
 const categoryColors: Partial<Record<NodeCategory, { border: string; icon: string; bg: string }>> = {
@@ -113,7 +89,7 @@ function MdfNodeComponent({ id, data, selected, dragging }: MdfNodeProps) {
     const metrics = catalogNode?.metrics || []
 
     // Determine if this is a HUB node
-    const isHub = catalogNode?.isHub || data.category === 'mdf' || data.category === 'identity' // Treat identity as part of hub visual if needed, but mainly 'mdf' category is the super node
+    const isHub = catalogNode?.isHub || data.category === 'mdf' // Treat identity as normal node unless explicitly isHub
 
     // Hub specific state
     const [activeTab, setActiveTab] = React.useState<'hygiene' | 'identity' | 'profile' | 'measurement'>('profile')

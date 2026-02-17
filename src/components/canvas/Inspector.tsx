@@ -75,10 +75,10 @@ export default function Inspector() {
         <div
             id="tour-inspector"
             className={cn(
-                'absolute top-12 bottom-0 z-10 w-64 md:w-72 lg:w-80',
-                'bg-background/95 backdrop-blur border-l shadow-xl flex flex-col',
-                'transition-all duration-300 ease-out',
-                shouldShow ? 'right-0 opacity-100' : '-right-80 opacity-0 pointer-events-none'
+                'absolute top-16 bottom-4 right-4 z-20 w-80 md:w-96',
+                'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 shadow-2xl rounded-2xl flex flex-col overflow-hidden',
+                'transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)',
+                shouldShow ? 'translate-x-0 opacity-100' : 'translate-x-[120%] opacity-0 pointer-events-none'
             )}
         >
             {catalogNode && (

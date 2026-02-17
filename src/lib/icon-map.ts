@@ -1,0 +1,61 @@
+
+import {
+    Database, Globe, Zap, Layers, GitMerge, Shield, BarChart2, Send,
+    Users, Store, Megaphone, Headphones, RefreshCw, Inbox, GitBranch,
+    Link, Home, CheckSquare, Lock, CheckCircle, TrendingUp, Upload, Mail,
+    Check, AlertTriangle, Plus, Sparkles, Radio, HardDrive, Server, Code,
+    ExternalLink, Eye, Info, Activity, CreditCard, HelpCircle, Key,
+    FileText, AlertCircle, PieChart, Target, Bell, MessageSquare, Search, Fingerprint,
+    // Additions for missing icons
+    Share2, Box, DollarSign, Navigation, Cpu, Copy,
+    UserCheck, Mic, MousePointer, MessageCircle, Smartphone, User,
+    Briefcase, Plug, ShoppingCart, Star, Terminal, BarChart, Book,
+    Tag, Monitor, Phone, PhoneCall, Building
+} from 'lucide-react'
+
+// Centralized icon mapping
+export const iconMap: Record<string, React.ElementType> = {
+    database: Database, globe: Globe, zap: Zap, layers: Layers,
+    'git-merge': GitMerge, shield: Shield, 'bar-chart-2': BarChart2,
+    send: Send, users: Users, store: Store, megaphone: Megaphone,
+    headphones: Headphones, 'refresh-cw': RefreshCw, inbox: Inbox,
+    'git-branch': GitBranch, link: Link, home: Home,
+    'check-square': CheckSquare, lock: Lock, 'check-circle': CheckCircle,
+    'trending-up': TrendingUp, upload: Upload, mail: Mail,
+    'chart-line': BarChart2, facebook: Send, server: Server,
+    download: Inbox, cog: Layers, 'chart-bar': BarChart2,
+    radio: Radio, 'hard-drive': HardDrive, code: Code,
+    'external-link': ExternalLink, eye: Eye, info: Info,
+    activity: Activity, 'credit-card': CreditCard, 'help-circle': HelpCircle,
+    key: Key, 'file-text': FileText, 'alert-circle': AlertCircle,
+    'pie-chart': PieChart, target: Target, bell: Bell,
+    'message-square': MessageSquare, search: Search, cloud: Globe,
+    'git-fork': GitMerge, 'arrow-right': Send, 'user-plus': Users,
+    'alert-triangle': AlertTriangle, 'cloud-lightning': Zap, linkedin: Link,
+    // New additions
+    'share-2': Share2,
+    box: Box,
+    'dollar-sign': DollarSign,
+    navigation: Navigation,
+    cpu: Cpu,
+    sparkles: Sparkles,
+    copy: Copy,
+    'user-check': UserCheck,
+    mic: Mic,
+    'mouse-pointer': MousePointer,
+    'message-circle': MessageCircle,
+    smartphone: Smartphone,
+    user: User,
+    briefcase: Briefcase,
+    plug: Plug,
+    'shopping-cart': ShoppingCart,
+    star: Star,
+    terminal: Terminal,
+    'bar-chart': BarChart,
+    book: Book,
+    tag: Tag,
+    monitor: Monitor,
+    phone: Phone,
+    'phone-call': PhoneCall,
+    building: Building
+}

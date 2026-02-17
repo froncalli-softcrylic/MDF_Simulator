@@ -310,6 +310,7 @@ export interface CatalogNode {
     stage?: PipelineStage;          // Explicit stage override
     isHub?: boolean;                // Account graph hub (centered)
     railPosition?: 'top' | 'bottom' | 'center'; // For governance rail
+    customColumn?: number;          // Explicit column index (0-based) to override stage partition
 
     // NEW: Smart Connect Hints
     autoConnectPriority?: number;   // Higher = connect first (0-100)
@@ -459,6 +460,9 @@ export interface GraphData {
         sourceHandle?: string;
         targetHandle?: string;
         isGovernanceEdge?: boolean; // For dashed styling
+        style?: any; // CSS properties for edge stroke/color
+        animated?: boolean;
+        label?: string;
     }[];
 }
 

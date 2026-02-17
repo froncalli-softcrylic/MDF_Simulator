@@ -46,6 +46,12 @@ interface CanvasStore {
 
     // Dirty state
     markClean: () => void
+
+    // MDF Hub Drill-Down
+    viewMode: 'main' | 'mdf-hub'
+    parentGraphState: { nodes: Node[]; edges: Edge[] } | null
+    enterMdfHubMode: (mdfGraph: GraphData) => void
+    exitMdfHubMode: () => void
 }
 
 const MAX_HISTORY = 50
@@ -57,6 +63,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     historyIndex: -1,
     projectId: null,
     isDirty: false,
+    viewMode: 'main',
+    parentGraphState: null,
 
     setProjectId: (id) => set({ projectId: id }),
 
@@ -146,7 +154,10 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
             source: e.source,
             target: e.target,
             sourceHandle: e.sourceHandle ?? undefined,
-            targetHandle: e.targetHandle ?? undefined
+            targetHandle: e.targetHandle ?? undefined,
+            style: e.style,
+            animated: e.animated,
+            label: e.label
         }))
         set({
             nodes,
@@ -174,7 +185,10 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
                 source: e.source,
                 target: e.target,
                 sourceHandle: e.sourceHandle ?? undefined,
-                targetHandle: e.targetHandle ?? undefined
+                targetHandle: e.targetHandle ?? undefined,
+                style: e.style,
+                animated: e.animated,
+                label: typeof e.label === 'string' ? e.label : undefined
             }))
         }
     },
@@ -233,5 +247,34 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
     canRedo: () => get().historyIndex < get().history.length - 1,
 
-    markClean: () => set({ isDirty: false })
+    markClean: () => set({ isDirty: false }),
+
+    enterMdfHubMode: (mdfGraph) => {
+        const { nodes, edges } = get()
+        set({
+            parentGraphState: { nodes, edges },
+            viewMode: 'mdf-hub'
+        })
+        // Load the MDF Hub graph
+        get().loadGraph(mdfGraph)
+    },
+
+    exitMdfHubMode: () => {
+        const { parentGraphState } = get()
+        if (parentGraphState) {
+            get().loadGraph({
+                nodes: parentGraphState.nodes.map(n => ({ ...n, data: n.data as MdfNodeData }) as any),
+                edges: parentGraphState.edges.map(e => ({
+                    ...e,
+                    sourceHandle: e.sourceHandle || undefined,
+                    targetHandle: e.targetHandle || undefined,
+                    label: typeof e.label === 'string' ? e.label : undefined
+                }))
+            })
+            set({
+                viewMode: 'main',
+                parentGraphState: null
+            })
+        }
+    }
 }))

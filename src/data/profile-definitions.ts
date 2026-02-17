@@ -33,6 +33,7 @@ export interface ProfileDefinition {
     // Templates
     defaultTemplateId: string
     alternativeTemplateIds: string[]
+    columnOverrides?: Record<string, number>
 }
 
 // ============================================
@@ -47,65 +48,51 @@ export const PROFILE_DEFINITIONS: Record<string, ProfileDefinition> = {
     // 1. Adobe Experience Platform (Consolidated into adobe_summit)
     adobe_summit: {
         profileId: 'adobe_summit',
-        displayName: 'Adobe Experience Platform',
-        description: 'Complete Adobe Experience Cloud stack with AEP, RTCDP, CJA, Journey Optimizer, Target, and Marketo',
-        brandColor: '#FF0000',
+        displayName: 'Adobe Summit',
+        description: 'Sources → MDF Hub → Destinations. The MDF Hub encapsulates the full Marketing Data Foundation.',
+        brandColor: '#FA0F00',
         category: 'vendor_suite',
 
         requiredNodes: [
-            // Collection Layer
-            'adobe_web_sdk', 'adobe_analytics',
-            // Ingestion Layer
-            'aep_sources',
-            // Storage (Bottom Band)
-            'aep_data_lake',
-            // Central MDF HUB (Replaces Hygiene/Identity/Measurement/Profile nodes)
+            // Sources
+            'marketo', 'salesforce_crm', 'web_app_events', 'product_events',
+            // Hub
             'mdf_hub',
-            // Analytics
-            'customer_journey_analytics',
-            // Activation
-            'rtcdp_activation',
             // Destinations
-            'journey_optimizer', 'adobe_target'
+            'adobe_target', 'journey_optimizer_dest', 'meta_ads'
         ],
-        recommendedNodes: [
-            'marketo', 'web_app_events', 'salesforce_crm'
-        ],
-        optionalNodes: ['snowflake', 'bigquery', 'facebook_ads', 'google_ads'],
-        hiddenNodes: ['segment', 'hightouch', 'mparticle', 'hubspot_crm'],
+        recommendedNodes: [],
+        optionalNodes: [],
+        hiddenNodes: [],
 
         requiredEdges: [
-            // Collection to Ingestion
-            { source: 'adobe_web_sdk', target: 'aep_sources' },
-            { source: 'adobe_analytics', target: 'aep_sources' },
-            // Ingestion to Storage (Data Lake)
-            { source: 'aep_sources', target: 'aep_data_lake' },
-            // Ingestion to MDF Hub
-            { source: 'aep_sources', target: 'mdf_hub' },
-            // Storage to MDF Hub (Bottom band feed)
-            { source: 'aep_data_lake', target: 'mdf_hub' },
-            // MDF Hub to Analytics
-            { source: 'mdf_hub', target: 'customer_journey_analytics' },
-            // MDF Hub to Activation
-            { source: 'mdf_hub', target: 'rtcdp_activation' },
-            // Activation to Destinations
-            { source: 'rtcdp_activation', target: 'journey_optimizer' },
-            { source: 'rtcdp_activation', target: 'adobe_target' }
+            { source: 'marketo', target: 'mdf_hub' },
+            { source: 'salesforce_crm', target: 'mdf_hub' },
+            { source: 'web_app_events', target: 'mdf_hub' },
+            { source: 'product_events', target: 'mdf_hub' },
+            { source: 'mdf_hub', target: 'adobe_target' },
+            { source: 'mdf_hub', target: 'journey_optimizer_dest' },
+            { source: 'mdf_hub', target: 'meta_ads' }
         ],
-        recommendedEdges: [
-            { source: 'marketo', target: 'aep_sources' },
-            { source: 'web_app_events', target: 'adobe_web_sdk' },
-            { source: 'salesforce_crm', target: 'aep_sources' },
-            { source: 'rtcdp_activation', target: 'facebook_ads' },
-            { source: 'rtcdp_activation', target: 'google_ads' }
-        ],
+        recommendedEdges: [],
 
-        governanceRailNodes: ['aep_data_governance', 'privacy_service'],
+        governanceRailNodes: [],
         identityHubNodes: ['mdf_hub'],
         identityStrategy: 'platform_native',
         governanceStrategy: 'centralized',
         defaultTemplateId: 'adobe_experience_cloud',
-        alternativeTemplateIds: []
+        alternativeTemplateIds: [],
+
+        columnOverrides: {
+            'marketo': 0,
+            'salesforce_crm': 0,
+            'web_app_events': 0,
+            'product_events': 0,
+            'mdf_hub': 1,
+            'adobe_target': 2,
+            'journey_optimizer_dest': 2,
+            'meta_ads': 2
+        }
     },
 
     generic: {

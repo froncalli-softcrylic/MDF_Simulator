@@ -12,7 +12,7 @@ export const profileOptions: Array<{ id: DemoProfile; name: string; description:
     {
         id: 'adobe_summit',
         name: 'Adobe Summit',
-        description: 'MDF Hub Centric: Marketo -> Hub -> AEP -> Activation'
+        description: 'Full MDF Pipeline: Sources → Collection → Storage → Transform → Identity → Analytics → Activation → Destinations'
     },
     {
         id: 'generic',
@@ -33,47 +33,43 @@ export const demoProfiles: Record<DemoProfile, DemoProfileConfig> = {
     adobe_summit: {
         id: 'adobe_summit',
         name: 'Adobe Summit',
-        description: 'Canonical Adobe flow with MDF Hub as the central engine.',
+        description: 'Sources → MDF Hub → Destinations. The MDF Hub encapsulates the full Marketing Data Foundation.',
         brandColor: '#FA0F00',
-        identityStrategy: 'MDF Hub + AEP Identity Service',
-        governanceRailNodes: ['aep_data_governance', 'consent_manager'],
+        identityStrategy: 'MDF Hub (encapsulates Identity Resolution)',
+        governanceRailNodes: [],
         defaultDestinations: ['adobe_target', 'journey_optimizer', 'meta_ads'],
         emphasizedNodes: [
-            'marketo',
-            'salesforce_crm',
-            'mdf_hub',
-            'adobe_aep',
-            'adobe_target',
-            'journey_optimizer'
+            'mdf_hub'
         ],
         hiddenNodes: [],
         templates: ['adobe_experience_cloud'],
         template: {
             nodes: [
+                // Data Sources
                 'marketo',
                 'salesforce_crm',
                 'web_app_events',
-                'aep_sources',
+                'product_events',
+
+                // MDF Hub (encapsulates entire Marketing Data Foundation)
                 'mdf_hub',
-                'adobe_aep',
+
+                // Destinations
                 'adobe_target',
-                'journey_optimizer'
+                'journey_optimizer',
+                'meta_ads'
             ],
             edges: [
-                // Sources -> Ingestion
-                ['marketo', 'aep_sources'],
-                ['salesforce_crm', 'aep_sources'],
-                ['web_app_events', 'aep_sources'],
+                // Sources → MDF Hub
+                ['marketo', 'mdf_hub'],
+                ['salesforce_crm', 'mdf_hub'],
+                ['web_app_events', 'mdf_hub'],
+                ['product_events', 'mdf_hub'],
 
-                // Ingestion -> MDF Hub
-                ['aep_sources', 'mdf_hub'],
-
-                // MDF Hub -> Activation (AEP)
-                ['mdf_hub', 'adobe_aep'],
-
-                // Activation -> Destinations
-                ['adobe_aep', 'adobe_target'],
-                ['adobe_aep', 'journey_optimizer']
+                // MDF Hub → Destinations
+                ['mdf_hub', 'adobe_target'],
+                ['mdf_hub', 'journey_optimizer'],
+                ['mdf_hub', 'meta_ads']
             ]
         },
         defaultCopy: {

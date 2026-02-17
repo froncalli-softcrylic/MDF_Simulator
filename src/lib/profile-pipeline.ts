@@ -54,6 +54,7 @@ export function buildGraphFromProfile(profileDef: ProfileDefinition): GraphData 
                     status: isRequired ? 'required' : 'recommended',
                     isRailNode: isRail,
                     railPosition: (isRail ? 'top' : (isHub ? 'center' : undefined)) as 'top' | 'center' | undefined,
+                    customColumn: profileDef.columnOverrides?.[catalogId],
                     stage: categoryToStage(catalogNode.category),
                     // Additional metadata for conformance
                     isGovernanceRail: isRail,
@@ -98,7 +99,8 @@ export function normalizeGraph(graph: GraphData, profileDef: ProfileDefinition):
                 ...node.data,
                 stage: categoryToStage(catalogNode.category),
                 isRailNode: isRail, // Reinforce rail status
-                railPosition: (isRail ? 'top' : (isHub ? 'center' : undefined)) as 'top' | 'center' | undefined
+                railPosition: (isRail ? 'top' : (isHub ? 'center' : undefined)) as 'top' | 'center' | undefined,
+                customColumn: profileDef.columnOverrides?.[catalogNode.id]
             }
         }
     })

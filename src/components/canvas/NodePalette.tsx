@@ -6,6 +6,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { nodeCatalog, categoryMeta } from '@/data/node-catalog'
+import { iconMap } from '@/lib/icon-map'
 import { NODE_LOGOS } from '@/data/node-logos'
 import { isNodeVisibleInProfile, isNodeEmphasizedInProfile } from '@/data/demo-profiles'
 import { useProfileStore } from '@/store/profile-store'
@@ -102,6 +103,10 @@ function DraggableNode({ catalogId, name, category, isEmphasized, onAdd, logo, i
     const meta = categoryMeta[category]
     const isRail = meta?.isRail
 
+    // Resolve icon component from map, fallback to GripVertical
+    // We access iconMap by the icon string name
+    const IconComponent = ((icon && iconMap[icon]) ? iconMap[icon] : GripVertical) as React.ElementType
+
     return (
         <div
             ref={nodeRef}
@@ -126,7 +131,7 @@ function DraggableNode({ catalogId, name, category, isEmphasized, onAdd, logo, i
                 {logo ? (
                     <img src={logo} alt={name} className="w-6 h-6 object-contain" />
                 ) : (
-                    <GripVertical className="w-5 h-5 opacity-50 group-hover:opacity-100" style={{ color: categoryColor }} />
+                    <IconComponent className="w-5 h-5 opacity-50 group-hover:opacity-100" style={{ color: categoryColor }} />
                 )}
             </div>
 
@@ -145,7 +150,7 @@ function DraggableNode({ catalogId, name, category, isEmphasized, onAdd, logo, i
 
 export default function NodePalette() {
     const { activeProfile } = useProfileStore()
-    const { addNode } = useCanvasStore()
+    const { addNode, viewMode } = useCanvasStore()
     const { isPaletteOpen, setIsPaletteOpen } = useUIStore()
     const [searchQuery, setSearchQuery] = useState('')
     const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set())
@@ -202,10 +207,18 @@ export default function NodePalette() {
     }, [addNode])
 
     // Separate main pipeline categories from rails
-    const pipelineCategories: NodeCategory[] = [
-        'sources', 'collection', 'ingestion', 'storage_raw', 'storage_warehouse',
-        'transform', 'mdf', 'identity', 'analytics', 'activation', 'destination', 'clean_room', 'realtime_serving'
-    ]
+    const pipelineCategories: NodeCategory[] = useMemo(() => {
+        const baseCategories: NodeCategory[] = [
+            'sources', 'collection', 'ingestion', 'storage_raw', 'storage_warehouse',
+            'transform', 'mdf', 'identity', 'analytics', 'activation', 'destination', 'clean_room', 'realtime_serving'
+        ]
+
+        if (viewMode === 'mdf-hub') {
+            return baseCategories.filter(c => c !== 'sources' && c !== 'destination')
+        }
+        return baseCategories
+    }, [viewMode])
+
     const railCategories: NodeCategory[] = ['governance']
 
     return (
