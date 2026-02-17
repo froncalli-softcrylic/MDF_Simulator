@@ -105,7 +105,7 @@ function DraggableNode({ catalogId, name, category, isEmphasized, onAdd, logo, i
 
     // Resolve icon component from map, fallback to GripVertical
     // We access iconMap by the icon string name
-    const IconComponent = ((icon && iconMap[icon]) ? iconMap[icon] : GripVertical) as React.ElementType
+    const IconComponent = ((icon && iconMap[icon]) ? iconMap[icon] : GripVertical) as React.ComponentType<{ className?: string; style?: React.CSSProperties }>
 
     return (
         <div
