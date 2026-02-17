@@ -203,19 +203,18 @@ function SimulatorCanvas() {
                     logger.error('Failed to load project:', error)
                 }
             } else {
-                // FORCE EMPTY CANVAS FOR NEW PROJECTS
-                logger.debug('🆕 Scaffolding new empty project')
-
-                // Clear any lingering wizard data or profile state
-                setWizardData(null) // Assuming we can pass null or empty object, if not we need to check store type
-                // Actually setWizardData expects WizardData, let's check store type later or just ignore wizard logic below
-
-                // We do NOT load any default graph.
-                useCanvasStore.getState().setNodes([])
-                useCanvasStore.getState().setEdges([])
-
-                hasInitialized.current = true
-                return
+                // NEW PROJECT
+                if (activeProfile === 'generic') {
+                    // FORCE EMPTY CANVAS FOR GENERIC / BLANK PROFILE
+                    logger.debug('🆕 Scaffolding new empty project')
+                    setWizardData(null)
+                    useCanvasStore.getState().setNodes([])
+                    useCanvasStore.getState().setEdges([])
+                    hasInitialized.current = true
+                    return
+                }
+                // Non-generic profile: fall through to profile pipeline below
+                logger.debug('🆕 New project with profile:', activeProfile)
             }
             // 2. Check if duplicated from a share link
             const fromShare = searchParams.get('from')

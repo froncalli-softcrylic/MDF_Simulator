@@ -3,7 +3,6 @@
 // Landing Page - Start screen with CTAs
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -68,14 +67,18 @@ const LandingHero3D = dynamic(() => import('@/components/3d/LandingHero3D'), {
 })
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import LandingLoader from '@/components/ui/LandingLoader'
 import HyperscalerLogos from '@/components/ui/HyperscalerLogos'
+import { useProfileStore } from '@/store/profile-store'
 
 // ... imports
 
 export default function LandingPage() {
     const [showLoader, setShowLoader] = useState(true)
+    const router = useRouter()
+    const { setActiveProfile } = useProfileStore()
 
     return (
         <div className="min-h-screen bg-background relative overflow-hidden text-slate-800 dark:text-slate-100">
@@ -144,13 +147,18 @@ export default function LandingPage() {
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8 animate-scale-in [animation-delay:300ms]">
-                            <Link href="/simulator/new">
-                                <Button size="lg" className="h-16 px-8 text-lg gap-3 rounded-2xl shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/40 hover:-translate-y-1 transition-all duration-300">
-                                    <Sparkles className="w-6 h-6 animate-pulse" />
-                                    Start Simulator
-                                    <ArrowRight className="w-5 h-5 opacity-50" />
-                                </Button>
-                            </Link>
+                            <Button
+                                size="lg"
+                                onClick={() => {
+                                    setActiveProfile('adobe_summit')
+                                    router.push('/simulator/new?profile=adobe_summit')
+                                }}
+                                className="h-16 px-8 text-lg gap-3 rounded-2xl shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/40 hover:-translate-y-1 transition-all duration-300"
+                            >
+                                <Sparkles className="w-6 h-6 animate-pulse" />
+                                Start Simulator
+                                <ArrowRight className="w-5 h-5 opacity-50" />
+                            </Button>
                         </div>
                     </div>
                 </section>
