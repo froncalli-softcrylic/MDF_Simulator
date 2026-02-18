@@ -4,9 +4,6 @@
 // Changes the active profile and regenerates the diagram
 
 import { useProfileStore } from '@/store/profile-store'
-import { useCanvasStore } from '@/store/canvas-store'
-import { loadProfileDefinition, buildGraphFromProfile } from '@/lib/profile-pipeline'
-import { layoutGraphData } from '@/lib/semantic-layout-engine'
 import { profileOptions } from '@/data/demo-profiles'
 import { DemoProfile } from '@/types'
 import {
@@ -37,21 +34,10 @@ export default function ProfileSelector({
     regenerateOnChange = true
 }: ProfileSelectorProps) {
     const { activeProfile, setActiveProfile } = useProfileStore()
-    const { loadGraph } = useCanvasStore()
 
     const handleProfileChange = async (value: DemoProfile) => {
+        // Just set the profile — page.tsx useEffect handles save/restore of canvas state
         setActiveProfile(value)
-
-        // Regenerate diagram using the unified semantic layout pipeline
-        if (regenerateOnChange) {
-            const profileDef = loadProfileDefinition(value)
-            if (profileDef) {
-                const graph = buildGraphFromProfile(profileDef)
-                // Apply semantic layout (ELK with stage partitioning)
-                const layoutedNodes = await layoutGraphData(graph.nodes, graph.edges)
-                loadGraph({ nodes: layoutedNodes, edges: graph.edges })
-            }
-        }
     }
 
     const currentProfile = profileOptions.find(p => p.id === activeProfile)

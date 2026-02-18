@@ -4,6 +4,7 @@ import './globals.css'
 import '@xyflow/react/dist/style.css'
 import MobileCheck from '@/components/MobileCheck'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import { ThemeProvider } from '@/components/ThemeProvider'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
@@ -27,13 +28,15 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
             <body className={`${inter.variable} font-sans antialiased`}>
-                <ErrorBoundary>
-                    <MobileCheck>
-                        {children}
-                    </MobileCheck>
-                </ErrorBoundary>
+                <ThemeProvider>
+                    <ErrorBoundary>
+                        <MobileCheck>
+                            {children}
+                        </MobileCheck>
+                    </ErrorBoundary>
+                </ThemeProvider>
             </body>
         </html>
     )

@@ -39,6 +39,7 @@ import SimulationStepper from '@/components/canvas/SimulationStepper'
 
 import StatusLegend from '@/components/canvas/StatusLegend'
 import SmartConnectPanel from '@/components/canvas/SmartConnectPanel'
+import MdfSuggestionToast from '@/components/canvas/MdfSuggestionToast'
 import AIAssistantPanel from '@/components/canvas/AIAssistantPanel'
 import LeadCaptureModal from '@/components/modals/LeadCaptureModal'
 import ReplaceModal from '@/components/modals/ReplaceModal'
@@ -76,6 +77,7 @@ import { AnimatePresence } from 'framer-motion'
 import { MdfConfigToast } from '@/components/canvas/MdfConfigToast'
 import { MdfNavigation } from '@/components/canvas/MdfNavigation'
 import { generateMdfHubGraph } from '@/lib/diagram-generator'
+import type { MdfNodeData, GraphData } from '@/types'
 
 function SimulatorCanvas() {
     const params = useParams()
@@ -132,7 +134,9 @@ function SimulatorCanvas() {
         isPaletteOpen,
         showAIAssistant,
         setShowAIAssistant,
-        isSimulationRunning // Added
+        isSimulationRunning,
+        mdfSuggestion,
+        showMdfSuggestionToast,
     } = useUIStore()
     const { wizardData, activeProfile, setWizardData } = useProfileStore()
     const { setEdges, removeNode } = useCanvasStore()
@@ -331,9 +335,27 @@ function SimulatorCanvas() {
     useEffect(() => {
         if (!hasInitialized.current) return
         if (prevProfileRef.current === activeProfile) return
+        const previousProfile = prevProfileRef.current
         prevProfileRef.current = activeProfile
 
         const regenerate = async () => {
+            // Save the previous profile's canvas state before switching (skip for generic)
+            const { saveProfileSnapshot, restoreProfileSnapshot } = useCanvasStore.getState()
+            if (previousProfile !== 'generic') {
+                saveProfileSnapshot(previousProfile)
+            }
+
+            // Try to restore a cached snapshot for the new profile (skip for generic — always regenerate)
+            if (activeProfile !== 'generic') {
+                const restored = restoreProfileSnapshot(activeProfile)
+                if (restored) {
+                    logger.debug('📸 Restored cached snapshot for profile:', activeProfile)
+                    setTimeout(() => fitView({ padding: 0.35, duration: 600 }), 100)
+                    return
+                }
+            }
+
+            // No cached snapshot — regenerate from profile definition
             // Prevent regeneration if we just loaded wizard data for this profile
             if (wizardData && wizardData.tools.length > 0 && activeProfile === 'generic') {
                 logger.debug('🛑 Skipping profile regeneration (Wizard Data active)')
@@ -554,18 +576,21 @@ function SimulatorCanvas() {
     }, [nodes, onConnect])
 
     const handleEnterMdfHub = useCallback(() => {
-        const hubGraph = generateMdfHubGraph(activeProfile)
+        // Check if MDF Hub node has a stored internal graph (from Create MDF Hub flow)
+        const currentNodes = useCanvasStore.getState().nodes
+        const mdfHubNode = currentNodes.find(n => (n.data as MdfNodeData)?.catalogId === 'mdf_hub')
+        const storedGraph = (mdfHubNode?.data as any)?.internalGraph as GraphData | undefined
+
+        const hubGraph = storedGraph && storedGraph.nodes.length > 0
+            ? storedGraph
+            : generateMdfHubGraph(activeProfile)
+
         enterMdfHubMode(hubGraph)
         setShowMdfToast(false)
 
-        // Auto-layout the hub view
-        setTimeout(async () => {
-            const { semanticAutoLayout } = await import('@/lib/semantic-layout-engine')
-            const layoutedNodes = await semanticAutoLayout(hubGraph.nodes, hubGraph.edges)
-            setNodes(layoutedNodes)
-            fitView({ padding: 0.2, duration: 600 })
-        }, 100)
-    }, [activeProfile, enterMdfHubMode, setNodes, fitView])
+        // Auto-trigger full Connect/Clean Up for the hub view
+        setTimeout(() => window.dispatchEvent(new Event('trigger-auto-layout')), 200)
+    }, [activeProfile, enterMdfHubMode])
 
     const handleExitMdfHub = useCallback(() => {
         exitMdfHubMode()
@@ -694,16 +719,28 @@ function SimulatorCanvas() {
                             target: e.target,
                             sourceHandle: e.sourcePort,
                             targetHandle: e.targetPort,
-                            type: 'smoothstep'
                         }))
                         const currentEdges = useCanvasStore.getState().edges
                         setEdges([...currentEdges, ...newEdges])
                         setShowSmartConnectPanel(false)
                         setSmartConnectFixes(null)
+
+                        // Auto-trigger Connect/Clean Up after applying suggestions
+                        setTimeout(() => window.dispatchEvent(new Event('trigger-auto-layout')), 150)
                     }}
                     onDismiss={() => {
                         setShowSmartConnectPanel(false)
                         setSmartConnectFixes(null)
+                    }}
+                />
+            )}
+
+            {/* MDF Suggestion Toast */}
+            {showMdfSuggestionToast && mdfSuggestion && (
+                <MdfSuggestionToast
+                    suggestion={mdfSuggestion}
+                    onAutoLayout={() => {
+                        setTimeout(() => window.dispatchEvent(new Event('trigger-auto-layout')), 150)
                     }}
                 />
             )}

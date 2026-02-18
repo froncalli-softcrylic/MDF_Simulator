@@ -1,10 +1,18 @@
 /* React Flow Custom Styles */
 /* Optimized for performance, drag fluidity, and clean pipeline aesthetics */
 
-/* Hardware acceleration for interaction layer */
+/* Crisp text rendering on nodes */
 .react-flow__viewport {
-  will-change: transform;
-  transform: translateZ(0);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Prevent node blurriness from GPU compositing */
+.react-flow__node {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  backface-visibility: hidden;
 }
 
 /* Optimize nodes during drag */

@@ -5,9 +5,21 @@ import { useUIStore } from '@/store/ui-store'
 import { categoryMeta } from '@/data/node-catalog'
 import {
     CheckCircle, TrendingUp, Users, Zap, Database, ArrowRight,
-    BarChart2, Shield, X, Sparkles
+    BarChart2, Shield, X, Sparkles, Loader2, AlertTriangle,
+    Lightbulb, ThumbsUp
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+function getGradeColor(grade: string) {
+    switch (grade.toUpperCase()) {
+        case 'A+': case 'A': return { text: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/30' }
+        case 'A-': case 'B+': return { text: 'text-green-400', bg: 'bg-green-500/20', border: 'border-green-500/30' }
+        case 'B': case 'B-': return { text: 'text-blue-400', bg: 'bg-blue-500/20', border: 'border-blue-500/30' }
+        case 'C+': case 'C': return { text: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-500/30' }
+        case 'C-': case 'D+': case 'D': return { text: 'text-orange-400', bg: 'bg-orange-500/20', border: 'border-orange-500/30' }
+        default: return { text: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500/30' }
+    }
+}
 
 export default function SimulationResults() {
     const { simulationState, setSimulationState, setSimulationRunning } = useUIStore()
@@ -29,32 +41,8 @@ export default function SimulationResults() {
 
     if (!isVisible || !results) return null
 
-    const businessBenefits = [
-        {
-            icon: Users,
-            title: 'Unified Customer View',
-            description: `${results.totalNodes} components work together to create a single golden record for every customer.`,
-            color: 'text-blue-400'
-        },
-        {
-            icon: Zap,
-            title: 'Real-Time Activation',
-            description: `Audiences are synced in real-time to ${results.destinationNames.length} destination${results.destinationNames.length > 1 ? 's' : ''}: ${results.destinationNames.join(', ')}.`,
-            color: 'text-amber-400'
-        },
-        {
-            icon: TrendingUp,
-            title: 'Revenue Impact',
-            description: 'Personalized experiences drive 2-3x higher conversion rates and 40% increase in customer LTV.',
-            color: 'text-emerald-400'
-        },
-        {
-            icon: Shield,
-            title: 'Privacy-First',
-            description: 'Consent management and PII handling built into the pipeline ensures GDPR/CCPA compliance.',
-            color: 'text-purple-400'
-        }
-    ]
+    const aiFeedback = results.aiFeedback
+    const gradeColors = aiFeedback ? getGradeColor(aiFeedback.grade) : null
 
     return (
         <AnimatePresence>
@@ -88,7 +76,7 @@ export default function SimulationResults() {
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold text-white">Simulation Complete</h2>
-                                    <p className="text-sm text-slate-400">Your MDF architecture is ready for production</p>
+                                    <p className="text-sm text-slate-400">Your MDF architecture has been analyzed</p>
                                 </div>
                             </div>
 
@@ -150,29 +138,124 @@ export default function SimulationResults() {
                             </div>
                         </div>
 
-                        {/* Business Benefits */}
+                        {/* AI-Powered Pipeline Assessment */}
                         <div className="p-6">
                             <div className="flex items-center gap-2 mb-4">
                                 <Sparkles className="w-4 h-4 text-amber-400" />
-                                <h3 className="text-sm font-bold text-white">Business Impact</h3>
+                                <h3 className="text-sm font-bold text-white">AI Pipeline Assessment</h3>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                {businessBenefits.map((benefit, i) => (
-                                    <motion.div
-                                        key={benefit.title}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.3 + i * 0.1 }}
-                                        className="p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors"
-                                    >
-                                        <div className="flex items-center gap-2 mb-1.5">
-                                            <benefit.icon className={cn("w-4 h-4", benefit.color)} />
-                                            <span className="text-xs font-bold text-white">{benefit.title}</span>
+
+                            {!aiFeedback ? (
+                                /* Loading state while AI is generating feedback */
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="flex flex-col items-center justify-center py-8 gap-3"
+                                >
+                                    <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+                                    <p className="text-sm text-slate-400">Analyzing your pipeline architecture...</p>
+                                    <p className="text-[10px] text-slate-500">AI is reviewing your data pipeline configuration</p>
+                                </motion.div>
+                            ) : (
+                                /* AI Feedback Rendered */
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.4 }}
+                                    className="space-y-4"
+                                >
+                                    {/* Score + Grade header */}
+                                    <div className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/5">
+                                        <div className={cn(
+                                            "flex items-center justify-center w-16 h-16 rounded-2xl text-2xl font-black",
+                                            gradeColors?.bg, gradeColors?.border, gradeColors?.text,
+                                            "border"
+                                        )}>
+                                            {aiFeedback.grade}
                                         </div>
-                                        <p className="text-[11px] text-slate-400 leading-relaxed">{benefit.description}</p>
-                                    </motion.div>
-                                ))}
-                            </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className={cn("text-lg font-bold", gradeColors?.text)}>
+                                                    {aiFeedback.score}/100
+                                                </span>
+                                                <span className="text-xs text-slate-500">Pipeline Score</span>
+                                            </div>
+                                            <p className="text-xs text-slate-300 leading-relaxed">
+                                                {aiFeedback.summary}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Strengths + Gaps side by side */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {/* Strengths */}
+                                        <div className="p-3 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/10">
+                                            <div className="flex items-center gap-1.5 mb-2">
+                                                <ThumbsUp className="w-3.5 h-3.5 text-emerald-400" />
+                                                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Strengths</span>
+                                            </div>
+                                            <ul className="space-y-1.5">
+                                                {aiFeedback.strengths.map((s, i) => (
+                                                    <motion.li
+                                                        key={i}
+                                                        initial={{ opacity: 0, x: -5 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ delay: 0.1 + i * 0.05 }}
+                                                        className="text-[11px] text-slate-300 flex items-start gap-1.5"
+                                                    >
+                                                        <span className="text-emerald-500 mt-0.5">•</span>
+                                                        {s}
+                                                    </motion.li>
+                                                ))}
+                                            </ul>
+                                        </div>
+
+                                        {/* Gaps */}
+                                        <div className="p-3 rounded-xl bg-amber-500/[0.05] border border-amber-500/10">
+                                            <div className="flex items-center gap-1.5 mb-2">
+                                                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                                                <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Gaps</span>
+                                            </div>
+                                            <ul className="space-y-1.5">
+                                                {aiFeedback.gaps.map((g, i) => (
+                                                    <motion.li
+                                                        key={i}
+                                                        initial={{ opacity: 0, x: -5 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ delay: 0.2 + i * 0.05 }}
+                                                        className="text-[11px] text-slate-300 flex items-start gap-1.5"
+                                                    >
+                                                        <span className="text-amber-500 mt-0.5">•</span>
+                                                        {g}
+                                                    </motion.li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    {/* Recommendations */}
+                                    <div className="p-3 rounded-xl bg-blue-500/[0.05] border border-blue-500/10">
+                                        <div className="flex items-center gap-1.5 mb-2">
+                                            <Lightbulb className="w-3.5 h-3.5 text-blue-400" />
+                                            <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">Recommendations</span>
+                                        </div>
+                                        <ul className="space-y-1.5">
+                                            {aiFeedback.recommendations.map((r, i) => (
+                                                <motion.li
+                                                    key={i}
+                                                    initial={{ opacity: 0, x: -5 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: 0.3 + i * 0.05 }}
+                                                    className="text-[11px] text-slate-300 flex items-start gap-1.5"
+                                                >
+                                                    <span className="text-blue-500 mt-0.5">{i + 1}.</span>
+                                                    {r}
+                                                </motion.li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </motion.div>
+                            )}
                         </div>
 
                         {/* CTA */}

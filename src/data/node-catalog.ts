@@ -838,8 +838,8 @@ export const nodeCatalog: CatalogNode[] = [
         cardinality: 'single',
         icon: 'cpu',
         vendorProfileAvailability: ALL_PROFILES,
-        description: 'The central hub that ingests customer data from many systems and turns it into clean, unified, activation-ready customer profiles. Performs Data Hygiene, Identity Resolution, Deduplication, Unified Profile construction, and Measurement enablement.',
-        whenToUse: 'Required. The "Brain" of every MDF architecture — without it, data stays siloed and inconsistent.',
+        description: 'A Marketing Data Foundation (MDF) is the centralized intelligence layer that consolidates your entire data pipeline — from collection and ingestion through storage, transformation, identity resolution, analytics, and activation — into a unified, governed hub. Powered by tools like Segment, Snowplow, Kafka, Fivetran, Snowflake, BigQuery, dbt, Spark, identity graphs, CDPs, and BI platforms, the MDF Hub produces clean, identity-resolved, activation-ready customer profiles from raw, siloed data.',
+        whenToUse: 'When your pipeline spans 3+ data layers (e.g., collection, storage, transform, identity, activation). The MDF Hub replaces fragmented point-to-point integrations with a single governed foundation — the \"brain\" that turns messy, scattered data into unified customer intelligence.',
         whyItMatters: [
             'Ingests data from CRM, marketing platforms, web/app behavior, paid media, and transactions via batch & real-time pipelines',
             'Cleans & standardizes data (normalize phone/email formats, fix casing, validate required fields, handle nulls, apply consistent schemas)',

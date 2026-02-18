@@ -189,8 +189,8 @@ function DataCore({ startAnimation }: { startAnimation: boolean }) {
         // 2. Color Transition (Gray -> Rainbow Cycle)
         // Start color transition after fully formed (5.5s)
         if (t > 5.5 && materialRef.current) {
-            // Cycle duration for one full rainbow loop
-            const cycleDuration = 10
+            // Cycle duration for one full rainbow loop (slower by 30%)
+            const cycleDuration = 14.3
             // Time since transition start
             const cTime = t - 5.5
 
@@ -198,8 +198,8 @@ function DataCore({ startAnimation }: { startAnimation: boolean }) {
             // We start from 0 (red) but let's lerp into it
             const hue = (cTime % cycleDuration) / cycleDuration
 
-            // If just started (< 1s), lerp from Gray to the Color
-            const fadeTime = 2.0
+            // If just started (< 2.9s), lerp from Gray to the Color
+            const fadeTime = 2.9
             if (cTime < fadeTime) {
                 const targetColor = new THREE.Color().setHSL(hue, 0.8, 0.5)
                 const grayColor = new THREE.Color('#94a3b8') // Slate-400 equivalent

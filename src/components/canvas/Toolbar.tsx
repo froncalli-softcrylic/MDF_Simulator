@@ -1,12 +1,14 @@
-import { useCallback, useState, useMemo } from 'react'
+import { useCallback, useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useReactFlow } from '@xyflow/react'
+import { useTheme } from 'next-themes'
 import { useCanvasStore } from '@/store/canvas-store'
 import { useUIStore } from '@/store/ui-store'
 import WhatIsMdfModal from '@/components/modals/WhatIsMdfModal'
 import { useProfileStore } from '@/store/profile-store'
 import { semanticAutoLayout } from '@/lib/semantic-layout-engine'
 import { generateFixPlan as generateLegacyFixPlan, sanitizeEdges } from '@/lib/smart-connect-engine'
+import { detectMdfOpportunity } from '@/lib/mdf-detection'
 
 import { demoProfiles, profileOptions } from '@/data/demo-profiles'
 import { generateDefaultDiagramForProfile } from '@/lib/diagram-generator'
@@ -36,7 +38,7 @@ import {
     LayoutGrid, Undo2, Redo2, Maximize,
     Download, Share2, Zap, BarChart2, Users, Shield,
     ChevronDown, ChevronUp, MoreHorizontal, Home, Sparkles, Loader2, Bot, HelpCircle, FileText,
-    Play, Square
+    Play, Square, Layers, Moon, Sun, Trash2
 } from 'lucide-react'
 import {
     DropdownMenu,
@@ -53,13 +55,12 @@ const overlayButtons = [
     { id: 'activation', label: 'Activation', icon: Zap, color: 'text-green-500', bgActive: 'bg-green-500' },
     { id: 'measurement', label: 'Measurement', icon: BarChart2, color: 'text-pink-500', bgActive: 'bg-pink-500' },
     { id: 'identity', label: 'Identity', icon: Users, color: 'text-emerald-500', bgActive: 'bg-emerald-500' },
-    { id: 'governance', label: 'Governance', icon: Shield, color: 'text-amber-500', bgActive: 'bg-amber-500' },
 ] as const
 
 export default function Toolbar() {
     const router = useRouter()
     const [isExpanded, setIsExpanded] = useState(true)
-    const { nodes, edges, setNodes, canUndo, canRedo, undo, redo } = useCanvasStore()
+    const { nodes, edges, setNodes, canUndo, canRedo, undo, redo, viewMode } = useCanvasStore()
     const { runSimulation, stopSimulation } = useSimulationRunner() // Use Hook
     const {
         activeOverlay,
@@ -75,14 +76,31 @@ export default function Toolbar() {
         lastActionWasAutoFix,
         setLastActionWasAutoFix,
         isSimulationRunning,
-        setSimulationRunning
+        setSimulationRunning,
+        setMdfSuggestion,
+        setShowMdfSuggestionToast,
+        mdfSuggestionDismissed,
+        mdfSuggestion,
     } = useUIStore()
     const { activeProfile, setActiveProfile } = useProfileStore()
     const { fitView } = useReactFlow()
+    const { theme, setTheme } = useTheme()
 
-
+    // Check if MDF Hub already exists on canvas
+    const hasMdfHubOnCanvas = useMemo(() => {
+        return nodes.some(n => (n.data as any)?.catalogId === 'mdf_hub')
+    }, [nodes])
 
     const [showLearnModal, setShowLearnModal] = useState(false)
+
+    // Allow external code (page.tsx) to trigger auto-layout via custom event
+    useEffect(() => {
+        const handler = () => {
+            handleAutoLayout()
+        }
+        window.addEventListener('trigger-auto-layout', handler)
+        return () => window.removeEventListener('trigger-auto-layout', handler)
+    })
 
     const handleRunSimulation = useCallback(async () => {
         if (isSimulationRunning) {
@@ -145,12 +163,22 @@ export default function Toolbar() {
                     // Don't crash the whole layout if smart connect fails
                 }
             }
+
+            // Step 3: Detect MDF Opportunity (button lights up in toolbar)
+            if (layoutedNodes && layoutedNodes.length > 0) {
+                try {
+                    const mdfResult = detectMdfOpportunity(layoutedNodes, safeEdges)
+                    setMdfSuggestion(mdfResult)
+                } catch (err) {
+                    console.error('MDF detection failed:', err)
+                }
+            }
         } catch (error) {
             console.error('Auto Layout failed:', error)
         } finally {
             setAutoLayoutRunning(false)
         }
-    }, [nodes, edges, setNodes, fitView, setAutoLayoutRunning, setSmartConnectFixes, setShowSmartConnectPanel])
+    }, [nodes, edges, setNodes, fitView, setAutoLayoutRunning, setSmartConnectFixes, setShowSmartConnectPanel, mdfSuggestionDismissed, setMdfSuggestion, setShowMdfSuggestionToast])
 
 
 
@@ -179,6 +207,13 @@ export default function Toolbar() {
 
     const handleProfileChange = useCallback((value: string) => {
         const profileId = value as DemoProfile
+
+        // If inside MDF Hub, exit first before switching profiles
+        const { viewMode, exitMdfHubMode } = useCanvasStore.getState()
+        if (viewMode === 'mdf-hub') {
+            exitMdfHubMode()
+        }
+
         setActiveProfile(profileId)
 
         try {
@@ -244,6 +279,12 @@ export default function Toolbar() {
     const handleGoHome = useCallback(() => {
         router.push('/')
     }, [router])
+
+    const handleClearCanvas = useCallback(() => {
+        if (nodes.length === 0) return
+        if (!window.confirm('Clear the entire canvas? This cannot be undone.')) return
+        useCanvasStore.getState().loadGraph({ nodes: [], edges: [] })
+    }, [nodes.length])
 
 
     return (
@@ -331,6 +372,21 @@ export default function Toolbar() {
                             <Redo2 className="w-4 h-4" />
                         </Button>
 
+                        {/* Clear Canvas — Generic profile only */}
+                        {activeProfile === 'generic' && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleClearCanvas}
+                                disabled={nodes.length === 0}
+                                title="Clear Canvas"
+                                aria-label="Clear all nodes from canvas"
+                                className="h-9 w-9 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        )}
+
                         <Button
                             variant="ghost"
                             size="sm"
@@ -347,7 +403,7 @@ export default function Toolbar() {
                             ) : (
                                 <LayoutGrid className="w-4 h-4" />
                             )}
-                            <span className="hidden lg:inline">Clean Up</span>
+                            <span className="hidden lg:inline">Connect/Clean Up</span>
                         </Button>
 
                         <Button
@@ -356,7 +412,7 @@ export default function Toolbar() {
                             onClick={handleRunSimulation}
                             className={cn(
                                 "h-9 px-3 gap-2 rounded-xl text-xs font-medium transition-all ml-1",
-                                isSimulationRunning ? "bg-green-50 text-green-600 animate-pulse border border-green-200" : "hover:bg-slate-100 text-slate-700"
+                                isSimulationRunning ? "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 animate-pulse border border-green-200 dark:border-green-700" : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                             )}
                             title={isSimulationRunning ? "Stop Simulation" : "Run Simulation"}
                         >
@@ -366,6 +422,27 @@ export default function Toolbar() {
                                 <Play className="w-3.5 h-3.5 fill-current" />
                             )}
                             <span className="hidden lg:inline ml-1.5">{isSimulationRunning ? 'Stop' : 'Run'}</span>
+                        </Button>
+                        {/* MDF Hub Conversion Button */}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                if (mdfSuggestion) {
+                                    setShowMdfSuggestionToast(true)
+                                }
+                            }}
+                            disabled={!mdfSuggestion || viewMode === 'mdf-hub' || hasMdfHubOnCanvas}
+                            className={cn(
+                                "h-9 px-3 gap-2 rounded-xl text-xs font-medium transition-all ml-1",
+                                mdfSuggestion && viewMode !== 'mdf-hub' && !hasMdfHubOnCanvas
+                                    ? "bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg shadow-violet-500/25 animate-pulse"
+                                    : "text-slate-400 cursor-not-allowed opacity-50"
+                            )}
+                            title={hasMdfHubOnCanvas ? "MDF Hub already exists on canvas" : viewMode === 'mdf-hub' ? "Exit MDF Hub view first" : mdfSuggestion ? `MDF Hub available — ${mdfSuggestion.categoryCoverage} layers detected` : "MDF Hub conversion (not available)"}
+                        >
+                            <Layers className="w-3.5 h-3.5" />
+                            <span className="hidden lg:inline">Create MDF Hub</span>
                         </Button>
                     </div>
 
@@ -406,6 +483,26 @@ export default function Toolbar() {
                             className="h-9 w-9 rounded-xl hover:bg-slate-100 text-slate-500"
                         >
                             <HelpCircle className="w-4 h-4" />
+                        </Button>
+
+                        {/* Dark / Light Mode Toggle */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                            className={cn(
+                                "h-9 w-9 rounded-xl transition-all",
+                                theme === 'dark'
+                                    ? "bg-indigo-500/10 hover:bg-indigo-500/20 text-amber-400"
+                                    : "hover:bg-slate-100 text-slate-500"
+                            )}
+                        >
+                            {theme === 'dark' ? (
+                                <Sun className="w-4 h-4" />
+                            ) : (
+                                <Moon className="w-4 h-4" />
+                            )}
                         </Button>
                     </div>
 

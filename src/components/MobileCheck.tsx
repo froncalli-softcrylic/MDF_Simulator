@@ -1,12 +1,12 @@
 'use client'
 
 // Mobile Check Wrapper - Redirects mobile users to email capture page
-// Minimum supported width: 768px (iPad Mini portrait)
+// Minimum supported width: 740px (iPad Mini 6th Gen portrait = 744px)
 
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 
-const MIN_SUPPORTED_WIDTH = 768 // iPad Mini portrait width
+const MIN_SUPPORTED_WIDTH = 740 // iPad Mini portrait width (744px viewport)
 
 interface MobileCheckProps {
     children: React.ReactNode

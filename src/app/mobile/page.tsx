@@ -87,7 +87,7 @@ export default function MobilePage() {
                                     Our interactive diagram builder works best on tablets (iPad Mini or larger) and desktop computers.
                                 </p>
                                 <Badge variant="secondary" className="mt-2">
-                                    Minimum: 768px width
+                                    Minimum: 740px width
                                 </Badge>
                             </div>
 

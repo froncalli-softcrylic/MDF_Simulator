@@ -52,6 +52,11 @@ interface CanvasStore {
     parentGraphState: { nodes: Node[]; edges: Edge[] } | null
     enterMdfHubMode: (mdfGraph: GraphData) => void
     exitMdfHubMode: () => void
+
+    // Profile snapshot cache (in-memory, session-only)
+    saveProfileSnapshot: (profileId: string) => void
+    restoreProfileSnapshot: (profileId: string) => boolean
+    hasProfileSnapshot: (profileId: string) => boolean
 }
 
 const MAX_HISTORY = 50
@@ -103,6 +108,10 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     },
 
     addNode: (catalogId, label, category, position) => {
+        // Prevent duplicate nodes (same catalogId already on canvas)
+        const existing = get().nodes.find(n => (n.data as any)?.catalogId === catalogId)
+        if (existing) return ''
+
         const nodeId = `node-${generateId()}`
         const newNode: Node = {
             id: nodeId,
@@ -276,5 +285,41 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
                 parentGraphState: null
             })
         }
+    },
+
+    // Profile snapshot cache — in-memory only (clears on page navigation)
+    saveProfileSnapshot: (profileId: string) => {
+        const { nodes, edges } = get()
+        // Only save if there's something on the canvas
+        if (nodes.length > 0) {
+            profileSnapshotCache.set(profileId, {
+                nodes: JSON.parse(JSON.stringify(nodes)),
+                edges: JSON.parse(JSON.stringify(edges))
+            })
+        }
+    },
+
+    restoreProfileSnapshot: (profileId: string) => {
+        const snapshot = profileSnapshotCache.get(profileId)
+        if (snapshot) {
+            set({
+                nodes: snapshot.nodes,
+                edges: snapshot.edges,
+                isDirty: false
+            })
+            set({
+                history: [{ nodes: get().nodes, edges: get().edges }],
+                historyIndex: 0
+            })
+            return true
+        }
+        return false
+    },
+
+    hasProfileSnapshot: (profileId: string) => {
+        return profileSnapshotCache.has(profileId)
     }
 }))
+
+// In-memory cache — survives profile switches but clears on page navigation
+const profileSnapshotCache = new Map<string, { nodes: Node[]; edges: Edge[] }>()

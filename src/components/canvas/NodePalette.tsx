@@ -179,7 +179,7 @@ export default function NodePalette() {
             transform: [],
             mdf: [],
             identity: [],
-            governance: [],
+            governance: [], // kept for type satisfaction, not rendered
             analytics: [],
             activation: [],
             clean_room: [],
@@ -219,7 +219,7 @@ export default function NodePalette() {
         return baseCategories
     }, [viewMode])
 
-    const railCategories: NodeCategory[] = ['governance']
+
 
     return (
         <>
@@ -291,11 +291,11 @@ export default function NodePalette() {
                         </div>
                         <button
                             onClick={() => {
-                                const allCats = [...pipelineCategories, ...railCategories]
+                                const allCats = [...pipelineCategories]
                                 const allCollapsed = allCats.every(c => collapsedCategories.has(c))
                                 setCollapsedCategories(allCollapsed ? new Set() : new Set(allCats))
                             }}
-                            title={[...pipelineCategories, ...railCategories].every(c => collapsedCategories.has(c)) ? 'Expand all' : 'Collapse all'}
+                            title={pipelineCategories.every(c => collapsedCategories.has(c)) ? 'Expand all' : 'Collapse all'}
                             className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                         >
                             <ChevronsUpDown className="w-4 h-4" />
@@ -367,77 +367,7 @@ export default function NodePalette() {
                                 )
                             })}
 
-                            {/* Rail Categories */}
-                            <div className="relative py-3">
-                                <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                                    <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
-                                </div>
-                                <div className="relative flex justify-center">
-                                    <span className="bg-white dark:bg-slate-900 px-3 text-sm font-bold text-slate-400 uppercase tracking-widest">
-                                        Governance Rails
-                                    </span>
-                                </div>
-                            </div>
 
-                            {railCategories.map(category => {
-                                const query = searchQuery.toLowerCase().trim()
-                                const nodes = query
-                                    ? nodesByCategory[category].filter(n => n.name.toLowerCase().includes(query) || n.id.toLowerCase().includes(query))
-                                    : nodesByCategory[category]
-                                if (nodes.length === 0) return null
-
-                                const meta = categoryMeta[category]
-                                const categoryColor = categoryColors[category]
-                                const isCollapsed = collapsedCategories.has(category) && !query
-                                return (
-                                    <div key={category} className="space-y-1">
-                                        <button
-                                            onClick={() => toggleCategory(category)}
-                                            className="flex items-center gap-2 px-2 py-1.5 w-full rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors group cursor-pointer"
-                                        >
-                                            <div
-                                                className="w-1.5 h-5 rounded-full flex-shrink-0"
-                                                style={{ backgroundColor: categoryColor }}
-                                            />
-                                            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex-1 text-left">
-                                                {meta?.label || category}
-                                            </h3>
-                                            <span className="text-[10px] font-medium text-slate-400 mr-1">{nodes.length}</span>
-                                            <ChevronDown className={cn(
-                                                "w-3.5 h-3.5 text-slate-400 transition-transform duration-200",
-                                                isCollapsed && "-rotate-90"
-                                            )} />
-                                        </button>
-
-                                        <AnimatePresence initial={false}>
-                                            {!isCollapsed && (
-                                                <motion.div
-                                                    initial={{ height: 0, opacity: 0 }}
-                                                    animate={{ height: 'auto', opacity: 1 }}
-                                                    exit={{ height: 0, opacity: 0 }}
-                                                    transition={{ duration: 0.2, ease: 'easeInOut' }}
-                                                    className="overflow-hidden"
-                                                >
-                                                    <div className="grid gap-2.5 pt-1">
-                                                        {nodes.map(node => (
-                                                            <DraggableNode
-                                                                key={node.id}
-                                                                catalogId={node.id}
-                                                                name={node.name}
-                                                                category={node.category}
-                                                                logo={NODE_LOGOS[node.id]}
-                                                                icon={node.icon}
-                                                                isEmphasized={isNodeEmphasizedInProfile(node.id, activeProfile)}
-                                                                onAdd={() => handleAddNode(node.id)}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
-                                )
-                            })}
                         </div>
                     </ScrollArea>
 

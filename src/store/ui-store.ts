@@ -3,6 +3,7 @@
 
 import { create } from 'zustand'
 import type { ValueOverlay, ValidationOutput, SuggestedFixes, DuplicateConflict } from '@/types'
+import type { MdfSuggestion } from '@/lib/mdf-detection'
 
 
 
@@ -14,6 +15,7 @@ export interface SimulationPathStep {
     category: string;
     description: string;
     viewMode?: 'main' | 'mdf-hub'; // Defaults to 'main'
+    catalogId?: string; // Platform identifier for source-specific data
 }
 
 export interface SimulationMetrics {
@@ -41,6 +43,14 @@ export interface SimulationState {
         destinationNames: string[];
         categories: string[];
         finalPayload: any;
+        aiFeedback?: {
+            score: number;
+            grade: string;
+            summary: string;
+            strengths: string[];
+            gaps: string[];
+            recommendations: string[];
+        };
     } | null;
 }
 
@@ -111,6 +121,14 @@ interface UIStore {
     setSimulationRunning: (running: boolean) => void
     simulationState: SimulationState; // NEW
     setSimulationState: (state: Partial<SimulationState>) => void; // NEW
+
+    // MDF Suggestion
+    mdfSuggestion: MdfSuggestion | null
+    setMdfSuggestion: (suggestion: MdfSuggestion | null) => void
+    showMdfSuggestionToast: boolean
+    setShowMdfSuggestionToast: (show: boolean) => void
+    mdfSuggestionDismissed: boolean
+    setMdfSuggestionDismissed: (dismissed: boolean) => void
 }
 
 export const useUIStore = create<UIStore>((set, get) => ({
@@ -203,6 +221,14 @@ export const useUIStore = create<UIStore>((set, get) => ({
     },
     setSimulationState: (newState) => set((state) => ({
         simulationState: { ...state.simulationState, ...newState }
-    }))
+    })),
+
+    // MDF Suggestion
+    mdfSuggestion: null,
+    setMdfSuggestion: (suggestion) => set({ mdfSuggestion: suggestion }),
+    showMdfSuggestionToast: false,
+    setShowMdfSuggestionToast: (show) => set({ showMdfSuggestionToast: show }),
+    mdfSuggestionDismissed: false,
+    setMdfSuggestionDismissed: (dismissed) => set({ mdfSuggestionDismissed: dismissed }),
 }))
 

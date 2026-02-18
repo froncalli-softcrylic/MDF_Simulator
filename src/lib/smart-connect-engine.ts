@@ -636,6 +636,102 @@ export function sanitizeEdges(edges: any[]): RFEdge[] {
 }
 
 // ============================================
+// STEP D-PRE: STAGE-SEQUENTIAL EDGE GENERATION
+// ============================================
+// Connects every node in stage N to every node in stage N+1
+// across the full pipeline, ensuring comprehensive L→R wiring.
+
+function generateStageSequentialEdges(
+    graph: StageGraph
+): SuggestedEdge[] {
+    const suggestions: SuggestedEdge[] = []
+    const existingPairs = new Set<string>()
+
+    // Track already-connected pairs so we don't duplicate
+    for (const [nodeId, outbound] of graph.outbound) {
+        for (const targetId of outbound) {
+            existingPairs.add(`${nodeId}->${targetId}`)
+        }
+    }
+
+    // Walk through adjacent stages in pipeline order
+    for (let i = 0; i < STAGE_ORDER.length - 1; i++) {
+        const currentStage = STAGE_ORDER[i]
+        const currentStageNodes = graph.stageGroups.get(currentStage) || []
+        if (currentStageNodes.length === 0) continue
+
+        // Find the next populated stage (may skip empty stages)
+        let nextStageNodes: string[] = []
+        let nextStage: PipelineStage | null = null
+        for (let j = i + 1; j < STAGE_ORDER.length; j++) {
+            const candidateStage = STAGE_ORDER[j]
+            // Skip governance — it's a cross-cutting rail, not part of L→R flow
+            if (candidateStage === 'governance') continue
+            const candidates = graph.stageGroups.get(candidateStage) || []
+            if (candidates.length > 0) {
+                nextStageNodes = candidates
+                nextStage = candidateStage
+                break
+            }
+        }
+
+        if (nextStageNodes.length === 0 || !nextStage) continue
+
+        // Connect every node in currentStage to every node in nextStage
+        for (const sourceId of currentStageNodes) {
+            const sourceEntry = graph.nodes.get(sourceId)
+            if (!sourceEntry) continue
+            // Skip governance rail nodes from stage-sequential wiring
+            if (sourceEntry.catalogNode.isRailNode && sourceEntry.catalogNode.category === 'governance') continue
+
+            for (const targetId of nextStageNodes) {
+                const targetEntry = graph.nodes.get(targetId)
+                if (!targetEntry) continue
+                if (targetEntry.catalogNode.isRailNode && targetEntry.catalogNode.category === 'governance') continue
+
+                // Skip if already connected
+                const pairKey = `${sourceId}->${targetId}`
+                if (existingPairs.has(pairKey)) continue
+
+                // Best-effort port matching: try compatible ports first, fallback to first available
+                const portMatch = findCompatiblePorts(
+                    sourceEntry.catalogNode.outputs ?? [],
+                    targetEntry.catalogNode.inputs ?? []
+                )
+
+                const sourceHandle = portMatch?.output.id
+                    ?? sourceEntry.catalogNode.outputs?.[0]?.id
+                    ?? 'output'
+                const targetHandle = portMatch?.input.id
+                    ?? targetEntry.catalogNode.inputs?.[0]?.id
+                    ?? 'input'
+                const portType = portMatch?.output.type
+                    ?? sourceEntry.catalogNode.outputs?.[0]?.type
+                    ?? 'raw_records'
+
+                suggestions.push({
+                    id: `suggest-seq-${generateId()}`,
+                    source: sourceId,
+                    sourceHandle,
+                    target: targetId,
+                    targetHandle,
+                    portType,
+                    reason: `${sourceEntry.catalogNode.name} → ${targetEntry.catalogNode.name}`,
+                    confidence: 'high',
+                    required: false,
+                    ruleId: 'stage_sequential',
+                    selected: true
+                })
+
+                existingPairs.add(pairKey)
+            }
+        }
+    }
+
+    return suggestions
+}
+
+// ============================================
 // STEP D: GENERATE FIX PLAN
 // ============================================
 
@@ -698,6 +794,10 @@ export function generateFixPlan(
     // 1. Suggest Governance Connections (Rule 1)
     suggestedEdges.push(...suggestGovernanceConnections(graph))
 
+    // 2. Stage-Sequential Wiring (primary L→R connections)
+    suggestedEdges.push(...generateStageSequentialEdges(graph))
+
+    // 3. Gap-based suggestions (supplementary — fills remaining holes)
     for (const gap of gaps) {
         if (gap.nodeId !== 'graph') {
             suggestedEdges.push(...proposeEdgesForGap(gap, graph, profileDef))
@@ -712,6 +812,9 @@ export function generateFixPlan(
         edgeKeys.add(key)
         return true
     })
+
+    // Only show high-confidence suggestions to the user
+    suggestedEdges = suggestedEdges.filter(edge => edge.confidence === 'high')
 
     // Generate node insertions for structural gaps
     const suggestedInsertions = insertRequiredIntermediateNodes(graph, gaps)
